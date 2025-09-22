@@ -2,7 +2,7 @@
 A language written in F#. It comes bundled with an IDE written for development in this language.
 
 ## IMPORTANT
-This software is primarily for Windows as the bundled IDE uses winform on the .NET, but you can still use the interpreter/compiler platform on Linux systems perfectly fine.
+This software is primarily for Windows as the bundled IDE uses winform on the .NET platform, but you can still use the interpreter/compiler software on Linux systems perfectly fine.
 
 # Base Requirements
 - [ ] Interpreter (F#)
