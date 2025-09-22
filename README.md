@@ -3,7 +3,8 @@ An industry-grade desktop maths environment that runs in the CL or a GUI. Design
 professional mathematicians.
 
 ## IMPORTANT
-This software is primarily for Windows as the bundled IDE uses WPF on the .NET platform, but you can still use the interpreter/compiler software on Linux systems perfectly fine.
+This software is primarily for Windows as the bundled IDE uses WPF on the .NET platform, but you can still use the
+interpreter/compiler software on Linux systems perfectly fine.
 
 - [ ] INT1 - Expressions
     - [ ] Number
