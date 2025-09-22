@@ -5,6 +5,7 @@
 /*   |_____/|__||_____|__|  |__|____|_____|                                 */
 /*                                                                          */
 /* This is the language specification for the Diorite mathematics language. */
+/* Whitespace is implied by this specification.                             */
 /* Developed by James Armstrong & Aidan Barden (2025)                       */
 
 /* Fundamental Definitions */
