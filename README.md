@@ -5,18 +5,6 @@ professional mathematicians.
 ## IMPORTANT
 This software is primarily for Windows as the bundled IDE uses WPF on the .NET platform, but you can still use the interpreter/compiler software on Linux systems perfectly fine.
 
-# Base Requirements
-- [ ] Interpreter (F#)
-  - [ ] Interpreting and executing arithmetic expressions
-  - [ ] Variable assignment
-  - [ ] Variable usage in expressions
-- [ ] IDE (C#)
-
-# Ideas
-- LSP (probably as we write the IME)
-- Wiki (GH Pages, on a separate branch)
-- Transpile to C (optional as the document states)
-
 - [ ] INT1 - Expressions
     - [ ] Number
     - [ ] Rational
