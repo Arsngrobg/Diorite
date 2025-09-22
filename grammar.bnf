@@ -20,7 +20,7 @@
 <fnparam>     ::= (<variable> "," <fnparam>) | <variable>
 <fnid>        ::= <variable> "(" <fnparam> ")"
 
-/* Function Invokation */
+/* Function Invocation */
 <fnarg>       ::= (<expression> "," <fnarg>) | <expression>
 <fncall>      ::= <variable> "(" <fnarg> ")"
 
