@@ -1,5 +1,5 @@
 # Diorite
-An industry-grade desktop maths environment that runs in the CL or a GUI. Designed for high-level mathematics, for
+An industry-grade desktop maths environment that runs in the CLI or a GUI. Designed for high-level mathematics, for
 professional mathematicians.
 
 ## IMPORTANT

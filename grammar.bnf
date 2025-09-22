@@ -1,0 +1,45 @@
+﻿/*                                                                          */
+/*    _____  __              __ __                                          */
+/*   |     \|__|.-----.----.|__|  |_.-----.                                 */
+/*   |  --  |  ||  _  |   _||  |   _|  -__|                                 */
+/*   |_____/|__||_____|__|  |__|____|_____|                                 */
+/*                                                                          */
+/* This is the language specification for the Diorite mathematics language. */
+/* Developed by James Armstrong & Aidan Barden (2025)                       */
+
+/* Fundamental Definitions */
+<digit>       ::= [0-9]
+<variable>    ::= [a-z] | [A-Z]
+
+/* Numeric Types */
+<integer>     ::= (<digit> <integer>) | <digit>
+<decimal>     ::= (<integer> "." <integer>) | ("." <integer>)
+<number>      ::= <integer> | <decimal>
+
+/* Function Declarations */
+<fnparam>     ::= (<variable> "," <fnparam>) | <variable>
+<fnid>        ::= <variable> "(" <fnparam> ")"
+
+/* Function Invokation */
+<fnarg>       ::= (<expression> "," <fnarg>) | <expression>
+<fncall>      ::= <variable> "(" <fnarg> ")"
+
+/* Value Composite Type */
+<value>       ::= <number> | <variable> | <fnid> | <fncall>
+
+/* Unary Operations */
+<unary>       ::= (("+" | "-") <unary>) | <value>
+
+/* Expressions */
+<variablemul> ::= <variable> <variablemul> | <variable>
+<implfactor>  ::= <unary> <variablemul> | <unary>
+<term>        ::= (<implfactor> ("+" | "-") <term>) | <implfactor>
+<factor>      ::= (<implfactor> ("*" | "/") <factor>) | <term> 
+<expression>  ::= "(" <expression> ")" | <factor> | <fnid>
+
+/* Equations */
+<component>   ::= <fnid> | <expression>
+<equation>    ::= <component> "=" <component>
+
+/* Grammar Tree Entry */
+<math>        ::= <expression> | <equation>
