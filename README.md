@@ -11,11 +11,9 @@ interpreter/compiler software on Linux systems perfectly fine.
     - [ ] Number
     - [ ] Rational
     - [ ] Complex
-- [ ] GUI1 - GUI
 - [ ] INT2 - Assignment
     - [ ] Variables
     - [ ] Functions (f(x), g(x), etc...)
-- [ ] GUI2 - Basic Plotting
 - [ ] INT3 - Statements
     - [ ] [Conditional Functions](https://tex.stackexchange.com/questions/47170/how-to-write-conditional-equations-with-one-sided-curly-brackets)
     - [ ] Iteration (recursion-ish, sum, lim)
@@ -25,11 +23,11 @@ interpreter/compiler software on Linux systems perfectly fine.
 - [ ] INT4 - Compiler
     - [ ] Compilation to C code
     - [ ] Optimizations (type inference, plotting)
-- [ ] GUI4 - Updated GUI
-- [ ] INT5 - IME
+- [ ] INT5 - IME (GUI)
     - [ ] Text editing
     - [ ] Run code
     - [ ] Compile code
+    - [ ] Extended plotting (GPU based)
     - [ ] Hot-Reloading (as you program)
     - [ ] Linting (OPTIONAL)
     - [ ] Code Completion (OPTIONAL)
