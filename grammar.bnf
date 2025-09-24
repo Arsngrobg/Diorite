@@ -24,10 +24,6 @@
 
 /* Value Types */
 <number>         ::= <integer> | <decimal>
-<complex>        ::= "i" | (<number> "i")
-                  |  (<number> "+" <number> "*" "i")
-                  |  (<number> "+" <number> "i")
-                  |  (<number> "+" "i")
 <variable>       ::= [a-z] | [A-Z]
 <value>          ::= "undefined"
                   |  <number>
