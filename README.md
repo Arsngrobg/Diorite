@@ -19,6 +19,7 @@ you are still able to utilize the interpreter/compiler on Linux systems if you d
     - [ ] Rational (Any rational decimal should be represented as a fraction whenever possible)
     - [ ] Complex (Implicitly defined through the pattern: `a + bi`)
     - [ ] Imaginary Number (`i` character default reserved as `sqrt(-1)`)
+    - [ ] Standard Notation (1e10 or 1*10^10)
 - [ ] INT2 - Operations & Expressions
     - [ ] Binary Operations (Addition, subtraction, multiplication, exponentiation, modulo)
     - [ ] Unary Operations (plus, negation, factorial)
