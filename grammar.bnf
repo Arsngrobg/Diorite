@@ -69,12 +69,18 @@
 /* Expressions & Equations */
 <equation>       ::= <definition> | <exponentiation> | (<exponentiation> "=" <exponentiation>)
 
-/* Fibonacci Example:                                                       */
-/* f(x) = {                                                                 */
-/*  undefined if x < 0,                                                     */
-/*  0 if x = 0,                                                             */
-/*  1 if x = 1,                                                             */
-/*  f(x - 2) + f(x - 1)) otherwise                                          */
-/*}                                                                         */
-/* f(x)={(undefined)if(x<0),(0)if(x=0),(1)if(x=1),(f(x-2)+f(x-1))otherwise} */
-/* (Brackets included for clarity).                                         */
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* Fibonacci Example:                                                                                                 */
+/* f(x) = {                                                                                                           */
+/*   undefined if x < 0,                                                                                              */
+/*   0 if x = 0,                                                                                                      */
+/*   1 if x = 1,                                                                                                      */
+/*   f(x - 2) + f(x - 1)) otherwise                                                                                   */
+/* }                                                                                                                  */
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* BNF Interpretation:                                                                                                */
+/* f(x)={(undefined)if(x<0),(0)if(x=0),(1)if(x=1),(f(x-2)+f(x-1))otherwise}                                           */
+/* (Brackets included for clarity).                                                                                   */
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* Developed by James Armstrong & Aidan Barden (2025)                                                                 */
+/* ------------------------------------------------------------------------------------------------------------------ */
