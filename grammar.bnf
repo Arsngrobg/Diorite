@@ -14,7 +14,7 @@
 /* Precedence order: b[+, -], [*, /], u[+, -], ^, and !.                                                              */
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* This .bnf file was generated using BNF Playground: https://bnfplayground.pauliankline.com                          */
-/* Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)                                                           */
+/* Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)                             */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /* Fundamentals */
@@ -26,6 +26,7 @@
 <number>         ::= <integer> | <decimal>
 <variable>       ::= [a-z] | [A-Z]
 <value>          ::= "undefined"
+                  |  "inf"
                   |  <number>
                   |  <variable>
                   |  <invocation>
