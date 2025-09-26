@@ -5,4 +5,8 @@
         <TargetFramework>net9.0</TargetFramework>
     </PropertyGroup>
 
+    <ItemGroup>
+      <Compile Include="Meta.fs" />
+    </ItemGroup>
+
 </Project>
