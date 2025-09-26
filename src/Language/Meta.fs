@@ -13,7 +13,7 @@
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
 
-namespace Diorite.Core.Meta
+namespace Diorite.Lang.Meta
 
 /// <summary>
 ///     The version module.
