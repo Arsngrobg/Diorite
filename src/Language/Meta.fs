@@ -5,10 +5,10 @@
 //   |_____/|__||_____|__|  |__|____|_____|
 //
 // ------------------------------------------------------------------------------------------------------------------
-// File:    meta.fsx
+// File:    Meta.fsx
 // Summary: metadata for the Diorite project
 // Author:  Arsngrobg
-// Version: v1.0
+// Version: v1.1
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
@@ -18,7 +18,7 @@ namespace Diorite.Lang.Meta
 /// <summary>
 ///     The version module.
 ///     <b>Diorite</b> abides by a modified version of semantic versioning (SemVer), where the <c>Version</c> contains
-///     two values: <c>major</c> & <c>minor</c>. These values represent the development stage of <b>Diorite</b>
+///     two values: <c>major</c> & <c>minor</c>. These values represent the development stage of <b>Diorite</b>.
 /// </summary>
 module version =
     /// <summary>
@@ -48,3 +48,11 @@ module version =
     /// <summary>This is the current language version for this instance of <b>Diorite</b>.</summary>
     /// <see cref='meta.version.Version'>sd</see>
     let public LANGUAGE_VERSION: Version = Version(VERSION_MAJOR, VERSION_MINOR)
+
+/// <summary>
+///     The files module.
+///     This module contains data about file-specific attributes in the <b>Diorite</b> project.
+/// </summary>
+module files =
+    /// <summary>The file extension for <b>Diorite</b> language files.</summary>
+    let FILE_EXTENSION: string = ".diorite"
