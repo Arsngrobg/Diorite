@@ -13,6 +13,8 @@
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
 
+namespace Diorite.Core.Meta
+
 /// <summary>
 ///     The version module.
 ///     <b>Diorite</b> abides by a modified version of semantic versioning (SemVer), where the <c>Version</c> contains
