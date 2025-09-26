@@ -5,11 +5,11 @@ professional mathematicians.
 ## If Building From Source
 You are required to install the [.NET 9.0 SDK](https://dotnet.microsoft.com/download) (or higher) in order to build this
 project from source. If you are not check the [releases](https://github.com/Arsngrobg/Diorite/releases) tab for a
-ready-to-use Diorite interpreter/compiler and an IME (Integrated Mathematics Environment) for quick-and-easy
-mathematical processing.
+ready-to-use Diorite interpreter/compiler and an *optional* IME (Integrated Mathematics Environment) to quickly and
+easily get into mathematical processing.
 
 ## Important
-The language is designed to run primarily on the **Windows** operating systems, as the bundled IME (Integrated
+The language is designed to run primarily on the **Windows** operating system, as the bundled IME (Integrated
 Mathematics Environment) executes on the WPF user interface platform - which is **not** supported on Linux. However,
 you are still able to utilize the interpreter/compiler on Linux systems if you do so.
 
