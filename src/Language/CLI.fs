@@ -32,7 +32,7 @@ type Argument =
 let collectArgs(argv: array<string>): list<Argument> =
     let rec read(argv: list<string>): list<Argument> =
         match argv with
-         | []                                 -> []
+         | []                                 -> [ ARG_HELP ] // by default, display help if no args
          | "-h"::tail | "--help"::tail        -> ARG_HELP              :: (read <| tail)
          | "-u"::tail | "--upgrade"::tail     -> ARG_UPGRADE           :: (read <| tail)
          | "-v"::tail | "--version"::tail     -> ARG_VERSION           :: (read <| tail)
@@ -40,16 +40,15 @@ let collectArgs(argv: array<string>): list<Argument> =
          | "-c"::tail | "--compile"::tail     -> ARG_COMPILE           :: (read <| tail)
          | _                                  -> ARG_LITERAL argv.Head :: (read <| argv.Tail)
 
-    read <| ( argv |> Array.toList )
+    read ( Array.toList argv )
 
 // dummy function for now
 let rec list2str<'T>(list: list<'T>): string =
     match list with
-        | head::tail -> $"{head.ToString()}, {list2str <| tail}"
+        | head::tail -> $"{head.ToString()}, {list2str tail}"
         | []         ->  "\n"
-
 
 [<EntryPoint>]
 let main(argv: array<string>): int32 =
-    printf $"{ list2str<Argument> <| (collectArgs <| argv) }"
+    printf $"{ list2str<Argument> ( collectArgs argv ) }"
     0
