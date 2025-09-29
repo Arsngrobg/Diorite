@@ -56,3 +56,7 @@ module version =
 module files =
     /// <summary>The file extension for <b>Diorite</b> language files.</summary>
     let FILE_EXTENSION: string = ".diorite"
+    /// <summary>The name of the project.</summary>
+    let PROG_NAME: string = "diorite"
+    /// <summary>The TitleCase representation of the <c>PROG_NAME</c> value.</summary>
+    let PROG_NAME_TITLE: string = $"{PROG_NAME.Substring(0, 1).ToUpper()}{PROG_NAME.Substring(1)}"

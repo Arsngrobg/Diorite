@@ -15,6 +15,29 @@
 
 module Diorite.Lang.CLI
 
+/// <summary>
+///     The cached <c>help</c> string, that displays when the CLI arguments: <c>-h</c>/<c>--help</c> is supplied or no
+///     args are supplied.
+/// </summary>
+let HELP_STRING: string = $"\b
+Usage: diorite [-h | --help]
+       (to display usage)
+    or
+       diorite [-u | --upgrade]
+       (to upgrade the current version of {Meta.files.PROG_NAME_TITLE})
+    or
+       diorite [-v | --version]
+       (to display the current version of {Meta.files.PROG_NAME_TITLE})
+    or
+       diorite [-i | --interpreter] <file>?
+       (to run the interpreter, either through the REPL or execution of a {Meta.files.FILE_EXTENSION} file)
+    or
+       diorite [-c | --compile] <file>
+       (To compile a given .diorite file)
+
+    <file> ::= a file name, suffixed with the {Meta.files.FILE_EXTENSION} extension
+"
+
 /// <summary>The arguments available to be supplied through the CLI.</summary>
 type Argument =
     | ARG_HELP
@@ -23,6 +46,11 @@ type Argument =
     | ARG_INTERPRETER
     | ARG_COMPILE
     | ARG_LITERAL of string
+
+/// <summary>Displays the <c>HELP_STRING</c> in the user's CLI.</summary>
+let help: int32 =
+    printf $"{HELP_STRING}"
+    0
 
 /// <summary>
 ///     Parses the list of raw literal arguments (<c>argv</c>) into a concrete list of tokenized <c>Argument</c> types.
@@ -49,9 +77,9 @@ let collectArgs (argv: list<string>): list<Argument> =
 /// <seealso cref="Diorite.Lang.CLI.Argument"/>
 let executeArgs (args: list<Argument>): int32 =
     match args with
-     | []                                 -> failwith "[TODO] Display --help if no args provided"
+     | []                                 -> help
      | [ ARG_VERSION ]                    -> failwith "[TODO] Display version"
-     | [ ARG_HELP ]                       -> failwith "[TODO] Display Help"
+     | [ ARG_HELP ]                       -> help
      | [ ARG_UPGRADE ]                    -> failwith "[TODO] Offer some sort of update feature (use gh releases?)"
      | [ ARG_INTERPRETER ]                -> failwith "[TODO] Bring up CLI for writing program"
      | [ ARG_INTERPRETER; ARG_LITERAL _ ] -> failwith "[TODO] Execute file by interpretation"
