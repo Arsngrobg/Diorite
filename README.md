@@ -8,10 +8,38 @@ project from source. If you are not check the [releases](https://github.com/Arsn
 ready-to-use Diorite interpreter/compiler and an *optional* IME (Integrated Mathematics Environment) to quickly and
 easily get into mathematical processing.
 
-## Important
+# Important
 The language is designed to run primarily on the **Windows** operating system, as the bundled IME (Integrated
 Mathematics Environment) executes on the WPF user interface platform - which is **not** supported on Linux. However,
 you are still able to utilize the interpreter/compiler on Linux systems if you do so.
+
+# Getting Started
+To get started with Diorite, execute this command in the command line:
+```fsharp
+$ diorite -i
+```
+This brings up the interactive REPL environment in the terminal, and you can begin executing mathematical expressions
+and write pure mathematical functions.
+```fsharp
+ |
+ |   f(x) = {
+ |      undefined           if x < 0
+ |      x                   if x < 2
+ |      f(x - 2) + f(x - 1) otherwise
+ |  }
+ >  f(20)
+ =  6765
+>>> ▮
+```
+This executes the fibonacci sequence up to the 20th position.
+If you want to save your state, just press `SHIFT` + `s` and it will give you a prompt, asking you what you would like
+to name your new `.diorite` file.
+
+To run your `.diorite` file, in the terminal, execute the command:
+```fsharp
+$ diorite -i <name>.diorite
+```
+After execution, you will be presented with the REPL exactly as you left it, ready to continue where you left of.
 
 ## Roadmap
 - [ ] INT1 - Values
