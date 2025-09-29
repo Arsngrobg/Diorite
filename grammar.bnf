@@ -10,10 +10,6 @@
 /* Each rule is a stage/function in the LL(1) (recursive descent) parser.                                             */
 /* This specification is written bottom-top to show the composition of these rules.                                   */
 /* This grammar was written with 'BNF Playground' (https://bnfplayground.pauliankline.com)                            */
-/* Be aware, that when using this BNF parser it may produce false positives, such as partial strings of optional      */
-/* values. For example: '2+' produces a false positive as it only partially respects the <Term> rule. The parser may  */
-/* be too permissive for this grammar but its the only way to write such a grammar without tearing my hair out in     */
-/* frustration. This grammar will strictly comply with the grammar and not implement these partial values.            */
 /* Whitespace is implied by this grammar - UNLESS SPECIFIED OTHERWISE                                                 */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
