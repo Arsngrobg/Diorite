@@ -40,14 +40,22 @@ module version =
     /// <param name='major'>The <b>major</b> component of this <b>Diorite</b> language version</param>
     /// <param name='minor'>The <b>minor</b> component of this <b>Diorite</b> language version</param>
     [<Struct>]
-    type Version (major: uint8, minor: uint8) =
-        /// <summary>Transforms this <c>Version</c> struct into its <c>string</c> representation.</summary>
-        /// <returns>the <c>string</c> representation of this <c>Version</c> struct</returns>
-        member _.ToString (): string = $"{major}.{minor}"
+    type Version = {
+        major: uint8
+        minor: uint8
+    }
+
+    /// <summary>Transforms this <c>Version</c> struct into its <c>string</c> representation.</summary>
+    /// <returns>the <c>string</c> representation of this <c>Version</c> struct</returns>
+    let ver2str (v: Version): string =
+        $"{v.major}{v.minor}"
 
     /// <summary>This is the current language version for this instance of <b>Diorite</b>.</summary>
     /// <see cref='meta.version.Version'>sd</see>
-    let public LANGUAGE_VERSION: Version = Version(VERSION_MAJOR, VERSION_MINOR)
+    let public LANGUAGE_VERSION: Version = {
+        major = VERSION_MAJOR;
+        minor = VERSION_MINOR
+    }
 
 /// <summary>
 ///     The files module.
