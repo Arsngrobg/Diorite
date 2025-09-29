@@ -31,14 +31,14 @@
 <Atom>                   ::= <Number> | <Variable>
 
 /* Operations: Unary */
-<Factorial>              ::= (<Atom> "!"*) | ("(" (<Term> | <FunctionExecution>) ")")
+<Factorial>              ::= (<Atom> "!"*) | ("(" (<Term> | <Builtin> | <FunctionExecution>) ")")
 <Signed>                 ::= ("+" | "-")* <Factorial>
 
 /* Operations: Binary */
 <Exponent>               ::= <Signed> ("^" <Signed>)*
 <Factor>                 ::= <Exponent> (("*" | "/") <Exponent>)*
 <Term>                   ::= <Factor>+ (("+" | "-" | "%") <Factor>)*
-<Expression>             ::= (<Term> | <FunctionExecution>) | ("(" (<Term> | <FunctionExecution>) ")")+
+<Expression>             ::= (<Term> | <Builtin> | <FunctionExecution>) | ("(" (<Term> | <Builtin> | <FunctionExecution>) ")")+
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Expression Examples:                                                                                               */
@@ -52,9 +52,14 @@
 <Conditions>             ::= <If> ((" " | "\n")+ <If>)* (" " | "\n")+ <Else>
 
 /* Functions */
-<FunctionDefinition>     ::= <Variable> "(" <Variable> ("," <Variable>)* ")"
-<FunctionExecution>      ::= <Variable> "(" <Expression> ("," <Expression>)* ")"
+<FunctionParams>         ::= <Variable> ("," <Variable>)*
+<FunctionArguments>      ::= <Expression> ("," <Expression>)*
+<FunctionDefinition>     ::= <Variable> "(" <FunctionParams> ")"
 <FunctionBody>           ::= <Expression> | "{" <Conditions> "}"
+<FunctionExecution>      ::= <Variable> "(" <FunctionArguments> ")"
+
+/* Builtin Functions - they are functions with identifiers with character count of at least 1 so using generic form   */
+<Builtin>                ::= [a-z]+ "(" <FunctionArguments> ")"
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Fibonacci Example:                                                                                                 */
