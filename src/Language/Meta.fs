@@ -43,7 +43,7 @@ module version =
     type Version (major: uint8, minor: uint8) =
         /// <summary>Transforms this <c>Version</c> struct into its <c>string</c> representation.</summary>
         /// <returns>the <c>string</c> representation of this <c>Version</c> struct</returns>
-        member _.asString: string = $"{major}.{minor}"
+        member _.ToString (): string = $"{major}.{minor}"
 
     /// <summary>This is the current language version for this instance of <b>Diorite</b>.</summary>
     /// <see cref='meta.version.Version'>sd</see>
