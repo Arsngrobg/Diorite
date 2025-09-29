@@ -5,79 +5,84 @@
 /*   |_____/|__||_____|__|  |__|____|_____|                                                                           */
 /*                                                                                                                    */
 /* ------------------------------------------------------------------------------------------------------------------ */
-/* This is the language specification for the Diorite mathematics language.                                           */
-/* Whitespace is implied by this specification, unless enforced by specific BNF rules.                                */
-/* ------------------------------------------------------------------------------------------------------------------ */
-/* Operator Precedence:                                                                                               */
-/* Binary operators (+, -, *, /, ^) are parsed in the order of: [+, -], [*, /], and ^.                                */
-/* Unary operators (+, -, !) are parsed in the order of: [+, -] and !.                                                */
-/* Precedence order: b[+, -], [*, /], u[+, -], ^, and !.                                                              */
-/* ------------------------------------------------------------------------------------------------------------------ */
-/* This .bnf file was generated using BNF Playground: https://bnfplayground.pauliankline.com                          */
-/* Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)                             */
+/* This is the grammar specification for the Diorite mathematics computing language.                                  */
+/* This specifictaion uses a mix of BNF and the 'syntax' sugar of EBNF for multiplcity definitions of rule repitions. */
+/* Each rule is a stage/function in the LL(1) (recursive descent) parser.                                             */
+/* This specification is written bottom-top to show the composition of these rules.                                   */
+/* This grammar was written with 'BNF Playground' (https://bnfplayground.pauliankline.com)                            */
+/* Be aware, that when using this BNF parser it may produce false positives, such as partial strings of optional      */
+/* values. For example: '2+' produces a false positive as it only partially respects the <Term> rule. The parser may  */
+/* be too permissive for this grammar but its the only way to write such a grammar without tearing my hair out in     */
+/* frustration. This grammar will strictly comply with the grammar and not implement these partial values.            */
+/* Whitespace is implied by this grammar - UNLESS SPECIFIED OTHERWISE                                                 */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Fundamentals */
-<digit>          ::= [0-9]
-<integer>        ::= (<digit> <integer>) | <digit>
-<decimal>        ::= (<integer> "." <integer>) | ("." <integer>)
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* ADDITIONAL INFO:                                                                                                   */
+/* - The character '_' is the equivalent to the ANS or ANSWER button on a calculator, hence it represents the result  */
+/*   of the previous expression                                                                                       */
+/* ------------------------------------------------------------------------------------------------------------------ */
 
 /* Value Types */
-<number>         ::= <integer> | <decimal>
-<variable>       ::= [a-z] | [A-Z]
-<value>          ::= "undefined"
-                  |  "inf"
-                  |  <number>
-                  |  <variable>
-                  |  <invocation>
-                  |  ("(" <exponentiation> ")")
-                  |  ("|" <exponentiation> "|")
+<Number>                 ::= ([0-9]+ ("." [0-9]+)?)
+<Variable>               ::= [a-z] | [A-Z] | "_"
+
+/* Grouping Type (Final Stage of Parser) */
+<Atom>                   ::= <Number> | <Variable>
+
+/* Operations: Unary */
+<Factorial>              ::= (<Atom> "!"*) | ("(" (<Term> | <FunctionExecution>) ")")
+<Signed>                 ::= ("+" | "-")* <Factorial>
+
+/* Operations: Binary */
+<Exponent>               ::= <Signed> ("^" <Signed>)*
+<Factor>                 ::= <Exponent> (("*" | "/") <Exponent>)*
+<Term>                   ::= <Factor>+ (("+" | "-" | "%") <Factor>)*
+<Expression>             ::= (<Term> | <FunctionExecution>) | ("(" (<Term> | <FunctionExecution>) ")")+
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* Expression Examples:                                                                                               */
+/* a^2 + b^2 - 4ac                  -> a^2+b^2-4ac (as per the BNF)                                                   */
+/* f(g(x)) + f(x) * g(x) - (4y % 4) -> f(g(x))+f(x)*g(x)-(4y%4) (as per the BNF)                                      */
+/* ------------------------------------------------------------------------------------------------------------------ */
 
 /* Function Conditionals */
-<eq>             ::= "=" | "!="
-<neq>            ::= "<" | ">" | "<=" | ">="
-<equality>       ::= <exponentiation> <eq> <exponentiation>
-<inequality>     ::= (<exponentiation> <neq> <exponentiation>)
-                  |  (<exponentiation> <neq> <exponentiation> <neq> <exponentiation>)
-<condition>      ::= <equality> | <inequality> | ("(" <equality> ")") | ("(" <inequality> ")")
-<if>             ::= <exponentiation> "if" <condition>
-<else>           ::= <exponentiation> "otherwise"
-<conditional>    ::= (<if> "," <conditional>) | (<if> "," <else>)
+<If>                     ::= <Expression> "if" <Expression> ("=" | "!=" | "<" | ">" | "<=" | ">=") <Expression>
+<Else>                   ::= <Expression> "otherwise"
+<Conditions>             ::= <If> ((" " | "\n")+ <If>)* (" " | "\n")+ <Else>
 
-/* Function Declarations */
-<params>         ::= (<params> "," <value>) | <value>
-<function>       ::= <variable> "(" <params> ")"
-<body>           ::= <exponentiation> | ("{" <conditional> "}")
-<definition>     ::= <function> "=" <body>
-
-/* Function Invocations */
-<args>           ::= (<args> "," <value>) | <value>
-<invocation>     ::= <variable> "(" <args> ")"
-
-/* Unary Operations */
-<signed>         ::= (("+" | "-") <signed>) | <value>
-<factorial>      ::= (<factorial> "!") | <signed>
-
-/* Binary Operations */
-<arithmetic>     ::= (<arithmetic> ("+" | "-") <factorial>) | <factorial>
-<multiplication> ::= (<multiplication> ("*" | "/" | "%") <arithmetic>) | <multiplication> <arithmetic> | <arithmetic>
-<exponentiation> ::= (<multiplication> "^" <exponentiation>) | <multiplication>
-
-/* Expressions & Equations */
-<equation>       ::= <definition> | <exponentiation> | (<exponentiation> "=" <exponentiation>)
+/* Functions */
+<FunctionDefinition>     ::= <Variable> "(" <Variable> ("," <Variable>)* ")"
+<FunctionExecution>      ::= <Variable> "(" <Expression> ("," <Expression>)* ")"
+<FunctionBody>           ::= <Expression> | "{" <Conditions> "}"
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Fibonacci Example:                                                                                                 */
-/* f(x) = {                                                                                                           */
-/*   undefined if x < 0,                                                                                              */
-/*   0 if x = 0,                                                                                                      */
-/*   1 if x = 1,                                                                                                      */
-/*   f(x - 2) + f(x - 1)) otherwise                                                                                   */
+/* F(x) = {                                                                                                           */
+/*     x                   if x <= 1                                                                                  */
+/*     F(x - 2) + F(x - 1) otherwise                                                                                  */
 /* }                                                                                                                  */
 /* ------------------------------------------------------------------------------------------------------------------ */
-/* BNF Interpretation:                                                                                                */
-/* f(x)={(undefined)if(x<0),(0)if(x=0),(1)if(x=1),(f(x-2)+f(x-1))otherwise}                                           */
-/* (Brackets included for clarity).                                                                                   */
+/* As per the BNF:                                                                                                    */
+/* F(x)={(x)if(x)<=(1) F(x-2)+F(x-1)otherwise}                                                                        */
+/* (Whitespace is required for seperating function conditionals)                                                      */
 /* ------------------------------------------------------------------------------------------------------------------ */
-/* Developed by James Armstrong & Aidan Barden (2025)                                                                 */
+
+/* Equations */
+<Equation>               ::= (<Expression> "=" <Expression>)
+                          | (<FunctionDefinition> "=" <Expression>)
+                          | <Expression> "=" <FunctionDefinition>
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* Equation Examples:                                                                                                 */
+/* y = mx + c         -> y=mx+c (as per the BNF)                                                                      */
+/* f(m) = g(m) + h(m) -> f(m)=g(m)+h(m) (as per the BNF)                                                              */
+/* f(x) = 2y + x      -> f(x)=2y+x (as per the BNF) - provided y is defined                                           */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/* Entry Point */
+<Diorite>                ::= <Equation> | <Expression>
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* Diorite | Developed and produced by Arsngrobg and Borngle | 2025                                                   */
 /* ------------------------------------------------------------------------------------------------------------------ */
