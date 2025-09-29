@@ -108,7 +108,7 @@ let rec printTList (lst:list<terminal>) : list<string> =
 
 
 let repl ()  =
-    Console.WriteLine("Simple Interpreter")
+    Console.WriteLine("Simple Interpreter: ")
     let input:string = getInputString()
     let oList = lexer input
     let sList = printTList oList;
