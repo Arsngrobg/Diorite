@@ -23,16 +23,18 @@
 /*   of the previous expression                                                                                       */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Value Types */
+/* Value Types & Reserved Words */
 <Number>                 ::= ([0-9]+ ("." [0-9]+)?)
 <Variable>               ::= [a-z] | [A-Z] | "_"
+<Reserved>               ::= "undefined" | "infinity" | "pi" | "tau"
 
 /* Grouping Type (Final Stage of Parser) */
-<Atom>                   ::= <Number> | <Variable>
+<Atom>                   ::= <Reserved> | <Number> | <Variable>
 
 /* Operations: Unary */
-<Factorial>              ::= (<Atom> "!"*) | ("(" (<Term> | <Builtin> | <FunctionExecution>) ")")
-<Signed>                 ::= ("+" | "-")* <Factorial>
+<Factorial>              ::= (<Atom> "!"*) | ("(" <Expression> ")")
+<Percentage>             ::= <Factorial> "%"*
+<Signed>                 ::= ("+" | "-")* <Percentage>
 
 /* Operations: Binary */
 <Exponent>               ::= <Signed> ("^" <Signed>)*
@@ -52,11 +54,12 @@
 <Conditions>             ::= <If> ((" " | "\n")+ <If>)* (" " | "\n")+ <Else>
 
 /* Functions */
+<FunctionName>           ::= <Variable> [0-9]*
 <FunctionParams>         ::= <Variable> ("," <Variable>)*
 <FunctionArguments>      ::= <Expression> ("," <Expression>)*
-<FunctionDefinition>     ::= <Variable> "(" <FunctionParams> ")"
+<FunctionDefinition>     ::= <FunctionName> "(" <FunctionParams> ")"
+<FunctionExecution>      ::= <FunctionName> "(" <FunctionArguments> ")"
 <FunctionBody>           ::= <Expression> | "{" <Conditions> "}"
-<FunctionExecution>      ::= <Variable> "(" <FunctionArguments> ")"
 
 /* Builtin Functions - they are functions with identifiers with character count of at least 1 so using generic form   */
 <Builtin>                ::= [a-z]+ "(" <FunctionArguments> ")"
@@ -64,19 +67,20 @@
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Fibonacci Example:                                                                                                 */
 /* F(x) = {                                                                                                           */
-/*     x                   if x <= 1                                                                                  */
+/*     undefined           if x < 0                                                                                   */
+/*     x                   if x < 2                                                                                   */
 /*     F(x - 2) + F(x - 1) otherwise                                                                                  */
 /* }                                                                                                                  */
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* As per the BNF:                                                                                                    */
-/* F(x)={(x)if(x)<=(1) F(x-2)+F(x-1)otherwise}                                                                        */
+/* F(x)={(undefined)if(x)<(0) (x)if(x)<(2) F(x-2)+F(x-1)otherwise}                                                    */
 /* (Whitespace is required for seperating function conditionals)                                                      */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /* Equations */
 <Equation>               ::= (<Expression> "=" <Expression>)
-                          | (<FunctionDefinition> "=" <Expression>)
-                          | <Expression> "=" <FunctionDefinition>
+                          |  (<FunctionDefinition> "=" <FunctionBody>)
+                          |  (<FunctionBody> "=" <FunctionDefinition>)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Equation Examples:                                                                                                 */
