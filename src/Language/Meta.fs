@@ -30,7 +30,7 @@ module version =
     ///     The <b>minor</b> version component of <b>Diorite</b>.
     ///     <b>This should be accurate and updated accordingly.</b>
     /// </summary>
-    let VERSION_MINOR: uint8 = uint8 0
+    let VERSION_MINOR: uint8 = uint8 1
 
     /// <summary>
     ///     A struct, representing the current version of <b>Diorite</b> that is installed and currently running on the
@@ -40,10 +40,10 @@ module version =
     /// <param name='major'>The <b>major</b> component of this <b>Diorite</b> language version</param>
     /// <param name='minor'>The <b>minor</b> component of this <b>Diorite</b> language version</param>
     [<Struct>]
-    type Version(major: uint8, minor: uint8) =
+    type Version (major: uint8, minor: uint8) =
         /// <summary>Transforms this <c>Version</c> struct into its <c>string</c> representation.</summary>
         /// <returns>the <c>string</c> representation of this <c>Version</c> struct</returns>
-        member _.asString(): string = $"{major}.{minor}"
+        member _.asString (): string = $"{major}.{minor}"
 
     /// <summary>This is the current language version for this instance of <b>Diorite</b>.</summary>
     /// <see cref='meta.version.Version'>sd</see>
