@@ -25,9 +25,9 @@ type Argument =
     | ARG_LITERAL of string
 
 /// <summary>
-///     Parses the array of raw literal arguments (<c>argv</c>) into a concrete list of tokenized <c>Argument</c> types.
+///     Parses the list of raw literal arguments (<c>argv</c>) into a concrete list of tokenized <c>Argument</c> types.
 /// </summary>
-/// <param name='argv'>the raw variadic list of arguments supplied through the CLI</param>
+/// <param name='argv'>the raw variadic list of arguments supplied through the CLI or otherwise</param>
 /// <seealso cref="Diorite.Lang.CLI.Argument"/>
 let collectArgs (argv: list<string>): list<Argument> =
     let rec read (argv: list<string>): list<Argument> =
@@ -42,8 +42,14 @@ let collectArgs (argv: list<string>): list<Argument> =
 
     read argv
 
+/// <summary>
+///     Executes the specific <b>Diorite</b> functionality through the provided combination of <c>Argument</c> list.
+/// </summary>
+/// <param name="args">the <c>Argument</c> tokens to `parse`</param>
+/// <seealso cref="Diorite.Lang.CLI.Argument"/>
 let executeArgs (args: list<Argument>): int32 =
     match args with
+     | []                                 -> failwith "[TODO] Display --help if no args provided"
      | [ ARG_VERSION ]                    -> failwith "[TODO] Display version"
      | [ ARG_HELP ]                       -> failwith "[TODO] Display Help"
      | [ ARG_UPGRADE ]                    -> failwith "[TODO] Offer some sort of update feature (use gh releases?)"
