@@ -33,14 +33,24 @@ let collectArgs (argv: list<string>): list<Argument> =
     let rec read (argv: list<string>): list<Argument> =
         match argv with
          | []                                 -> []
-         | "-h"::tail | "--help"::tail        -> ARG_HELP              :: (read <| tail)
-         | "-u"::tail | "--upgrade"::tail     -> ARG_UPGRADE           :: (read <| tail)
-         | "-v"::tail | "--version"::tail     -> ARG_VERSION           :: (read <| tail)
-         | "-i"::tail | "--interpreter"::tail -> ARG_INTERPRETER       :: (read <| tail)
-         | "-c"::tail | "--compile"::tail     -> ARG_COMPILE           :: (read <| tail)
-         | _                                  -> ARG_LITERAL argv.Head :: (read <| argv.Tail)
+         | "-h"::tail | "--help"::tail        -> ARG_HELP              :: (read tail)
+         | "-u"::tail | "--upgrade"::tail     -> ARG_UPGRADE           :: (read tail)
+         | "-v"::tail | "--version"::tail     -> ARG_VERSION           :: (read tail)
+         | "-i"::tail | "--interpreter"::tail -> ARG_INTERPRETER       :: (read tail)
+         | "-c"::tail | "--compile"::tail     -> ARG_COMPILE           :: (read tail)
+         | _                                  -> ARG_LITERAL argv.Head :: (read argv.Tail)
 
     read argv
+
+let executeArgs (args: list<Argument>): int32 =
+    match args with
+     | [ ARG_VERSION ]                    -> failwith "[TODO] Display version"
+     | [ ARG_HELP ]                       -> failwith "[TODO] Display Help"
+     | [ ARG_UPGRADE ]                    -> failwith "[TODO] Offer some sort of update feature (use gh releases?)"
+     | [ ARG_INTERPRETER ]                -> failwith "[TODO] Bring up CLI for writing program"
+     | [ ARG_INTERPRETER; ARG_LITERAL _ ] -> failwith "[TODO] Execute file by interpretation"
+     | [ ARG_COMPILE; ARG_LITERAL _ ]     -> failwith "[TODO] Compile that shit"
+     | _                                  -> failwith "Illegal combination of arguments"
 
 // dummy function for now
 let rec list2str<'T> (list: list<'T>): string =
@@ -50,5 +60,6 @@ let rec list2str<'T> (list: list<'T>): string =
 
 [<EntryPoint>]
 let main (argv: array<string>): int32 =
-    printf $"{ list2str<Argument> ( collectArgs ( Array.toList argv )) }"
-    0
+    let args: list<Argument> = collectArgs ( Array.toList argv )
+    printf $"{ list2str<Argument> args }"
+    executeArgs args
