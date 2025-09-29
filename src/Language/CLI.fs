@@ -95,7 +95,7 @@ module parsing =
          | [ ARG_VERSION ]                    -> functions.version()
          | [ ARG_HELP ] | []                  -> functions.help()
          | [ ARG_UPGRADE ]                    -> failwith "[TODO] Offer some sort of update feature (use gh releases?)"
-         | [ ARG_INTERPRETER ]                -> failwith "[TODO] Bring up CLI for writing program"
+         | [ ARG_INTERPRETER ]                -> Interpreter.repl()
          | [ ARG_INTERPRETER; ARG_LITERAL _ ] -> failwith "[TODO] Execute file by interpretation"
          | [ ARG_COMPILE; ARG_LITERAL _ ]     -> failwith "[TODO] Compile that shit"
          | _                                  -> failwith "Illegal combination of arguments"

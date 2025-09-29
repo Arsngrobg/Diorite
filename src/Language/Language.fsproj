@@ -7,6 +7,7 @@
 
     <ItemGroup>
       <Compile Include="Meta.fs" />
+      <Compile Include="Interpreter.fs" />
       <Compile Include="CLI.fs" />
     </ItemGroup>
 

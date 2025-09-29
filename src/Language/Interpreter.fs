@@ -3,6 +3,8 @@
 // Date: 23/10/2022
 // Reference: Peter Sestoft, Grammars and parsing with F#, Tech. Report
 
+module Diorite.Lang.Interpreter
+
 open System
 
 type terminal =
@@ -105,8 +107,7 @@ let rec printTList (lst:list<terminal>) : list<string> =
             []
 
 
-[<EntryPoint>]
-let main argv  =
+let repl ()  =
     Console.WriteLine("Simple Interpreter")
     let input:string = getInputString()
     let oList = lexer input
