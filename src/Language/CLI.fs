@@ -8,13 +8,14 @@
 // File:    CLI.fs
 // Summary: Command-Line Interface utils and the entry point for the Diorite language utilities
 // Author:  Arsngrobg
-// Version: v1.7
+// Version: v1.8
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
 
 module Diorite.Lang.CLI
 
+/// <summary>The constants used by the CLI, for easy editing.</summary>
 module constants =
     /// <summary>The cached <b>version</b> string, that displays when the CLI arguments: <c>-v</c>/<c>--version</c>/
     ///          <c>-h</c>/<c>--help</c> is supplied or no arguments are supplied.
@@ -44,6 +45,7 @@ Usage: diorite [-h | --help]
     <file> ::= a file name, suffixed with the {Meta.files.FILE_EXTENSION} extension
 "
 
+/// <summary>The functions executed by the CLI, depending on the provided CLI arguments.</summary>
 module functions =
     /// <summary>Displays the <c>HELP_STRING</c> in the user's CLI.</summary>
     let help (): int32 =
@@ -55,6 +57,7 @@ module functions =
         printf $"{constants.VERSION_STRING}"
         0
 
+/// <summary>The CLI parsing-related functionality.</summary>
 module parsing =
     /// <summary>The arguments available to be supplied through the CLI.</summary>
     type Argument =

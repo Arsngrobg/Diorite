@@ -52,7 +52,7 @@ module version =
 
     /// <summary>This is the current language version for this instance of <b>Diorite</b>.</summary>
     /// <see cref='meta.version.Version'>sd</see>
-    let public LANGUAGE_VERSION: Version = {
+    let LANGUAGE_VERSION: Version = {
         major = VERSION_MAJOR;
         minor = VERSION_MINOR
     }
