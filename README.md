@@ -22,7 +22,7 @@ This brings up the interactive REPL environment in the terminal, and you can beg
 and write pure mathematical functions.
 ```fsharp
  |
- |   f(x) = {
+ |  f(x) = {
  |      undefined           if x < 0
  |      x                   if x < 2
  |      f(x - 2) + f(x - 1) otherwise
@@ -39,7 +39,7 @@ To run your `.diorite` file, in the terminal, execute the command:
 ```fsharp
 $ diorite -i <name>.diorite
 ```
-After execution, you will be presented with the REPL exactly as you left it, ready to continue where you left of.
+After execution, you will be presented with the REPL exactly as you left it, ready to continue where you left off.
 
 ## Roadmap
 - [ ] INT1 - Values

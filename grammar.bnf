@@ -49,9 +49,13 @@
 <Else>                   ::= <Expression> "otherwise"
 <Conditions>             ::= <If> ((" " | "\n")+ <If>)* (" " | "\n")+ <Else>
 
+/* Function Set Constraints */
+<Set>                    ::= "N" | "Z" | "Q" | "Q'" | "R" | "C"
+
 /* Functions */
 <FunctionName>           ::= <Variable> [0-9]*
-<FunctionParams>         ::= <Variable> ("," <Variable>)*
+<FunctionParam>          ::= <Variable> (":" <Set>)?
+<FunctionParams>         ::= <FunctionParam> ("," <FunctionParam>)*
 <FunctionArguments>      ::= <Expression> ("," <Expression>)*
 <FunctionDefinition>     ::= <FunctionName> "(" <FunctionParams> ")"
 <FunctionExecution>      ::= <FunctionName> "(" <FunctionArguments> ")"
@@ -75,8 +79,8 @@
 
 /* Equations */
 <Equation>               ::= (<Expression> "=" <Expression>)
-                          |  (<FunctionDefinition> "=" <FunctionBody>)
-                          |  (<FunctionBody> "=" <FunctionDefinition>)
+                          |  ((<FunctionDefinition> ("->" <Set>)?) "=" <FunctionBody>)
+                          |  (<FunctionBody> "=" ((<FunctionDefinition> ("->" <Set>)?)))
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Equation Examples:                                                                                                 */
