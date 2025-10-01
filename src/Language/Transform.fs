@@ -25,7 +25,6 @@ module Lexer =
         // value types
         | NUMBER            of float
         | VARIABLE          of string
-        | ANSWER
         // constants
         | UNDEFINED
         | INFINITY
@@ -65,7 +64,6 @@ module Parser =
         // value types
         | NUMBER     of float
         | VARIABLE   of string
-        | ANSWER
         // constants
         | UNDEFINED
         | INFINITY
