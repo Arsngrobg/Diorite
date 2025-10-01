@@ -21,7 +21,7 @@
 
 /* Value Types & Reserved Words */
 <Number>                 ::= ([0-9]+ ("." [0-9]+)?)
-<Variable>               ::= [a-z] | [A-Z] | "_"
+<Variable>               ::= (([a-z] | [A-Z]) [0-9]*) | "_"
 <Reserved>               ::= "undefined" | "infinity" | "pi" | "tau"
 
 /* Grouping Type (Final Stage of Parser) */
@@ -53,12 +53,11 @@
 <Set>                    ::= "N" | "Z" | "Q" | "Q'" | "R" | "C"
 
 /* Functions */
-<FunctionName>           ::= <Variable> [0-9]*
 <FunctionParam>          ::= <Variable> (":" <Set>)?
 <FunctionParams>         ::= <FunctionParam> ("," <FunctionParam>)*
 <FunctionArguments>      ::= <Expression> ("," <Expression>)*
-<FunctionDefinition>     ::= <FunctionName> "(" <FunctionParams> ")"
-<FunctionExecution>      ::= <FunctionName> "(" <FunctionArguments> ")"
+<FunctionDefinition>     ::= <Variable> "(" <FunctionParams> ")"
+<FunctionExecution>      ::= <Variable> "(" <FunctionArguments> ")"
 <FunctionBody>           ::= <Expression> | "{" <Conditions> "}"
 
 /* Builtin Functions - they are functions with identifiers with character count of at least 1 so using generic form   */

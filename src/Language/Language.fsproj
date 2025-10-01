@@ -9,6 +9,7 @@
       <Compile Include="Meta.fs" />
       <Compile Include="Interpreter.fs" />
       <Compile Include="CLI.fs" />
+      <Compile Include="Transform.fs" />
     </ItemGroup>
 
 </Project>

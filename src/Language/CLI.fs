@@ -20,7 +20,7 @@ module constants =
     /// <summary>The cached <b>version</b> string, that displays when the CLI arguments: <c>-v</c>/<c>--version</c>/
     ///          <c>-h</c>/<c>--help</c> is supplied or no arguments are supplied.
     /// </summary>
-    let VERSION_STRING: string = $"{Meta.files.PROG_NAME_TITLE} (v{Meta.version.LANGUAGE_VERSION.ToString()})"
+    let VERSION_STRING: string = $"{Meta.Files.PROG_NAME_TITLE} (v{Meta.Version.LANGUAGE_VERSION.ToString()})"
 
     /// <summary>
     ///     The cached <b>help</b> string, that displays when the CLI arguments: <c>-h</c>/<c>--help</c> is supplied
@@ -31,18 +31,18 @@ Usage: diorite [-h | --help]
        (to display usage)
     or
        diorite [-u | --upgrade]
-       (to upgrade the current version of {Meta.files.PROG_NAME_TITLE})
+       (to upgrade the current version of {Meta.Files.PROG_NAME_TITLE})
     or
        diorite [-v | --version]
-       (to display the current version of {Meta.files.PROG_NAME_TITLE})
+       (to display the current version of {Meta.Files.PROG_NAME_TITLE})
     or
        diorite [-i | --interpreter] <file>?
-       (to run the interpreter, either through the REPL or execution of a {Meta.files.FILE_EXTENSION} file)
+       (to run the interpreter, either through the REPL or execution of a {Meta.Files.FILE_EXTENSION} file)
     or
        diorite [-c | --compile] <file>
        (To compile a given .diorite file)
 
-    <file> ::= a file name, suffixed with the {Meta.files.FILE_EXTENSION} extension
+    <file> ::= a file name, suffixed with the {Meta.Files.FILE_EXTENSION} extension
 "
 
 /// <summary>The functions executed by the CLI, depending on the provided CLI arguments.</summary>

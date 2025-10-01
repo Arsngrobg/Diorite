@@ -16,11 +16,11 @@
 namespace Diorite.Lang.Meta
 
 /// <summary>
-///     The version module.
+///     The <c>Version</c> module.
 ///     <b>Diorite</b> abides by a modified version of semantic versioning (SemVer), where the <c>Version</c> contains
 ///     two values: <c>major</c> & <c>minor</c>. These values represent the development stage of <b>Diorite</b>.
 /// </summary>
-module version =
+module Version =
     /// <summary>
     ///     The <b>major</b> version component of <b>Diorite</b>.
     ///     <b>This should be accurate and updated accordingly.</b>
@@ -58,10 +58,10 @@ module version =
     }
 
 /// <summary>
-///     The files module.
+///     The <c>Files</c> module.
 ///     This module contains data about file-specific attributes in the <b>Diorite</b> project.
 /// </summary>
-module files =
+module Files =
     /// <summary>The file extension for <b>Diorite</b> language files.</summary>
     let FILE_EXTENSION: string = ".diorite"
     /// <summary>The name of the project.</summary>
