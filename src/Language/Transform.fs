@@ -5,10 +5,10 @@
 //   |_____/|__||_____|__|  |__|____|_____|
 //
 // ------------------------------------------------------------------------------------------------------------------
-// File:    Lexer.fs
-// Summary: The lexer for the Diorite language
+// File:    Transform.fs
+// Summary: The functions for transforming diorite source files into ASTs and/or token streams
 // Author:  Arsngrobg
-// Version: v1.8
+// Version: v1.1
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
