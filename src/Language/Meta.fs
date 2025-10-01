@@ -30,7 +30,7 @@ module Version =
     ///     The <b>minor</b> version component of <b>Diorite</b>.
     ///     <b>This should be accurate and updated accordingly.</b>
     /// </summary>
-    let VERSION_MINOR: uint8 = uint8 1
+    let VERSION_MINOR: uint8 = uint8 4
 
     /// <summary>
     ///     A struct, representing the current version of <b>Diorite</b> that is installed and currently running on the
