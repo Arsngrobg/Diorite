@@ -17,7 +17,7 @@ namespace Diorite.Language.Transform
 
 /// <summary>
 ///     The <c>Lexer</c> module.
-///     All related functionality for tokenizing
+///     All related functionality for tokenizing <c>Diorite</c> source code.
 /// </summary>
 module Lexer =
     /// <summary>The token types that are recognised by this lexer.</summary>
