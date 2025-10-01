@@ -50,7 +50,7 @@ module Lexer =
     ///     The <c>lexer</c> module.
     ///     All related functionality for converting a raw string into a stream of tokens.
     /// </summary>
-    /// <param name="src">the raw string </param>
+    /// <param name="src">the raw string to be tokenized</param>
     let lex(src: string): list<Token> =
         []
 
