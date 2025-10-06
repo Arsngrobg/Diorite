@@ -41,7 +41,7 @@ $ diorite -i <name>.diorite
 ```
 After execution, you will be presented with the REPL exactly as you left it, ready to continue where you left off.
 
-# Feature List for a MVP
+# Feature List for an MVP
 - Value Types
   - Number:    variables storing a value are implicitly `double` under the hood - but can be bound by a `set hint`
   - Variable:  character with an optional numerical subscript (x, x0, x00 are two different variables)
@@ -65,13 +65,13 @@ After execution, you will be presented with the REPL exactly as you left it, rea
   - Domain:     definable domains using set notation
   - Attributes: can be attributed with square brackets and the attribute
     - `symbol`: allows for a symbol to be assigned to this function, the symbol persists through the programs lifetime
-    - `inline`: inlines the function whenever possible
+      - `inline`: inlines the function whenever possible
       - expression functions are inlined as is
       - conditional functions only inline the value
-    - `memoized`: function return values are stored in a cache to save CPU cycles on recompute
-    - 'force':  forces the compiler\interpreter to use these attributes - regardless of the CLI arguments
-      - `inline`
-      - `memoized`
+      - `memoized`: function return values are stored in a cache to save CPU cycles on recompute
+      - 'force':  forces the compiler\interpreter to use these attributes - regardless of the CLI arguments
+        - `inline`
+        - `memoized`
 - Errors
   - `SyntaxError`: illegal token or illegal sequence of tokens / unexpected token
   - `MathError`:   division by zero, square root of negative, infinite recursion, executing operations on `undefined`
@@ -100,8 +100,11 @@ After execution, you will be presented with the REPL exactly as you left it, rea
     plot (fn)  visualises the provided function (fn) in the respective interactive environment
     ```
 - Optimizations
-    - Memoization: implied if not explicitly by either a function attribute or CLI argument
-    - Inlining:    implied if not explicitly by either a function attribute or CLI argument
+  - Memoization: implied if not explicitly by either a function attribute or CLI argument
+  - Inlining:    implied if not explicitly by either a function attribute or CLI argument
+- Compilation
+  - IL:     compiles to C# IL
+  - Method: using ilasm
 - IME
   - GUI:          modern feel, sleek
   - Extends:      extends plotting functionality by displaying it in the graphical interface using the GPU
