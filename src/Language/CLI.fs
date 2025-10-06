@@ -67,8 +67,8 @@ type Argument =
 /// </summary>
 /// <param name="argv"> the variadic list of raw string arguments </param>
 /// <returns> a list of typed <c>Argument</c> union type </returns>
-let collectArgs (argv: list<string>): list<Argument> =
-    let rec read (argv: list<string>): list<Argument> =
+let collectArgs (argv: string list): Argument list =
+    let rec read (argv: string list): Argument list =
         match argv with
          | []                                 -> []
          | "-h"::tail | "--help"       ::tail -> ARG_HELP         :: (read tail)
@@ -85,7 +85,7 @@ let collectArgs (argv: list<string>): list<Argument> =
 /// </summary>
 /// <param name="args"> the list of <c>Argument</c>s to process </param>
 /// <returns> the error code, or <c>0</c> if no error occured </returns>
-let executeArgs (args: list<Argument>): int32 =
+let executeArgs (args: Argument list): int32 =
     match args with
      | [ ARG_VERSION ]                    ->
          printf $"{Version.languageVersion}"
@@ -95,13 +95,14 @@ let executeArgs (args: list<Argument>): int32 =
          0
      | [ ARG_UPGRADE ]                    -> failwith "[TODO] Offer some sort of update feature (use gh releases?)"
      | [ ARG_INTERPRETER ]                ->
+         Interpreter.REPL.launch ()
          0
      | [ ARG_INTERPRETER; ARG_LITERAL _ ] -> failwith "[TODO] Execute file by interpretation"
      | [ ARG_COMPILE; ARG_LITERAL _ ]     -> failwith "[TODO] Compile that shit"
      | _                                  -> failwith "Illegal combination of arguments"
 
 [<EntryPoint>]
-let main (argv: array<string>): int32 =
+let main (argv: string array): int32 =
     let args: list<Argument> = collectArgs ( Array.toList argv )
-    printf $"{args}"
+    printf $"{args}\n"
     executeArgs args
