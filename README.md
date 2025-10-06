@@ -57,8 +57,8 @@ After execution, you will be presented with the REPL exactly as you left it, rea
 - Variables
   - Initially: `undefined`
   - Storage:   either a value, function, or expression (auto-solve if trivial - e.g. `x = 2+2`)
-  - Internals: array of size `26` slots that can contain a value or `undefined` and also a *bucket* for the subscript
-               variables
+  - Internals: array of size `26` (+ `_`) slots that can contain a value or `undefined` and also a *bucket* for the
+               subscript variables
 - Functions
   - Storage:    occupies same *memory* as variables
   - Internals:  the abstract syntax tree (AST) is stored in the *memory* location to be executed
@@ -118,4 +118,3 @@ After execution, you will be presented with the REPL exactly as you left it, rea
 
 ##### Copyright
 *Diorite*, Developed & Created by Arsngrobg and Borngle, **2025**
-
