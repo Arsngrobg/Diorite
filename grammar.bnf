@@ -22,7 +22,7 @@
 /* Value Types & Reserved Words */
 <Number>                 ::= ([0-9]+ ("." [0-9]+)?)
 <Variable>               ::= (([a-z] | [A-Z]) [0-9]*) | "_"
-<Reserved>               ::= "undefined" | "infinity" | "pi" | "tau"
+<Reserved>               ::= "undefined" | "infinity" | "inf" | "pi" | "tau"
 
 /* Grouping Type (Final Stage of Parser) */
 <Atom>                   ::= <Reserved> | <Number> | <Variable>
@@ -36,7 +36,9 @@
 <Exponent>               ::= <Signed> ("^" <Signed>)*
 <Factor>                 ::= <Exponent> (("*" | "/") <Exponent>)*
 <Term>                   ::= <Factor>+ (("+" | "-" | "%") <Factor>)*
-<Expression>             ::= (<Term> | <Builtin> | <FunctionExecution>) | ("(" (<Term> | <Builtin> | <FunctionExecution>) ")")+
+<Expression>             ::= (<Term> | <Builtin> | <FunctionExecution>)
+                          |  ("(" (<Term> | <Builtin> | <FunctionExecution>) ")")+
+                          |  ("|" (<Term> | <Builtin> | <FunctionExecution>) "|")+
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Expression Examples:                                                                                               */
@@ -50,7 +52,7 @@
 <Conditions>             ::= <If> ((" " | "\n")+ <If>)* (" " | "\n")+ <Else>
 
 /* Function Set Constraints */
-<Set>                    ::= "N" | "Z" | "Q" | "Q'" | "R" | "C"
+<Set>                    ::= "N" | "Z" | "Q" | "I" | "R" | "C"
 
 /* Functions */
 <FunctionParam>          ::= <Variable> (":" <Set>)?

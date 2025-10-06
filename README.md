@@ -41,79 +41,78 @@ $ diorite -i <name>.diorite
 ```
 After execution, you will be presented with the REPL exactly as you left it, ready to continue where you left off.
 
-## Roadmap
-- [ ] INT1 - Values
-    - [ ] Number (Mathematicians shouldn't have to worry about the underlying type, just numbers!)
-    - [ ] Rational (Any rational decimal should be represented as a fraction whenever possible)
-    - [ ] Complex (Implicitly defined through the pattern: `a + bi`)
-    - [ ] Imaginary Number (`i` character default reserved as `sqrt(-1)`)
-    - [ ] Standard Notation (1e10 or 1*10^10)
-- [ ] INT2 - Operations & Expressions
-    - [ ] Binary Operations (Addition, subtraction, multiplication, exponentiation, modulo)
-    - [ ] Unary Operations (plus, negation, factorial)
-    - [ ] Expressions (BIDMAS)
-- [ ] INT3 - Assignment & Variable Storage
-    - [ ] Equations (EXPRESSION = EXPRESSION -> `2x = 4`)
-    - [ ] Storage (e.g. `x = 5`)
-    - [ ] Implicit Solving (e.g. `2x = 4` -> `x = 2`)
-- [ ] INT4 - Functions & Statements
-    - [ ] Overlap (functions and variables occupy the same memory bank `x = 2` then `x(t) = ...` overrides `x = 2`)
-    - [ ] Conditionals (Functions can have a 'list' of conditions that affect the result e.g. `f(x) = undefined` for 
-          negative values)
-    - [ ] Iteration (Recursive functions, summations)
-- [ ] INT5 - Standard Library
-    - [ ] Constants
-      - [ ] `π` (pi)
-      - [ ] `τ` (tau)
-      - [ ] `e`
-      - [ ] `inf`
-      - [ ] `undefined`
-    - [ ] Functions
-      - [ ] `sum` (Summation of functions -> sum())
-      - [ ] `pow` (x to the power of y)
-      - [ ] `sqrt` (Square root)
-      - [ ] `cbrt` (Cube root)
-      - [ ] `factorial` (5!)
-      - [ ] `gcd` (Greatest common denominator of a pair of numbers)
-      - [ ] `lcm` (Lowest common multiple of a pair of numbers)
-      - [ ] `floor` (rounds the decimal down to the nearest integer representation)
-      - [ ] `ceil` (rounds the decimal up to the nearest integer representation)
-      - [ ] `sign` (returns the unit multiple of the given input i.e. +ve = `+1`, -ve = `-1`)
-      - [ ] `log` (Logarithm of `x` to the given base)
-      - [ ] `deg` (Convert radians to degrees)
-      - [ ] `rad` (Convert degrees to radians)
-      - [ ] trigonometrics (`sin`, `cos`, `tan`, `asin`, `acos`, `atan`, etc...)
-      - [ ] `int` (Numerical integration on the provided function)
-      - [ ] `dif` (Numerical differentiation on the provided function)
-- [ ] INT6 - Function Plotting
-    - [ ] Terminal Renderer (For terminal-based environments)
-    - [ ] Reading points from a graph (point follows mouse cursor)
-- [ ] INT7 - Errors
-    - [ ] `MathError` (Infinite recursion, division by zero)
-    - [ ] `SyntaxError` (Mismatched parenthesis, unusual token)
-- [ ] CMP1 - Compiler
-    - [ ] Compile to .NET bytecode (ilasm)
-    - [ ] Standard library compiled
-- [ ] CMP2 - Optimizations
-    - [ ] Memoization/LRU Caching
-    - [ ] Shrinking value bit-widths depending on function domain
-    - [ ] compile-time function inlining and squashing
-- [ ] GUI1 - Simple Editing & Execution
-    - [ ] Text Editing
-    - [ ] Running code (interpreting)
-    - [ ] Compiling code
-- [ ] GUI2 - Accelerated Function Plotting
-    - [ ] GPU-processing for graph plotting
-- [ ] GUI3 - Extra Features
-    - [ ] Hot Reloading (as you write, the scripts execute in real-time)
-    - [ ] Linter (Checking for potential infinite recursion, division by zero)
-    - [ ] LSP (Modular way of developing a linter)
-    - [ ] Code Completion (inference)
-    - [ ] Render some standard library functions as their mathematical forms (e.g. integration as ∫)
-- [ ] DOC1 - Wiki
-    - [ ] Documentation on GH Pages
-    - [ ] Code is Documented
+# Feature List for a MVP
+- Value Types
+  - Number:    variables storing a value are implicitly `double` under the hood - but can be bound by a `set hint`
+  - Variable:  character with an optional numerical subscript (x, x0, x00 are two different variables)
+  - Constants:
+    - `infinity`/`inf`: any operation applied on it will just return `infinity`
+    - `π`/`pi`:         `3.14159265...`
+    - `τ`/`tau`:        `6.28318530...` (`2π`)
+    - `e`/`e`:          `2.718281828...` (euler's number)
+- Operations (BIDMAS)
+  - Binary:   exponentiation, multiplication, division, modulo, addition, and subtraction
+  - Unary:    plus, minus, factorial
+  - Brackets: determines order of operations
+- Variables
+  - Initially: `undefined`
+  - Storage:   either a value, function, or expression (auto-solve if trivial - e.g. `x = 2+2`)
+  - Internals: array of size `26` slots that can contain a value or `undefined` and also a *bucket* for the subscript
+               variables
+- Functions
+  - Storage:    occupies same *memory* as variables
+  - Internals:  the abstract syntax tree (AST) is stored in the *memory* location to be executed
+  - Domain:     definable domains using set notation
+  - Attributes: can be attributed with square brackets and the attribute
+    - `symbol`: allows for a symbol to be assigned to this function, the symbol persists through the programs lifetime
+    - `inline`: inlines the function whenever possible
+      - expression functions are inlined as is
+      - conditional functions only inline the value
+    - `memoized`: function return values are stored in a cache to save CPU cycles on recompute
+    - 'force':  forces the compiler\interpreter to use these attributes - regardless of the CLI arguments
+      - `inline`
+      - `memoized`
+- Errors
+  - `SyntaxError`: illegal token or illegal sequence of tokens / unexpected token
+  - `MathError`:   division by zero, square root of negative, infinite recursion, executing operations on `undefined`
+- Standard Library
+  - Bootstrapped: written in the language itself
+  - Examples:
+    ```fsharp
+    abs  (x: R)      : Z   functional wrapper for the absolute operation                 (abs(-2) = |-2|)
+    sign (x: R)      : Z   returns the unit multiple of x                                (sign(7612) = 1)
+    pow  (x: R, n: R): R   functional wrapper around the power operation                 (pow(2,4) = 2^4 = 16)
+    floor(x: R)      : Z   returns the greatest integer less-than or equal-to x          (floor(2.45) = 2)
+    ceil (x: R)      : Z   returns the lowest integer greater-than or equal-to x         (ceil(-12.54) = -12)
+    deg  (r: R)      : R   converts the radians r to degress                             (deg(90) = 0.5π)
+    rad  (d: R)      : R   converts the degress d to radians                             (rad(0.5π) = 90)
+    gcd  (a: Z, b: Z): Z   returns the greatest common denominator of a and b            (gcd(8,12) = 4)
+    lcm  (a: Z, b: Z): Z   returns the lowest common multiple of a and b                 (lcm(8,12) = 24)
+    sin  (x: R)      : R   approximates the value of sin(x) using the Taylor Series      (sin(2π) = 0)
+    cos  (x: R)      : R   approximates the value of cos(x) using the Taylor Series      (cos(2π) = 1)
+    tan  (x: R)      : R   approximates the value of tan(x) using the Taylor Series      (tan(2π) = 0)
+    asin (x: R)      : R   approximates the value of arcsin(x) using the Taylor Series   (asin(0) = 0)
+    acos (x: R)      : R   approximates the value of arccos(x) using the Taylor Series   (acos(1) = 0)
+    atan (x: R)      : R   approximates the value of arctan(x) using the Taylor Series   (atan(0) = 0)
+    ```
+  - External: external linkage to the `plot(fn)` function which is implemented in *F#*.
+    ```fsharp
+    plot (fn)  visualises the provided function (fn) in the respective interactive environment
+    ```
+- Optimizations
+    - Memoization: implied if not explicitly by either a function attribute or CLI argument
+    - Inlining:    implied if not explicitly by either a function attribute or CLI argument
+- IME
+  - GUI:          modern feel, sleek
+  - Extends:      extends plotting functionality by displaying it in the graphical interface using the GPU
+  - Linting:      display premature `SyntaxError` messages or `MathError` if potential errors may occur
+  - Highlighting: syntax highlighting
+  - Execution:    compilation or interpretation (will interpret as you type)
+  - Formatting:   `pi` -> `π`, `tau` = `τ`, etc...
+- Wiki
+  - Tutorial:      for beginners or experienced mathematicians
+  - Documentation: core library, function attributes, errors, constants
 
-<hr>
-<i>Diorite</i>, Developed & Created by Arsngrobg and Borngle, <b>2025</b>
+##### Copyright
+*Diorite*, Developed & Created by Arsngrobg and Borngle, **2025**
 
