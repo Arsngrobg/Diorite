@@ -5,7 +5,7 @@
 //   |_____/|__||_____|__|  |__|____|_____|
 //
 // ------------------------------------------------------------------------------------------------------------------
-// File:    Meta.fsx
+// File:    Meta.fs
 // Summary: metadata for the Diorite project
 // Author:  Arsngrobg
 // Version: v1.1
@@ -16,55 +16,72 @@
 namespace Diorite.Lang.Meta
 
 /// <summary>
-///     The <c>Version</c> module.
-///     <b>Diorite</b> abides by a modified version of semantic versioning (SemVer), where the <c>Version</c> contains
-///     two values: <c>major</c> & <c>minor</c>. These values represent the development stage of <b>Diorite</b>.
+///     The <c>Identity</c> module groups up bindings that represent the <c>Diorite</c> language.
+///     <code>
+///         let langName = Identity.name
+///         let progName = Identity.programName
+///         let fileExt  = Identity.fileExtension
+///         printf $"{langName}, {progName}, {fileExt}" // output: "Diorite, diorite, .diorite"
+///     </code>
 /// </summary>
-module Version =
+module Identity =
     /// <summary>
-    ///     The <b>major</b> version component of <b>Diorite</b>.
-    ///     <b>This should be accurate and updated accordingly.</b>
+    ///     A binding that returns the name of the language.
     /// </summary>
-    let VERSION_MAJOR: uint8 = uint8 0
-    /// <summary>
-    ///     The <b>minor</b> version component of <b>Diorite</b>.
-    ///     <b>This should be accurate and updated accordingly.</b>
-    /// </summary>
-    let VERSION_MINOR: uint8 = uint8 4
+    /// <returns> the name of the language </returns>
+    let name: string = "Diorite"
 
     /// <summary>
-    ///     A struct, representing the current version of <b>Diorite</b> that is installed and currently running on the
-    ///     user's system.
+    ///     A binding that returns the name of the program.
     /// </summary>
-    ///
-    /// <param name='major'>The <b>major</b> component of this <b>Diorite</b> language version</param>
-    /// <param name='minor'>The <b>minor</b> component of this <b>Diorite</b> language version</param>
-    [<Struct>]
-    type Version = {
-        major: uint8
-        minor: uint8
-    }
+    /// <returns> the name of the program </returns>
+    let programName: string = name.ToLower()
 
-    /// <summary>Transforms this <c>Version</c> struct into its <c>string</c> representation.</summary>
-    /// <returns>the <c>string</c> representation of this <c>Version</c> struct</returns>
-    let ver2str (v: Version): string =
-        $"{v.major}{v.minor}"
-
-    /// <summary>This is the current language version for this instance of <b>Diorite</b>.</summary>
-    /// <see cref='meta.version.Version'>sd</see>
-    let LANGUAGE_VERSION: Version = {
-        major = VERSION_MAJOR;
-        minor = VERSION_MINOR
-    }
+    /// <summary>
+    ///     A binding that returns the file extension this language uses for compiling/interpreting source files.
+    /// </summary>
+    /// <returns>the file extension this language recognises</returns>
+    let fileExtension: string = $".{programName}"
 
 /// <summary>
-///     The <c>Files</c> module.
-///     This module contains data about file-specific attributes in the <b>Diorite</b> project.
+///     The <c>Version</c> module groups up bindings related to version metadata for the <c>Diorite</c> language.
+///     <c>Diorite</c> uses a simplified version of semVer to indicate unique versions. It is composed of two values:
+///     the <b>major</b> and <b>minor</b> numbers and any release of a new version past <c>1.0</c> is considered a
+///     public and stable build.
+///     <code>
+///         let langVer = Version.languageVersion
+///         printf $"{langVer}"
+///     </code>
 /// </summary>
-module Files =
-    /// <summary>The file extension for <b>Diorite</b> language files.</summary>
-    let FILE_EXTENSION: string = ".diorite"
-    /// <summary>The name of the project.</summary>
-    let PROG_NAME: string = "diorite"
-    /// <summary>The TitleCase representation of the <c>PROG_NAME</c> value.</summary>
-    let PROG_NAME_TITLE: string = $"{PROG_NAME.Substring(0, 1).ToUpper()}{PROG_NAME.Substring(1)}"
+module Version =
+    // the major version component of the current language version
+    let private majorVersion: uint8 = uint8 0
+
+    // the minor version component of the current language version
+    let private minorVersion: uint8 = uint8 4
+
+    /// <summary>
+    ///     A type that wraps a tuple, grouping the <b>major</b> and <b>minor</b> version components together.
+    /// </summary>
+    /// <param name="major"> the <b>major</b> version component </param>
+    /// <param name="minor"> the <b>minor</b> version component </param>
+    [<Struct>]
+    type Version =
+        {
+            /// <summary> The <b>major</b> version component. </summary>
+            major: uint8
+            /// <summary> The <b>minor</b> version component. </summary>
+            minor: uint8
+        }
+
+        override this.ToString(): string =
+            $"{this.major}.{this.minor}"
+
+    /// <summary>
+    ///     A binding that returns the current language version, composing the <c>majorVersion</c> and
+    ///     <c>minorVersion</c> bindings.
+    /// </summary>
+    let languageVersion: Version = {
+        major = majorVersion;
+        minor = minorVersion;
+    }
