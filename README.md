@@ -39,7 +39,8 @@ To run your `.diorite` file, in the terminal, execute the command:
 ```fsharp
 $ diorite -i <name>.diorite
 ```
-After execution, you will be presented with the REPL exactly as you left it, ready to continue where you left off.
+After execution, you will be presented with the REPL exactly as you left it, ready to continue where you left off. Note
+that if using an IDE, the integrated terminal does not format well with the REPL environment.
 
 # Feature List for an MVP
 - Value Types
@@ -48,7 +49,7 @@ After execution, you will be presented with the REPL exactly as you left it, rea
   - Constants:
     - `infinity`/`inf`: any operation applied on it will just return `infinity`
     - `π`/`pi`:         `3.14159265...`
-    - `τ`/`tau`:        `6.28318530...` (`2π`)
+    - `τ`/`tau`:        `6.28318530...`  (`2π`)
     - `e`/`e`:          `2.718281828...` (euler's number)
 - Operations (BIDMAS)
   - Binary:   exponentiation, multiplication, division, modulo, addition, and subtraction
