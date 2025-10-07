@@ -7,8 +7,8 @@
 // ------------------------------------------------------------------------------------------------------------------
 // File:    Transform.fs
 // Summary: The functions for transforming diorite source files into ASTs and/or token streams
-// Author:  Arsngrobg
-// Version: v1.1
+// Author:  Arsngrobg, Borngle
+// Version: v1.2
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
