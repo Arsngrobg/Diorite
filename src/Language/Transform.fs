@@ -40,11 +40,30 @@ module Lexer =
         | PERCENTAGE
         | PLUS
         | SUBTRACT
+        | BAR
         // builtin functions
-        | BUILTIN
+        | BUILTIN of string
         // set hints
         | SET_HINT
         | NUMBER_SET
+        
+    /// <summary> Helper function to evaluate if a character is alphabetical </summary>
+    /// <param name="c"> Input character </param>
+    let isAlpha c = System.Char.IsLetter c
+    
+    /// <summary> Helper function to evaluate if a character is a digit </summary>
+    /// <param name="c"> Input character </param>
+    let isDigit c = System.Char.IsDigit c
+    
+    /// <summary> Recursively consumes characters if they satisfy a given predicate </summary>
+    /// <param name="predicate"> Function that returns true or false </param>
+    /// <param name="src"> List of characters being checked </param>
+    let rec consume predicate src =
+        match src with
+        | c::tail when predicate(c) -> // Match if true
+            let consumed, remaining = consume predicate tail
+            (c::consumed, remaining) // c is prepended to consumed, and remaining is the rest of the list that does not match
+        | _ -> ([], src)
 
     /// <summary>
     ///     The <c>lexer</c> module.
@@ -52,7 +71,77 @@ module Lexer =
     /// </summary>
     /// <param name="src">the raw string to be tokenized</param>
     let lex(src: string): list<Token> =
-        []
+        let rec scan src =
+            match src with
+            | [] -> []
+            
+            // Sets
+            | ':':: tail ->
+                let consumed, remaining = consume System.Char.IsWhiteSpace tail
+                match remaining with
+                | 'N' :: tail -> SET_HINT :: NUMBER_SET :: scan tail
+                | 'Z' :: tail -> SET_HINT :: NUMBER_SET :: scan tail
+                | 'Q' :: tail -> SET_HINT :: NUMBER_SET :: scan tail
+                | 'I' :: tail -> SET_HINT :: NUMBER_SET :: scan tail
+                | 'R' :: tail -> SET_HINT :: NUMBER_SET :: scan tail
+                | 'C' :: tail -> SET_HINT :: NUMBER_SET :: scan tail
+                | _ -> raise (System.Exception("Lexer error"))
+            | '-' :: '>':: tail ->
+                let consumed, remaining = consume System.Char.IsWhiteSpace tail
+                match remaining with
+                | 'N' :: tail -> SET_HINT :: NUMBER_SET :: scan tail
+                | 'Z' :: tail -> SET_HINT :: NUMBER_SET :: scan tail
+                | 'Q' :: tail -> SET_HINT :: NUMBER_SET :: scan tail
+                | 'I' :: tail -> SET_HINT :: NUMBER_SET :: scan tail
+                | 'R' :: tail -> SET_HINT :: NUMBER_SET :: scan tail
+                | 'C' :: tail -> SET_HINT :: NUMBER_SET :: scan tail
+                | _ -> raise (System.Exception("Lexer error"))
+
+            // Variables, built-in functions, and constants
+            | c::tail when isAlpha(c) ->
+                let letters, remaining = consume isAlpha (c::tail)
+                let name = System.String.Concat letters
+                match name with
+                | "undefined" -> UNDEFINED :: scan remaining
+                | "infinity" -> INFINITY :: scan remaining
+                | "pi" -> PI :: scan remaining
+                | "tau" -> TAU :: scan remaining
+                | _ ->
+                    match remaining with
+                    | '('::tail -> BUILTIN(name) :: L_PARENTHESIS :: scan tail // Parenthesis token separated for better parser context 
+                    | _ -> VARIABLE(name) :: scan remaining
+                    
+            // Numbers
+            | c::tail when isDigit(c) ->
+                let digits, remaining = consume isDigit (c::tail)
+                match remaining with
+                | '.'::tail ->
+                    let fractionalDigits, remaining = consume isDigit (c::tail)
+                    let number = System.String.Concat(digits @ ['.'] @ fractionalDigits)
+                    let result = System.Double.Parse(number)
+                    NUMBER(result) :: scan remaining
+                | _ ->
+                    let number = System.String.Concat(digits)
+                    let result = System.Double.Parse(number)
+                    NUMBER(result) :: scan remaining
+            
+            // Operators and symbols
+            | '='::tail -> EQUALS :: scan tail
+            | '('::tail -> L_PARENTHESIS :: scan tail
+            | ')'::tail -> R_PARENTHESIS :: scan tail
+            | '^'::tail -> EXPONENT :: scan tail
+            | '*'::tail -> MULTIPLY :: scan tail
+            | '/'::tail -> DIVIDE :: scan tail
+            | '%'::tail -> PERCENTAGE :: scan tail
+            | '+'::tail -> PLUS :: scan tail
+            | '-'::tail -> SUBTRACT :: scan tail
+            | '|'::tail -> BAR :: scan tail
+                
+            // Other cases
+            | c :: tail when System.Char.IsWhiteSpace c -> scan tail
+            | _ -> raise (System.Exception("Lexer error"))
+            
+        scan(Seq.toList src)
 
 /// <summary>
 ///     The <c>Parser</c> module.
@@ -95,3 +184,4 @@ module Parser =
     /// <param name="tokens">the token stream to parse into an AST</param>
     let parse(tokens: list<Lexer.Token>): ASTNode =
         {nodeType=NUMBER 0; children=[]}
+        
