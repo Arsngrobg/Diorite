@@ -6,10 +6,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Compile Include="Meta.fs" />
-      <Compile Include="Transform.fs" />
-      <Compile Include="Interpreter.fs" />
-      <Compile Include="CLI.fs" />
+        <Compile Include="Meta.fs" />
+        <Compile Include="IO.fs" />
+        <Compile Include="Transform.fs" />
+        <Compile Include="Interpreter.fs" />
+        <Compile Include="CLI.fs" />
     </ItemGroup>
 
 </Project>

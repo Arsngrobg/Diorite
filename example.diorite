@@ -1,9 +1,5 @@
 ﻿x = 2 + 2
 
-f(x: Z) -> Z = {
-    undefined           if x < 0
-    x                   if x < 2
-    f(x - 2) + f(x - 1) otherwise
-}
+f(x: R) -> Z = floor(x)
 
 f(20)
