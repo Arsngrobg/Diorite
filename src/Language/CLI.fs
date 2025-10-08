@@ -16,6 +16,12 @@
 namespace Diorite.Lang
 
 module CLI =
+    // dummy function for now
+    let rec list2str (a: 'a list): string =
+        match a with
+         | head :: tail -> $"{head.ToString()}, {list2str tail}"
+         | []           -> "\n"
+
     /// <summary>
     ///     A binding that returns the string used by the CL utility when no args are provided or the
     ///     <c>-h</c>/<c>--help</c> flag is provided to the <c>Diorite</c> CL utility.
@@ -94,14 +100,15 @@ module CLI =
              0
          | [ ARG_UPGRADE ]                    -> failwith "[TODO] Offer some sort of update feature (use gh releases?)"
          | [ ARG_INTERPRETER ]                -> failwith "[TODO] launch REPL environment in the terminal"
-         | [ ARG_INTERPRETER; ARG_LITERAL _ ] -> //failwith "[TODO] Execute file by interpretation"
-             let x = Diorite.Lang.Lexer.lex "x = 2"
+         | [ ARG_INTERPRETER; ARG_LITERAL y ] -> // failwith "[TODO] Execute file by interpretation"
+             let x: Lexer.Token list = Lexer.lex y
+             printf $"{list2str x}"
              0
          | [ ARG_COMPILE; ARG_LITERAL _ ]     -> failwith "[TODO] Compile that shit"
          | _                                  -> failwith "Illegal combination of arguments"
 
     [<EntryPoint>]
     let main (argv: string array): int32 =
-        let args: list<Argument> = collectArgs ( Array.toList argv )
-        printf $"{args}\n"
+        let args: Argument list = collectArgs ( Array.toList argv )
+        printf $"{list2str }\n"
         executeArgs args
