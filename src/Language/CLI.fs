@@ -8,14 +8,36 @@
 // File:    CLI.fs
 // Summary: Command-Line Interface utils and the entry point for the Diorite language utility
 // Author:  Arsngrobg
-// Version: v1.9
+// Version: v1.10
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
 
 namespace Diorite.Lang
 
+/// <summary>
+///     The <c>CLI</c> module relates to the Command Line Interface utilities that face the user when compiling or
+///     interpreting <b>Diorite</b> source files. It provides many tools for getting metadata (e.g. the current version
+///     of <b>Diorite</b>) or launching the REPL environment in the user's terminal.
+///
+///     It also encompasses the main entry point for <b>Diorite</b>.
+/// </summary>
 module CLI =
+    /// <summary>
+    ///     An enum consisting of exit codes that may be returned by the <c>CLI::executeArgs (Argument list)</c>
+    ///     function.
+    ///     <code>
+    ///         IO.output $"{ExitCode.NO_ERROR}"       |> ignore // output: "0"
+    ///         IO.output $"{ExitCode.FILE_NOT_FOUND}" |> ignore // output: "1"
+    ///     </code>
+    /// </summary>
+    type ExitCode =
+        | NO_ERROR       = 0 // no error was caused
+        | FILE_NOT_FOUND = 1 // the file specified was not found
+        | ILLEGAL_ARGS   = 2 // illegal sequence of arguments
+        | ILLEGAL_TOKEN  = 4 // illegal token found
+        | ILLEGAL_TOKENS = 8 // illegal token sequence
+
     /// <summary>
     ///     A binding that returns the string used by the CL utility when no args are provided or the
     ///     <c>-h</c>/<c>--help</c> flag is provided to the <c>Diorite</c> CL utility.
@@ -44,18 +66,12 @@ module CLI =
     ///     The argument types recognised by the <c>Diorite</c> CL utility.
     /// </summary>
     type Argument =
-        /// <summary> The typed argument flag determined via <c>-h</c>/<c>--help</c> string. </summary>
-        | ARG_HELP
-        /// <summary> The typed argument flag determined via the <c>-u</c>/<c>--upgrade</c> string. </summary>
-        | ARG_UPGRADE
-        /// <summary> The typed argument flag determined via the <c>-v</c>/<c>--version</c> string. </summary>
-        | ARG_VERSION
-        /// <summary> The typed argument flag determined via the <c>-i</c>/<c>--interpreter</c> string. </summary>
-        | ARG_INTERPRETER
-        /// <summary> The typed argument flag determined via the <c>-c</c>/<c>--compile</c> string. </summary>
-        | ARG_COMPILE
-        /// <summary> The typed argument flag of any string value passed as an argument. </summary>
-        | ARG_LITERAL of string
+        | ARG_HELP              // -h / --help
+        | ARG_UPGRADE           // -u / --upgrade
+        | ARG_VERSION           // -v / --version
+        | ARG_INTERPRETER       // -i / --interpreter
+        | ARG_COMPILE           // -c / --compile
+        | ARG_LITERAL of string // any other value (e.g. file path)
 
     /// <summary>
     ///     A binding that uplifts the raw <c>string</c> literals into typed <c>Argument</c> flags.
@@ -70,12 +86,12 @@ module CLI =
         let rec read (argv: string list): Argument list =
             match argv with
              | []                                 -> []
-             | ( "-h" | "--help"        ) :: tail -> ARG_HELP         :: (read tail)
-             | ( "-u" | "--upgrade"     ) :: tail -> ARG_UPGRADE      :: (read tail)
-             | ( "-v" | "--version"     ) :: tail -> ARG_VERSION      :: (read tail)
-             | ( "-i" | "--interpreter" ) :: tail -> ARG_INTERPRETER  :: (read tail)
-             | ( "-c" | "--compile"     ) :: tail -> ARG_COMPILE      :: (read tail)
-             | head :: tail                       -> ARG_LITERAL head :: (read tail)
+             | ( "-h" | "--help"        ) :: tail -> ARG_HELP         :: read tail
+             | ( "-u" | "--upgrade"     ) :: tail -> ARG_UPGRADE      :: read tail
+             | ( "-v" | "--version"     ) :: tail -> ARG_VERSION      :: read tail
+             | ( "-i" | "--interpreter" ) :: tail -> ARG_INTERPRETER  :: read tail
+             | ( "-c" | "--compile"     ) :: tail -> ARG_COMPILE      :: read tail
+             | head :: tail                       -> ARG_LITERAL head :: read tail
 
         read argv
 
@@ -84,26 +100,44 @@ module CLI =
     /// </summary>
     /// <param name="args"> the list of <c>Argument</c>s to process </param>
     /// <returns> the error code, or <c>0</c> if no error occured </returns>
-    let executeArgs (args: Argument list): int32 =
+    let executeArgs (args: Argument list): ExitCode =
         match args with
+         // display this version of diorite
          | [ ARG_VERSION ]                    ->
-             printf $"{Version.languageVersion}"
-             0
+             IO.output $"{Version.languageVersion}" |> ignore
+             ExitCode.NO_ERROR
+
+         // display help if the ARG_HELP or no args are given
          | [ ARG_HELP ] | []                  ->
-             printf $"{helpString}"
-             0
+             IO.output $"{helpString}" |> ignore
+             ExitCode.NO_ERROR
+
+         // checks and upgrades this version of diorite to the latest version
          | [ ARG_UPGRADE ]                    -> failwith "[TODO] Offer some sort of update feature (use gh releases?)"
+
+         // launches the REPL environment in the user's terminal
          | [ ARG_INTERPRETER ]                -> failwith "[TODO] launch REPL environment in the terminal"
+
          | [ ARG_INTERPRETER; ARG_LITERAL file ] ->
-             let fileSrc: string = IO.readFile file
-             printf $"'''\n{fileSrc}'''\n"
-             let tokens: Lexer.Token list = Lexer.lex fileSrc
-             printf $"{Lexer.tokens2str tokens}"
-             0
+             let result: string IO.Result = IO.readFile file
+             match result with
+              | IO.Success file ->
+                   IO.output $"'''\n{file}'''\n" |> ignore
+                   IO.output $"{file |> Lexer.lex |> Lexer.tokens2str}" |> ignore
+                   ExitCode.NO_ERROR
+              | IO.Failure err  ->
+                   IO.output $"{err}" |> ignore
+                   ExitCode.FILE_NOT_FOUND
+
+         // compile the given .diorite file
          | [ ARG_COMPILE; ARG_LITERAL _ ]     -> failwith "[TODO] Compile that shit"
-         | _                                  -> failwith "Illegal combination of arguments"
+
+         // illegal combination of arguments given to the CLI
+         | _                                  ->
+             ExitCode.ILLEGAL_ARGS
 
     [<EntryPoint>]
     let main (argv: string array): int32 =
         let args: Argument list = collectArgs ( Array.toList argv )
-        executeArgs args
+        let exitCode: ExitCode = executeArgs args
+        int32 <| exitCode

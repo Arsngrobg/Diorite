@@ -8,7 +8,7 @@
 // File:    Transform.fs
 // Summary: The functions for transforming diorite source files into token streams and subsequently ASTs
 // Author:  Arsngrobg, Borngle
-// Version: v1.4
+// Version: v1.5
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
@@ -128,6 +128,8 @@ module Lexer =
         let rec scan (src: char list): Token list =
             match src with
              | [] -> []
+
+             // newlines and any other whitespace after it should be recognised as a NEW_STATEMENT
              | c :: tail when c = '\n' ->
                  let _, (remaining: char list) = consume isWhitespace ( c :: tail )
                  match ( remaining |> List.forall isWhitespace ) with
@@ -149,8 +151,8 @@ module Lexer =
                 // any 1-length string of alpha characters is defined as a variable, symbolic name otherwise
                 let tokenType: Token =
                     match letters with
-                     | _ when letters.Length = 1 -> VARIABLE name
-                     | _                         -> SYMBOL name
+                     | _ :: _  -> SYMBOL   name
+                     | _       -> VARIABLE name
 
                 match name with
                  // constants
@@ -160,7 +162,8 @@ module Lexer =
                  | "tau"              -> TAU       :: scan remaining
                  | _ ->
                     match remaining with
-                     | '(' :: tail -> tokenType :: L_PARENTHESIS :: scan tail // parenthesis token separated for better parser context
+                     | '(' :: tail -> tokenType :: L_PARENTHESIS :: scan tail
+                       // parenthesis token separated for better parser context
                      | _           -> tokenType :: scan remaining
                     
              // numbers

@@ -26,10 +26,10 @@ module IO =
     ///     error code.
     /// </summary>
     type DioriteError =
-        | CLIError      of string
-        | LexerError    of string
-        | ParseError    of string
-        | ExternalError of string
+        | MathError     of string // caused by division by zero for example
+        | LexerError    of string // illegal token recognised
+        | ParseError    of string // illegal sequence of tokens
+        | ExternalError of string // illegal state caused by interop code
 
     /// <summary>
     ///     A stricter version of the standard <c>Result</c> where it is strictly bound to the <c>DioriteError</c> error
