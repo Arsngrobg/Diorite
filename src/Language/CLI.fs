@@ -70,12 +70,12 @@ module CLI =
         let rec read (argv: string list): Argument list =
             match argv with
              | []                                 -> []
-             | "-h"::tail | "--help"       ::tail -> ARG_HELP         :: (read tail)
-             | "-u"::tail | "--upgrade"    ::tail -> ARG_UPGRADE      :: (read tail)
-             | "-v"::tail | "--version"    ::tail -> ARG_VERSION      :: (read tail)
-             | "-i"::tail | "--interpreter"::tail -> ARG_INTERPRETER  :: (read tail)
-             | "-c"::tail | "--compile"    ::tail -> ARG_COMPILE      :: (read tail)
-             | head::tail                         -> ARG_LITERAL head :: (read tail)
+             | ( "-h" | "--help"        ) :: tail -> ARG_HELP         :: (read tail)
+             | ( "-u" | "--upgrade"     ) :: tail -> ARG_UPGRADE      :: (read tail)
+             | ( "-v" | "--version"     ) :: tail -> ARG_VERSION      :: (read tail)
+             | ( "-i" | "--interpreter" ) :: tail -> ARG_INTERPRETER  :: (read tail)
+             | ( "-c" | "--compile"     ) :: tail -> ARG_COMPILE      :: (read tail)
+             | head :: tail                       -> ARG_LITERAL head :: (read tail)
 
         read argv
 
@@ -95,7 +95,7 @@ module CLI =
          | [ ARG_UPGRADE ]                    -> failwith "[TODO] Offer some sort of update feature (use gh releases?)"
          | [ ARG_INTERPRETER ]                -> failwith "[TODO] launch REPL environment in the terminal"
          | [ ARG_INTERPRETER; ARG_LITERAL _ ] -> //failwith "[TODO] Execute file by interpretation"
-             let x = Lexer.lex "x = 2"
+             let x = Diorite.Lang.Lexer.lex "x = 2"
              0
          | [ ARG_COMPILE; ARG_LITERAL _ ]     -> failwith "[TODO] Compile that shit"
          | _                                  -> failwith "Illegal combination of arguments"
