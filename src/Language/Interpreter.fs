@@ -13,4 +13,4 @@
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
 
-namespace Diorite.Lang.Interpreter
+namespace Diorite.Lang

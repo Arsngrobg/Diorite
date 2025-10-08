@@ -13,7 +13,7 @@
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
 
-namespace Diorite.Lang.Meta
+namespace Diorite.Lang
 
 /// <summary>
 ///     The <c>Identity</c> module groups up bindings that represent the <c>Diorite</c> language.
