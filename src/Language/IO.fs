@@ -6,9 +6,9 @@
 //
 // ------------------------------------------------------------------------------------------------------------------
 // File:    IO.fs
-// Summary: Module consisting of functions that may have side effects
+// Summary: Module consisting of functions that may have side effects and ways of handling side effects
 // Author:  Arsngrobg
-// Version: v1.0
+// Version: v1.1
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
@@ -20,41 +20,104 @@ namespace Diorite.Lang
 /// </summary>
 module IO =
     /// <summary>
-    ///     Reads the text input from the user using the optional <c>prompt</c> parameter.
+    ///     A discriminated union type for an error in the <b>Diorite</b> language. Every error stores a message that
+    ///     displays a descriptive message of what went wrong in the software. These are not <c>Exceptions</c> nor are
+    ///     they thrown, however they need to be detected by the language in order to safely exit and return a valid
+    ///     error code.
     /// </summary>
-    /// <param name='prompt'> an optional parameter that is displayed to prompt the user </param>
-    /// <exception cref='System.IO.IOException'> An IO error occured </exception>
-    /// <exception cref='System.OutOfMemoryException'> There is insufficient memory to allocate a buffer for the
-    ///                                                returned string
-    /// </exception>
-    /// <exception cref='System.ArgumentOutOfRangeException'> The number of characters in the next line of characters is
-    ///                                                       greater than System.Int32.MaxValue
-    /// </exception>
-    /// <remarks> Exceptions copied from System.Console.ReadLine </remarks>
-    ///
-    let input (prompt: string option): string =
-        match prompt with
-         | Some(p) ->
-             printf $"{p}"
-             System.Console.ReadLine ()
-         | None -> System.Console.ReadLine ()
+    type DioriteError =
+        | CLIError      of string
+        | LexerError    of string
+        | ParseError    of string
+        | ExternalError of string
 
     /// <summary>
-    ///     Reads in a file in one whole chunk.
+    ///     A stricter version of the standard <c>Result</c> where it is strictly bound to the <c>DioriteError</c> error
+    ///     type.
     /// </summary>
-    /// <param name='path'> the file name or file path to the file </param>
-    /// <exception cref='System.ArgumentException'> path is an empty string (<c>""</c>) </exception>
-    /// <exception cref='System.ArgumentNullException'> path is <c>null</c> </exception>
-    /// <exception cref='System.IO.FileNotFoundException'> the file cannot be found </exception>
-    /// <exception cref='System.IO.DirectoryNotFoundException'> the specified path is invalid, such as being on an
-    ///                                                         unmapped drive
-    /// </exception>
-    /// <exception cref='System.IO.IOException'> path includes an incorrect or invalid syntax for the file name,
-    ///                                          directory name, or volume label
-    /// </exception>
-    /// <remarks> Exceptions copied from System.IO.StreamReader </remarks>
-    let readFile (path: string): string =
-        let fileReader: System.IO.StreamReader = new System.IO.StreamReader (path)
-        let src: string = fileReader.ReadToEnd ()
-        fileReader.Close ()
-        src
+    type Result<'T> =
+        | Success of 'T
+        | Failure of DioriteError
+
+    /// <summary>
+    ///     Functional wrapper around the <c>IO.Result.Success</c> union type.
+    ///     It can be referenced through the <c>IO</c> module over the <c>IO.Result</c> type.
+    /// </summary>
+    /// <param name='value'> the value to represent this <c>Result</c> </param>
+    /// <returns> a <c>Success</c> case in the <c>Result</c> union type, containing the <c>value</c> </returns>
+    let inline Success<'T> (value: 'T): Result<'T> = Success value
+
+    /// <summary>
+    ///     Functional wrapper around the <c>IO.Result.Failure</c> union type.
+    ///     It can be referenced through the <c>IO</c> module over the <c>IO.Result</c> type.
+    /// </summary>
+    /// <param name='err'> the error to represent this <c>Result</c> </param>
+    /// <returns> a <c>Failure</c> case in the <c>Result</c> union type, containing the <c>err</c> </returns>
+    let inline Failure<'T> (err: DioriteError): Result<'T> = Failure err
+
+    // private helper for easily extracting errors from side-effecting interop code
+    // it receives an 'unsafe' function that wraps an executable block of code that returns a generic value
+    // it returns a custom Result discriminated union type depending on Success or Failure
+    let inline private test<'T> (unsafe: Unit -> 'T): Result<'T> =
+        try Success (unsafe ())
+        with ex -> Failure ( ExternalError $"{ex.GetType.ToString()}: {ex.Message}" )
+
+    /// <summary>
+    ///     Outputs the supplied <c>str</c> argument to the console.
+    ///     This function call should include an explicit newline (<c>'\n'</c>) character, as this function does not
+    ///     insert a newline character pre output.
+    ///     <code>
+    ///         let r: Unit IO.Result = IO.output "Hello, World!" // output: "Hello, World!"
+    ///         let success: bool = match r with
+    ///          | Success _ -> true  // success = true
+    ///          | Failure _ -> false // success = false
+    ///     </code>
+    /// </summary>
+    /// <param name='str'> the string to output to the console </param>
+    /// <returns> a <c>Result</c> that may fail with a <c>System.IO.IOException</c> </returns>
+    let output (str: string): Unit Result =
+        test <| (fun () -> System.Console.Write str)
+
+    /// <summary>
+    ///     Reads the characters entered by the user in the console until a carriage return (<c>'\r'</c>), newline
+    ///     (<c>'\n'</c>), or carriage return immediately followed by a newline (<c>"\r\n"</c>). The resulting string
+    ///     returned contains all the characters until, and not including, the terminating character(s).
+    ///     <code>
+    ///         let r: string IO.Result = IO.input ">>> " // output: >>> _
+    ///         match r with
+    ///          | Success input -> IO.output $"The user entered: {input}" |> ignore
+    ///          | Failure err   -> IO.output $"{err}"                     |> ignore
+    ///                             // output: EXCEPTION_NAME: ERROR_MESSAGE
+    ///     </code>
+    /// </summary>
+    /// <param name="prompt"> the optional prompt string to display to the user </param>
+    /// <returns> a <c>Result</c> that may contain the input string or the <c>Exception</c> it may throw </returns>
+    let input (prompt: string option): string Result =
+        match prompt with
+         | Some(p) -> output p  |> ignore
+         | None    -> output "" |> ignore
+
+        test <| System.Console.ReadLine
+
+    /// <summary>
+    ///     Eagerly reads the contents of the supplied file derived from the <c>path</c> argument.
+    ///     <code>
+    ///         let r: string IO.Result = IO.readFile "example.diorite"
+    ///         match r with
+    ///          | Success file -> IO.output $"{file}" |> ignore // output: FILE_CONTENTS
+    ///          | Failure err  -> IO.output $"{err}"  |> ignore // output: EXCEPTION_NAME: ERROR_MESSAGE
+    ///     </code>
+    /// </summary>
+    /// <param name="path"> the relative or absolute file path to the file to be read </param>
+    /// <returns>
+    ///     a <c>Result</c> that may contain the file contents as a complete <c>string</c> or an <c>Exception</c>
+    /// </returns>
+    let readFile (path: string): string Result =
+        // unsafe code
+        let load (): string =
+            let fileReader: System.IO.StreamReader = new System.IO.StreamReader (path)
+            let content = fileReader.ReadToEnd ()
+            fileReader.Close ()
+            content
+
+        test <| load
