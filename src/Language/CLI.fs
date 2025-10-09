@@ -32,11 +32,12 @@ module CLI =
     ///     </code>
     /// </summary>
     type ExitCode =
-        | NO_ERROR       = 0 // no error was caused
-        | FILE_NOT_FOUND = 1 // the file specified was not found
-        | ILLEGAL_ARGS   = 2 // illegal sequence of arguments
-        | ILLEGAL_TOKEN  = 4 // illegal token found
-        | ILLEGAL_TOKENS = 8 // illegal token sequence
+        | NO_ERROR       = 0  // no error was caused
+        | REPL_FAILURE   = 1  // any failed state caused by the REPL
+        | FILE_NOT_FOUND = 2  // the file specified was not found
+        | ILLEGAL_ARGS   = 4  // illegal sequence of arguments
+        | ILLEGAL_TOKEN  = 8  // illegal token found
+        | ILLEGAL_TOKENS = 16 // illegal token sequence
 
     /// <summary>
     ///     A binding that returns the string used by the CL utility when no args are provided or the
@@ -74,6 +75,48 @@ module CLI =
         | ARG_LITERAL of string // any other value (e.g. file path)
 
     /// <summary>
+    ///     A binding that executes the typed <c>Argument</c>, depending on the sequence of tokens provided to it.
+    /// </summary>
+    /// <param name="args"> the list of <c>Argument</c>s to process </param>
+    /// <returns> the error code, or <c>0</c> if no error occured </returns>
+    let executeArgs (args: Argument list): ExitCode =
+        match args with
+         // display this version of diorite
+         | [ ARG_VERSION ]                    ->
+             IO.output $"{Version.languageVersion}" |> ignore
+             ExitCode.NO_ERROR
+
+         // display help if the ARG_HELP or no args are given
+         | [ ARG_HELP ] | []                  ->
+             IO.output $"{helpString}" |> ignore
+             ExitCode.NO_ERROR
+
+         // checks and upgrades this version of diorite to the latest version
+         | [ ARG_UPGRADE ]                    -> failwith "[TODO] Offer some sort of update feature (use gh releases?)"
+
+         // launches the REPL environment in the user's terminal (IT DOES NOT WORK IN IDE INTEGRATED TERMINALS)
+         | [ ARG_INTERPRETER ]                ->
+             REPL.launch() |> ignore
+             ExitCode.NO_ERROR
+
+         | [ ARG_INTERPRETER; ARG_LITERAL file ] ->
+             let result: string IO.Result = IO.readFile file
+             match result with
+              | IO.Success file ->
+                   IO.output $"'''\n{file}'''\n" |> ignore
+                   IO.output $"{file |> Lexer.lex |> IO.forceUnwrap |> Lexer.tokens2str}" |> ignore
+                   ExitCode.NO_ERROR
+              | IO.Failure err  ->
+                   IO.output $"{err}" |> ignore
+                   ExitCode.FILE_NOT_FOUND
+
+         // compile the given .diorite file
+         | [ ARG_COMPILE; ARG_LITERAL _ ]     -> failwith "[TODO] Compile that shit"
+
+         // illegal combination of arguments given to the CLI
+         | _                                  -> ExitCode.ILLEGAL_ARGS
+
+    /// <summary>
     ///     A binding that uplifts the raw <c>string</c> literals into typed <c>Argument</c> flags.
     ///     <code>
     ///         let args = collectArgs [ "-i", "foo.diorite" ]
@@ -94,47 +137,6 @@ module CLI =
              | head :: tail                       -> ARG_LITERAL head :: read tail
 
         read argv
-
-    /// <summary>
-    ///     A binding that executes the typed <c>Argument</c>, depending on the sequence of tokens provided to it.
-    /// </summary>
-    /// <param name="args"> the list of <c>Argument</c>s to process </param>
-    /// <returns> the error code, or <c>0</c> if no error occured </returns>
-    let executeArgs (args: Argument list): ExitCode =
-        match args with
-         // display this version of diorite
-         | [ ARG_VERSION ]                    ->
-             IO.output $"{Version.languageVersion}" |> ignore
-             ExitCode.NO_ERROR
-
-         // display help if the ARG_HELP or no args are given
-         | [ ARG_HELP ] | []                  ->
-             IO.output $"{helpString}" |> ignore
-             ExitCode.NO_ERROR
-
-         // checks and upgrades this version of diorite to the latest version
-         | [ ARG_UPGRADE ]                    -> failwith "[TODO] Offer some sort of update feature (use gh releases?)"
-
-         // launches the REPL environment in the user's terminal
-         | [ ARG_INTERPRETER ]                -> failwith "[TODO] launch REPL environment in the terminal"
-
-         | [ ARG_INTERPRETER; ARG_LITERAL file ] ->
-             let result: string IO.Result = IO.readFile file
-             match result with
-              | IO.Success file ->
-                   IO.output $"'''\n{file}'''\n" |> ignore
-                   IO.output $"{file |> Lexer.lex |> Lexer.tokens2str}" |> ignore
-                   ExitCode.NO_ERROR
-              | IO.Failure err  ->
-                   IO.output $"{err}" |> ignore
-                   ExitCode.FILE_NOT_FOUND
-
-         // compile the given .diorite file
-         | [ ARG_COMPILE; ARG_LITERAL _ ]     -> failwith "[TODO] Compile that shit"
-
-         // illegal combination of arguments given to the CLI
-         | _                                  ->
-             ExitCode.ILLEGAL_ARGS
 
     [<EntryPoint>]
     let main (argv: string array): int32 =

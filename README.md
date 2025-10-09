@@ -14,11 +14,15 @@ Mathematics Environment) executes on the WPF user interface platform - which is 
 you are still able to utilize the interpreter/compiler on Linux systems if you do so.
 
 # Getting Started
-To get started with Diorite, execute this command in the command line:
+Install Diorite by either compiling from source or checking out the
+[releases](https://github.com/Arsngrobg/Diorite/releases) tab. Store it in a safe directory, and add it to your `PATH`
+variables so you can execute this command in the command line:
 ```fsharp
 $ diorite -i
 ```
-This brings up the interactive REPL environment in the terminal, and you can begin executing mathematical expressions
+without any issues.
+
+It brings up the interactive REPL environment in the terminal, and you can begin executing mathematical expressions
 and write pure mathematical functions.
 ```fsharp
  |
@@ -32,8 +36,8 @@ and write pure mathematical functions.
 >>> ▮
 ```
 This executes the fibonacci sequence up to the 20th position.
-If you want to save your state, just press `SHIFT` + `s` and it will give you a prompt, asking you what you would like
-to name your new `.diorite` file.
+If you want to save your state, just type `@save <filename>` and it will save the current state of your Diorite REPL in
+a `.diorite` file in the current working directory.
 
 To run your `.diorite` file, in the terminal, execute the command:
 ```fsharp
