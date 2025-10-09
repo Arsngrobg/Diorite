@@ -74,58 +74,6 @@ module CLI =
         | ARG_COMPILE           // -c / --compile
         | ARG_LITERAL of string // any other value (e.g. file path)
 
-    let rec repl (): ExitCode =
-        // TODO: put unsafe code into IO module
-        System.Console.BackgroundColor <- System.ConsoleColor.Black
-        System.Console.Clear()
-        System.Console.Title           <- Identity.name
-        System.Console.BackgroundColor <- System.ConsoleColor.DarkRed
-
-        let title: string = $"{Identity.name} v{Version.languageVersion.ToString()} (REPL)"
-        IO.output $"    {title} \n" |> ignore
-
-        System.Console.BackgroundColor <- System.ConsoleColor.Black
-
-        let print (input: string, tokens: Lexer.Token list): ExitCode =
-            IO.moveCursorRelative 0 -1 |> ignore
-            System.Console.ForegroundColor <- System.ConsoleColor.DarkGray
-            IO.output "\r |" |> ignore
-            System.Console.ForegroundColor <- System.ConsoleColor.White
-            IO.output $"  {input}\n" |> ignore
-
-            match tokens with
-             | [] -> IO.output "" |> ignore
-             | _  ->
-                 System.Console.ForegroundColor <- System.ConsoleColor.DarkGray
-                 IO.output " ¦" |> ignore
-                 IO.output $"  {tokens |> Lexer.tokens2str}\n" |> ignore
-                 System.Console.ForegroundColor <- System.ConsoleColor.White
-
-            ExitCode.NO_ERROR
-
-        let eval (input: string): ExitCode =
-             let lexResult: Lexer.Token list IO.Result = input |> Lexer.lex
-             match lexResult with
-              | IO.Success tokens ->
-                  print(input, tokens)
-              | IO.Failure err    ->
-                  System.Console.ForegroundColor <- System.ConsoleColor.Red
-                  IO.output $"{err} (unrecognised token)\n" |> ignore
-                  System.Console.ForegroundColor <- System.ConsoleColor.White
-                  ExitCode.NO_ERROR
-
-        let rec read (): ExitCode =
-            let inputResult: string IO.Result = Some ">>> " |> IO.input
-            match inputResult with
-             | IO.Failure _ -> ExitCode.REPL_FAILURE
-             | IO.Success i ->
-                 match i with
-                  | "@quit"  -> ExitCode.NO_ERROR
-                  | "@clear" -> repl()
-                  | _        -> eval(i) ||| read()
-
-        read()
-
     /// <summary>
     ///     A binding that executes the typed <c>Argument</c>, depending on the sequence of tokens provided to it.
     /// </summary>
@@ -147,7 +95,9 @@ module CLI =
          | [ ARG_UPGRADE ]                    -> failwith "[TODO] Offer some sort of update feature (use gh releases?)"
 
          // launches the REPL environment in the user's terminal (IT DOES NOT WORK IN IDE INTEGRATED TERMINALS)
-         | [ ARG_INTERPRETER ]                -> repl()
+         | [ ARG_INTERPRETER ]                ->
+             REPL.launch() |> ignore
+             ExitCode.NO_ERROR
 
          | [ ARG_INTERPRETER; ARG_LITERAL file ] ->
              let result: string IO.Result = IO.readFile file
