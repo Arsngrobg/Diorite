@@ -32,11 +32,12 @@ module CLI =
     ///     </code>
     /// </summary>
     type ExitCode =
-        | NO_ERROR       = 0 // no error was caused
-        | FILE_NOT_FOUND = 1 // the file specified was not found
-        | ILLEGAL_ARGS   = 2 // illegal sequence of arguments
-        | ILLEGAL_TOKEN  = 4 // illegal token found
-        | ILLEGAL_TOKENS = 8 // illegal token sequence
+        | NO_ERROR       = 0  // no error was caused
+        | REPL_FAILURE   = 1  // any failed state caused by the REPL
+        | FILE_NOT_FOUND = 2  // the file specified was not found
+        | ILLEGAL_ARGS   = 4  // illegal sequence of arguments
+        | ILLEGAL_TOKEN  = 8  // illegal token found
+        | ILLEGAL_TOKENS = 16 // illegal token sequence
 
     /// <summary>
     ///     A binding that returns the string used by the CL utility when no args are provided or the
@@ -73,27 +74,57 @@ module CLI =
         | ARG_COMPILE           // -c / --compile
         | ARG_LITERAL of string // any other value (e.g. file path)
 
-    /// <summary>
-    ///     A binding that uplifts the raw <c>string</c> literals into typed <c>Argument</c> flags.
-    ///     <code>
-    ///         let args = collectArgs [ "-i", "foo.diorite" ]
-    ///         printf $"{args}" // output: "[ARG_INTERPRETER; ARG_LITERAL]"
-    ///     </code>
-    /// </summary>
-    /// <param name="argv"> the variadic list of raw string arguments </param>
-    /// <returns> a list of typed <c>Argument</c> union type </returns>
-    let collectArgs (argv: string list): Argument list =
-        let rec read (argv: string list): Argument list =
-            match argv with
-             | []                                 -> []
-             | ( "-h" | "--help"        ) :: tail -> ARG_HELP         :: read tail
-             | ( "-u" | "--upgrade"     ) :: tail -> ARG_UPGRADE      :: read tail
-             | ( "-v" | "--version"     ) :: tail -> ARG_VERSION      :: read tail
-             | ( "-i" | "--interpreter" ) :: tail -> ARG_INTERPRETER  :: read tail
-             | ( "-c" | "--compile"     ) :: tail -> ARG_COMPILE      :: read tail
-             | head :: tail                       -> ARG_LITERAL head :: read tail
+    let rec repl (): ExitCode =
+        // TODO: put unsafe code into IO module
+        System.Console.BackgroundColor <- System.ConsoleColor.Black
+        System.Console.Clear()
+        System.Console.Title           <- Identity.name
+        System.Console.BackgroundColor <- System.ConsoleColor.DarkRed
 
-        read argv
+        let title: string = $"{Identity.name} v{Version.languageVersion.ToString()} (REPL)"
+        IO.output $"    {title} \n" |> ignore
+
+        System.Console.BackgroundColor <- System.ConsoleColor.Black
+
+        let print (input: string, tokens: Lexer.Token list): ExitCode =
+            IO.moveCursorRelative 0 -1 |> ignore
+            System.Console.ForegroundColor <- System.ConsoleColor.DarkGray
+            IO.output "\r |" |> ignore
+            System.Console.ForegroundColor <- System.ConsoleColor.White
+            IO.output $"  {input}\n" |> ignore
+
+            match tokens with
+             | [] -> IO.output "" |> ignore
+             | _  ->
+                 System.Console.ForegroundColor <- System.ConsoleColor.DarkGray
+                 IO.output " ¦" |> ignore
+                 IO.output $"  {tokens |> Lexer.tokens2str}\n" |> ignore
+                 System.Console.ForegroundColor <- System.ConsoleColor.White
+
+            ExitCode.NO_ERROR
+
+        let eval (input: string): ExitCode =
+             let lexResult: Lexer.Token list IO.Result = input |> Lexer.lex
+             match lexResult with
+              | IO.Success tokens ->
+                  print(input, tokens)
+              | IO.Failure err    ->
+                  System.Console.ForegroundColor <- System.ConsoleColor.Red
+                  IO.output $"{err} (unrecognised token)\n" |> ignore
+                  System.Console.ForegroundColor <- System.ConsoleColor.White
+                  ExitCode.NO_ERROR
+
+        let rec read (): ExitCode =
+            let inputResult: string IO.Result = Some ">>> " |> IO.input
+            match inputResult with
+             | IO.Failure _ -> ExitCode.REPL_FAILURE
+             | IO.Success i ->
+                 match i with
+                  | "@quit"  -> ExitCode.NO_ERROR
+                  | "@clear" -> repl()
+                  | _        -> eval(i) ||| read()
+
+        read()
 
     /// <summary>
     ///     A binding that executes the typed <c>Argument</c>, depending on the sequence of tokens provided to it.
@@ -115,15 +146,15 @@ module CLI =
          // checks and upgrades this version of diorite to the latest version
          | [ ARG_UPGRADE ]                    -> failwith "[TODO] Offer some sort of update feature (use gh releases?)"
 
-         // launches the REPL environment in the user's terminal
-         | [ ARG_INTERPRETER ]                -> failwith "[TODO] launch REPL environment in the terminal"
+         // launches the REPL environment in the user's terminal (IT DOES NOT WORK IN IDE INTEGRATED TERMINALS)
+         | [ ARG_INTERPRETER ]                -> repl()
 
          | [ ARG_INTERPRETER; ARG_LITERAL file ] ->
              let result: string IO.Result = IO.readFile file
              match result with
               | IO.Success file ->
                    IO.output $"'''\n{file}'''\n" |> ignore
-                   IO.output $"{file |> Lexer.lex |> Lexer.tokens2str}" |> ignore
+                   IO.output $"{file |> Lexer.lex |> IO.forceUnwrap |> Lexer.tokens2str}" |> ignore
                    ExitCode.NO_ERROR
               | IO.Failure err  ->
                    IO.output $"{err}" |> ignore
@@ -133,8 +164,29 @@ module CLI =
          | [ ARG_COMPILE; ARG_LITERAL _ ]     -> failwith "[TODO] Compile that shit"
 
          // illegal combination of arguments given to the CLI
-         | _                                  ->
-             ExitCode.ILLEGAL_ARGS
+         | _                                  -> ExitCode.ILLEGAL_ARGS
+
+    /// <summary>
+    ///     A binding that uplifts the raw <c>string</c> literals into typed <c>Argument</c> flags.
+    ///     <code>
+    ///         let args = collectArgs [ "-i", "foo.diorite" ]
+    ///         printf $"{args}" // output: "[ARG_INTERPRETER; ARG_LITERAL]"
+    ///     </code>
+    /// </summary>
+    /// <param name="argv"> the variadic list of raw string arguments </param>
+    /// <returns> a list of typed <c>Argument</c> union type </returns>
+    let collectArgs (argv: string list): Argument list =
+        let rec read (argv: string list): Argument list =
+            match argv with
+             | []                                 -> []
+             | ( "-h" | "--help"        ) :: tail -> ARG_HELP         :: read tail
+             | ( "-u" | "--upgrade"     ) :: tail -> ARG_UPGRADE      :: read tail
+             | ( "-v" | "--version"     ) :: tail -> ARG_VERSION      :: read tail
+             | ( "-i" | "--interpreter" ) :: tail -> ARG_INTERPRETER  :: read tail
+             | ( "-c" | "--compile"     ) :: tail -> ARG_COMPILE      :: read tail
+             | head :: tail                       -> ARG_LITERAL head :: read tail
+
+        read argv
 
     [<EntryPoint>]
     let main (argv: string array): int32 =

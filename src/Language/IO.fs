@@ -55,6 +55,22 @@ module IO =
     /// <returns> a <c>Failure</c> case in the <c>Result</c> union type, containing the <c>err</c> </returns>
     let inline Failure<'T> (err: DioriteError): Result<'T> = Failure err
 
+    /// <summary>
+    ///     Forcefully unwraps the value within the supplied <c>Result</c>.
+    ///     If there is no value present it will throw an <c>System.Exception</c>.
+    ///     <b>This is used mainly for quick debugging or cooking up a quick snippet of code for a showcase for
+    ///        example.
+    ///     </b>
+    /// </summary>
+    /// <param name='result'> the <c>Result</c> to unwrap </param>
+    /// <returns> the value stored within the <c>Result</c> if it was a <c>Success</c> </returns>
+    /// <exception cref='System.Exception'> if the <c>Result</c> is a <c>Failure</c> </exception>
+    [<System.Obsolete("Do not use this unless you are aware that this is very unsafe!")>]
+    let forceUnwrap<'T> (result: 'T Result): 'T =
+        match result with
+         | Success value -> value
+         | Failure err   -> raise <| System.Exception $"{err}"
+
     // private helper for easily extracting errors from side-effecting interop code
     // it receives an 'unsafe' function that wraps an executable block of code that returns a generic value
     // it returns a custom Result discriminated union type depending on Success or Failure
@@ -100,6 +116,30 @@ module IO =
         test <| System.Console.ReadLine
 
     /// <summary>
+    ///     Shifts the cursor position in the console by the <c>dx</c> and <c>dy</c> values and returns the new position
+    ///     of the cursor.
+    ///     <b>NOTE</b>: <i>(0, 0) is at the top-left of the console</i>
+    ///     <code>
+    ///         // assume cursor starts at (0, 0)
+    ///         let newPos: (int * int) Result = IO.moveCursorRelative 1 1
+    ///         match newPos with
+    ///          | Success (x, y) -> IO.output $"({x}, {y})"                     |> ignore // output: "(1, 1)"
+    ///          | Failure _      -> IO.output "Could not get console position." |> ignore
+    ///     </code>
+    /// </summary>
+    /// <param name="dx"> the amount to move along the x-axis </param>
+    /// <param name="dy"> the amount to move along the y-axis </param>
+    /// <returns> a <c>Result</c> that may contain the new position of the cursor on the console or an error </returns>
+    let moveCursorRelative (dx: int) (dy: int): (int * int) Result =
+         let getAndSet (): int * int =
+             let (x:  int), (y:  int) = match System.Console.GetCursorPosition() with (x, y) -> x, y
+             let (nx: int), (ny: int) = (x + dx, y + dy)
+             System.Console.SetCursorPosition(nx, ny)
+             (nx, ny)
+
+         test <| getAndSet
+
+    /// <summary>
     ///     Eagerly reads the contents of the supplied file derived from the <c>path</c> argument.
     ///     <code>
     ///         let r: string IO.Result = IO.readFile "example.diorite"
@@ -116,8 +156,8 @@ module IO =
         // unsafe code
         let load (): string =
             let fileReader: System.IO.StreamReader = new System.IO.StreamReader (path)
-            let content = fileReader.ReadToEnd ()
-            fileReader.Close ()
+            let content = fileReader.ReadToEnd()
+            fileReader.Close()
             content
 
         test <| load
