@@ -15,55 +15,97 @@
 
 namespace Diorite.Lang
 
+/// <summary>
+///     The <c>REPL</c> module is the functionality related to the live interpreter environment in the terminal.
+///     It provides a neat and simple environment for writing <b>Diorite</b> mathematics code.
+///     It exposes a singular function for initialisation.
+///     <code>
+///         let stable: bool = REPL.launch()
+///         match stable with
+///          | true  -> IO.output "REPL executed with no errors :)"    |> ignore
+///          | false -> IO.output "REPL had an error during execution" |> ignore
+///     </code>
+/// </summary>
 module REPL =
-    let rec launch (): int =
-        // TODO: put unsafe code into IO module
-        System.Console.BackgroundColor <- System.ConsoleColor.Black
-        System.Console.Clear()
-        System.Console.Title           <- Identity.name
-        System.Console.BackgroundColor <- System.ConsoleColor.DarkRed
+    /// <summary>
+    ///     A binding that defines the title of the REPL when in use.
+    /// </summary>
+    /// <returns> the title of the REPL </returns>
+    let title: string = $"{Identity.name} REPL (v{Version.languageVersion.ToString()})"
 
-        let title: string = $"{Identity.name} v{Version.languageVersion.ToString()} (REPL)"
-        IO.output $"    {title} \n" |> ignore
+    // helper function to test a string to see if it is a blank line
+    let private isBlankLine (line: string): bool =
+        System.String.IsNullOrWhiteSpace line
 
-        System.Console.BackgroundColor <- System.ConsoleColor.Black
+    // initializes the console environment and hence the REPL environment.
+    let private initialiseConsole (): bool =
+        // execute batch operation
+        let result: unit IO.Result = IO.compose [
+            title                       |> IO.setConsoleTitle           |> IO.generalized
+            None                        |> IO.clearConsole              |> IO.generalized
+            System.ConsoleColor.Magenta |> IO.setConsoleBackgroundColor |> IO.generalized
+            $"    {title} \n"           |> IO.output
+            System.ConsoleColor.Black   |> IO.setConsoleBackgroundColor |> IO.generalized
+        ]
+        match result with
+         | IO.Failure _ -> false
+         | IO.Success _ -> true
 
-        let print (input: string, tokens: Lexer.Token list): Unit =
-            IO.moveCursorRelative 0 -1 |> ignore
-            System.Console.ForegroundColor <- System.ConsoleColor.DarkGray
-            IO.output "\r |" |> ignore
-            System.Console.ForegroundColor <- System.ConsoleColor.White
-            IO.output $"  {input}\n" |> ignore
+    // processes the provided input from the user
+    let private processInput (input: string): bool =
+        // tokenize the input
+        let lexResult: Lexer.Token list IO.Result = Lexer.lex input
 
-            match tokens with
-             | [] -> IO.output "" |> ignore
-             | _  ->
-                 System.Console.ForegroundColor <- System.ConsoleColor.DarkGray
-                 IO.output " ¦" |> ignore
-                 IO.output $"  {tokens |> Lexer.tokens2str}\n" |> ignore
-                 System.Console.ForegroundColor <- System.ConsoleColor.White
+        // defines what is output depending on the lexer result
+        let noOutputIfNoTokens (): unit IO.Result =
+            match lexResult with
+             | IO.Failure err -> IO.compose [
+                 System.ConsoleColor.Red |> IO.setConsoleForegroundColor |> IO.generalized;
+                 IO.output $" X  {err}\n"
+               ]
+             | IO.Success tokens ->
+                 match tokens with
+                  | [] -> IO.Success () // do nothing
+                  | _  -> IO.compose [
+                      System.ConsoleColor.DarkGray |> IO.setConsoleForegroundColor |> IO.generalized;
+                      IO.output $" ¦  {Lexer.tokens2str tokens}\n"
+                    ]
 
-        let eval (input: string): Unit =
-             let lexResult: Lexer.Token list IO.Result = input |> Lexer.lex
-             match lexResult with
-              | IO.Success tokens ->
-                  print(input, tokens)
-              | IO.Failure err    ->
-                  System.Console.ForegroundColor <- System.ConsoleColor.Red
-                  IO.output $"{err} (unrecognised token)\n" |> ignore
-                  System.Console.ForegroundColor <- System.ConsoleColor.White
 
-        let rec read (): int =
-            let inputResult: string IO.Result = Some ">>> " |> IO.input
-            match inputResult with
-             | IO.Failure _ -> 0
-             | IO.Success i ->
-                 match i with
-                  | "@quit"  -> 0
-                  | "@clear" ->
-                    launch()
-                  | _        ->
-                      eval(i)
-                      read()
+        // partial for moving the cursor up or down by n units
+        let moveCursorY: int -> (int * int) IO.Result = IO.moveCursorRelative 0
 
-        read()
+        // execute batch operation
+        let result: unit IO.Result = IO.compose [
+            -1                           |> moveCursorY                  |> IO.generalized
+            System.ConsoleColor.DarkGray |> IO.setConsoleForegroundColor |> IO.generalized
+            " |"                         |> IO.output
+            System.ConsoleColor.White    |> IO.setConsoleForegroundColor |> IO.generalized
+            $"  {input}\n"               |> IO.output;
+                                            noOutputIfNoTokens()
+            System.ConsoleColor.White    |> IO.setConsoleForegroundColor |> IO.generalized
+        ]
+        match result with
+         | IO.Failure _ -> false
+         | IO.Success _ -> true
+
+    /// <summary>
+    ///     Launches the REPL environment in the user's terminal.
+    /// </summary>
+    /// <returns> <c>true</c> if the REPL exited without error; <c>false</c> if a fatal error occurred </returns>
+    let rec launch (): bool =
+        let rec env (): bool =
+            match IO.input(Some ">>> ") with
+             | IO.Failure _     -> false
+             | IO.Success input ->
+                 match input with
+                  | "@quit" -> true
+                  | _       ->
+                      match processInput input with
+                       | true  -> env()
+                       | false -> false
+
+        // exit if initialisation failed
+        match initialiseConsole() with
+         | true  -> env()
+         | false -> false

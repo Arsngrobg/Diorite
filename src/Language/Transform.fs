@@ -141,7 +141,7 @@ module Lexer =
     ///     Converts the supplied <c>src</c> string into a stream of tokens.
     /// </summary>
     /// <param name='src'> the raw string to be tokenized </param>
-    /// <returns> a <c>IO.Result</c> that may contain the list of tokens or an error </returns>
+    /// <returns> a <c>IO.Result</c> that may contain the list of tokens or a <c>LexerError</c> </returns>
     let lex (src: string): Token list IO.Result =
         let rec scan (src: char list): Token list =
             match src with
@@ -229,7 +229,7 @@ module Lexer =
 
         // fail if IllegalToken was found
         match tokens |> getFailingToken with
-         | Some lexeme -> IO.Failure(lexeme |> IO.LexerError)
+         | Some lexeme -> IO.Failure($"Unrecognised token: '{lexeme}'" |> IO.LexerError)
          | None        -> IO.Success tokens
 
 /// <summary>

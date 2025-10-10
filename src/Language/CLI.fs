@@ -8,7 +8,7 @@
 // File:    CLI.fs
 // Summary: Command-Line Interface utils and the entry point for the Diorite language utility
 // Author:  Arsngrobg
-// Version: v1.10
+// Version: v1.11
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
@@ -27,17 +27,21 @@ module CLI =
     ///     An enum consisting of exit codes that may be returned by the <c>CLI::executeArgs (Argument list)</c>
     ///     function.
     ///     <code>
-    ///         IO.output $"{ExitCode.NO_ERROR}"       |> ignore // output: "0"
-    ///         IO.output $"{ExitCode.FILE_NOT_FOUND}" |> ignore // output: "1"
+    ///         IO.output $"{ExitCode.NoError}"       |> ignore // output: "0"
+    ///         IO.output $"{ExitCode.REPLFailure}"   |> ignore // output: "1"
+    ///         IO.output $"{ExitCode.FileNotFound}"  |> ignore // output: "2"
+    ///         IO.output $"{ExitCode.IllegalArgs}"   |> ignore // output: "4"
+    ///         IO.output $"{ExitCode.IllegalToken}"  |> ignore // output: "8"
+    ///         IO.output $"{ExitCode.IllegalTokens}" |> ignore // output: "16"
     ///     </code>
     /// </summary>
     type ExitCode =
-        | NO_ERROR       = 0  // no error was caused
-        | REPL_FAILURE   = 1  // any failed state caused by the REPL
-        | FILE_NOT_FOUND = 2  // the file specified was not found
-        | ILLEGAL_ARGS   = 4  // illegal sequence of arguments
-        | ILLEGAL_TOKEN  = 8  // illegal token found
-        | ILLEGAL_TOKENS = 16 // illegal token sequence
+        | NoError       = 0  // no error was caused
+        | REPLFailure   = 1  // any failed state caused by the REPL
+        | FileNotFound  = 2  // the file specified was not found
+        | IllegalArgs   = 4  // illegal sequence of arguments
+        | IllegalToken  = 8  // illegal token found
+        | IllegalTokens = 16 // illegal token sequence
 
     /// <summary>
     ///     A binding that returns the string used by the CL utility when no args are provided or the
@@ -67,12 +71,12 @@ module CLI =
     ///     The argument types recognised by the <c>Diorite</c> CL utility.
     /// </summary>
     type Argument =
-        | ARG_HELP              // -h / --help
-        | ARG_UPGRADE           // -u / --upgrade
-        | ARG_VERSION           // -v / --version
-        | ARG_INTERPRETER       // -i / --interpreter
-        | ARG_COMPILE           // -c / --compile
-        | ARG_LITERAL of string // any other value (e.g. file path)
+        | Help                  // -h / --help
+        | Upgrade               // -u / --upgrade
+        | Version               // -v / --version
+        | Interpreter           // -i / --interpreter
+        | Compile               // -c / --compile
+        | Literal     of string // any other value (e.g. file path)
 
     /// <summary>
     ///     A binding that executes the typed <c>Argument</c>, depending on the sequence of tokens provided to it.
@@ -82,39 +86,32 @@ module CLI =
     let executeArgs (args: Argument list): ExitCode =
         match args with
          // display this version of diorite
-         | [ ARG_VERSION ]                    ->
+         | [ Version ] ->
              IO.output $"{Version.languageVersion}" |> ignore
-             ExitCode.NO_ERROR
+             ExitCode.NoError
 
          // display help if the ARG_HELP or no args are given
-         | [ ARG_HELP ] | []                  ->
+         | [ Help ] | [] ->
              IO.output $"{helpString}" |> ignore
-             ExitCode.NO_ERROR
+             ExitCode.NoError
 
          // checks and upgrades this version of diorite to the latest version
-         | [ ARG_UPGRADE ]                    -> failwith "[TODO] Offer some sort of update feature (use gh releases?)"
+         | [ Upgrade ] -> failwith "[TODO] Offer some sort of update feature (use gh releases?)"
 
          // launches the REPL environment in the user's terminal (IT DOES NOT WORK IN IDE INTEGRATED TERMINALS)
-         | [ ARG_INTERPRETER ]                ->
-             REPL.launch() |> ignore
-             ExitCode.NO_ERROR
+         | [ Interpreter ] ->
+             match REPL.launch() with
+              | true  -> ExitCode.NoError
+              | false -> ExitCode.REPLFailure
 
-         | [ ARG_INTERPRETER; ARG_LITERAL file ] ->
-             let result: string IO.Result = IO.readFile file
-             match result with
-              | IO.Success file ->
-                   IO.output $"'''\n{file}'''\n" |> ignore
-                   IO.output $"{file |> Lexer.lex |> IO.forceUnwrap |> Lexer.tokens2str}" |> ignore
-                   ExitCode.NO_ERROR
-              | IO.Failure err  ->
-                   IO.output $"{err}" |> ignore
-                   ExitCode.FILE_NOT_FOUND
+         // attempt to load the file into the REPL environment
+         | [ Interpreter; Literal _ ] -> failwith "[TODO] load in the file into the REPL"
 
          // compile the given .diorite file
-         | [ ARG_COMPILE; ARG_LITERAL _ ]     -> failwith "[TODO] Compile that shit"
+         | [ Compile; Literal _ ] -> failwith "[TODO] Compile that shit"
 
          // illegal combination of arguments given to the CLI
-         | _                                  -> ExitCode.ILLEGAL_ARGS
+         | _ -> ExitCode.IllegalArgs
 
     /// <summary>
     ///     A binding that uplifts the raw <c>string</c> literals into typed <c>Argument</c> flags.
@@ -129,17 +126,17 @@ module CLI =
         let rec read (argv: string list): Argument list =
             match argv with
              | []                                 -> []
-             | ( "-h" | "--help"        ) :: tail -> ARG_HELP         :: read tail
-             | ( "-u" | "--upgrade"     ) :: tail -> ARG_UPGRADE      :: read tail
-             | ( "-v" | "--version"     ) :: tail -> ARG_VERSION      :: read tail
-             | ( "-i" | "--interpreter" ) :: tail -> ARG_INTERPRETER  :: read tail
-             | ( "-c" | "--compile"     ) :: tail -> ARG_COMPILE      :: read tail
-             | head :: tail                       -> ARG_LITERAL head :: read tail
+             | ( "-h" | "--help"        ) :: tail -> Help         :: read tail
+             | ( "-u" | "--upgrade"     ) :: tail -> Upgrade      :: read tail
+             | ( "-v" | "--version"     ) :: tail -> Version      :: read tail
+             | ( "-i" | "--interpreter" ) :: tail -> Interpreter  :: read tail
+             | ( "-c" | "--compile"     ) :: tail -> Compile      :: read tail
+             | head :: tail                       -> Literal head :: read tail
 
         read argv
 
     [<EntryPoint>]
-    let main (argv: string array): int32 =
+    let main (argv: string array): int =
         let args: Argument list = collectArgs ( Array.toList argv )
         let exitCode: ExitCode = executeArgs args
-        int32 <| exitCode
+        int <| exitCode
