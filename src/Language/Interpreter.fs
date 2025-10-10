@@ -41,11 +41,13 @@ module REPL =
     let private initialiseConsole (): bool =
         // execute batch operation
         let result: unit IO.Result = IO.compose [
-            title                       |> IO.setConsoleTitle           |> IO.generalized
-            None                        |> IO.clearConsole              |> IO.generalized
-            System.ConsoleColor.Magenta |> IO.setConsoleBackgroundColor |> IO.generalized
-            $"    {title} \n"           |> IO.output
-            System.ConsoleColor.Black   |> IO.setConsoleBackgroundColor |> IO.generalized
+            title                        |> IO.setConsoleTitle           |> IO.generalized
+            None                         |> IO.clearConsole              |> IO.generalized
+            System.ConsoleColor.DarkGray |> IO.setConsoleBackgroundColor |> IO.generalized
+            System.ConsoleColor.Black    |> IO.setConsoleForegroundColor |> IO.generalized
+            $"    {title} \n"            |> IO.output
+            System.ConsoleColor.White    |> IO.setConsoleForegroundColor |> IO.generalized
+            System.ConsoleColor.Black    |> IO.setConsoleBackgroundColor |> IO.generalized
         ]
         match result with
          | IO.Failure _ -> false
