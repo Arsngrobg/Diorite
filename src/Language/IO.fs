@@ -53,8 +53,7 @@ module IO =
     /// </summary>
     type DioriteError =
         | MathError   of string // caused by division by zero for example
-        | LexerError  of string // illegal token recognised
-        | ParseError  of string // illegal sequence of tokens
+        | SyntaxError of string // caused by illegal syntax
         | SystemError of string // illegal state caused by external interop code
 
     /// <summary>
