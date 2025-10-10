@@ -8,12 +8,40 @@
 // File:    Transform.fs
 // Summary: The functions for transforming diorite source files into token streams and subsequently ASTs
 // Author:  Arsngrobg, Borngle
-// Version: v1.5
+// Version: v1.6
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
 
 namespace Diorite.Lang
+
+// separate module for helper functions since we have a lot of those
+module private Transformers =
+    let stringToChars (str: string): char list =
+        [ for c in str do c ]
+
+    let parseDigit (c: char): int =
+        int c - int '0'
+
+    let charsToString (chars: char list): string =
+        System.String.Concat chars
+
+    let parseNumber (str: char list): float =
+        str |> charsToString |> System.Double.Parse
+
+// predicates for the consume function
+module private Predicates =
+    let isLetter (c: char): bool =
+        System.Char.IsLetter c
+
+    let isDigit (c: char): bool =
+        System.Char.IsDigit c
+
+    let isBlank (c: char): bool =
+        c <> '\n' && System.Char.IsWhiteSpace c
+
+    let any (c: char): bool =
+        not(isBlank c)
 
 /// <summary>
 ///     The <c>Lexer</c> module groups up related bindings that represent the tokenization stage of the code
@@ -26,37 +54,60 @@ namespace Diorite.Lang
 /// </summary>
 module Lexer =
     /// <summary>
-    ///     The <c>Token</c> discriminated union type represents a type of token.
+    ///     All the accepted tokens in the <b>Diorite</b> language.
+    ///     <c>IllegalToken</c> is any illegal string and is used for error checking.
     /// </summary>
     type Token =
-        // new lines are abstracted so we need to differentiate between a new statement or just separation via newline
-        | NewStatement
-        // for safe escape from the lexer function and display an error whilst continuing execution
-        | IllegalToken      of string
+        // lexing halts when this is discovered by the lexer and is used for syntax errors
+        | IllegalToken      of string // contains the offending lexeme
+
         // value types
-        | Number            of float
-        | Variable          of string
+        | Number            of float   // contains the number literal
+        | Identifier        of char    // contains the character
+        | Symbol            of string  // contains the symbol name
+
         // constants
         | Undefined
         | Infinity
         | Pi
         | Tau
-        // operators & operator priority
+
+        // integral operator
+        | Tick
+
+        // boundary operators
+        | Colon
+        | Arrow
+
+        // comparison operators
         | Equals
-        | LeftParenthesis
-        | RightParenthesis
+        | LessThan
+        | GreaterThan
+        | LessThanOrEqual
+        | GreaterThanOrEqual
+        | NotEqual
+
+        // arithmetic operators
         | Exponent
+        | Factorial
         | Multiply
         | Divide
         | Percentage
         | Plus
         | Subtract
         | Bar
-        // pre-defined functions / symbolic-named functions
-        | Symbol of string
-        // set hints
-        | SetHint
-        | NumberSet
+
+        // control flow
+        | If
+        | Otherwise
+
+        // parenthesis, brackets, and braces
+        | LeftParenthesis
+        | RightParenthesis
+        | LeftBracket
+        | RightBracket
+        | LeftBrace
+        | RightBrace
 
     /// <summary>
     ///     A debug function for outputting the tokens in a structured manner from a supplied token stream.
@@ -64,173 +115,133 @@ module Lexer =
     /// <param name="tokens"> the <c>Lexer.Token</c> stream </param>
     let rec tokens2str (tokens: Token list): string =
         match tokens with
-         | []                    -> ""
-         | NewStatement :: tail -> $"\nNewStatement\n{tokens2str tail}"
-         | t            :: tail -> $"({t}) {tokens2str tail}"
-
-    /// <summary>
-    ///     Helper function to convert a <c>string</c> into a list of <c>char</c>s.
-    /// </summary>
-    /// <param name='str'> the string to convert into a list of characters </param>
-    /// <returns> the original <c>string</c>, transformed into a list of characters </returns>
-    let stringToChars (str: string): char list =
-        [ for c in str do c ]
-        
-    /// <summary>
-    ///     Helper function to evaluate if a character is alphabetical.
-    /// </summary>
-    /// <param name='c'> the character </param>
-    /// <returns> <c>true</c> if the character is a letter, <c>false</c> if otherwise </returns>
-    let isAlpha (c: char): bool =
-        System.Char.IsLetter c
+         | []        -> ""
+         | t :: tail -> $"({t}) {tokens2str tail}"
     
-    /// <summary>
-    ///     Helper function to evaluate if a character is a digit.
-    /// </summary>
-    /// <param name='c'> the character </param>
-    /// <returns> <c>true</c> if the character is a digit, <c>false</c> if otherwise </returns>
-    let isDigit (c: char): bool =
-        System.Char.IsDigit c
-
-    /// <summary>
-    ///     Helper function to evaluate if a character is whitespace.
-    /// </summary>
-    /// <param name='c'> the character </param>
-    /// <returns> <c>true</c> if the character is a whitespace, <c>false</c> if otherwise </returns>
-    let isWhitespace (c: char): bool =
-        System.Char.IsWhiteSpace c
-
-    /// <summary>
-    ///     Helper function to evaluate any character except from whitespace characters.
-    /// </summary>
-    /// <param name='c'> the character </param>
-    /// <returns> <c>true</c> if the character is not a whitespace character, <c>false</c> if otherwise </returns>
-    let any (c: char): bool =
-        not(isWhitespace c)
-
-    /// <summary>
-    ///     Helper function for parsing a string as a numeric value.
-    /// </summary>
-    /// <param name='str'> the string to parse </param>
-    /// <returns> the <c>string</c> transformed into its <c>float</c> representation </returns>
-    let parseNumber (str: string): float =
-        System.Double.Parse str
-
-    /// <summary>
-    ///     Helper function for collapsing a list of characters into a <c>string</c>.
-    /// </summary>
-    /// <param name='chars'> list of characters </param>
-    /// <returns> the <c>char list</c> formatted as a <c>string</c> </returns>
-    let charsToString (chars: char list): string =
-        System.String.Concat chars
-    
-    /// <summary>
-    ///     Recursively consumes characters if they satisfy a given predicate.
-    /// </summary>
-    /// <param name='predicate'> function that is supplied a <c>char</c> which wraps a <b>bool</b> expression </param>
-    /// <param name='src'> list of characters being checked </param>
-    /// <returns> a tuple: consisting of the consumed characters, and the remaining characers </returns>
-    let rec consume (predicate: char -> bool) (src: char list): char list * char list =
+    // recursively consume character given that they satisfy the given predicate
+    let rec private consume (predicate: char -> bool) (src: char list): char list * char list =
         match src with
-         | c :: tail when predicate c -> // match if true
-            let (consumed: char list ), (remaining: char list) = consume predicate tail
-            ( c:: consumed, remaining )   // c is prepended to consumed, and remaining is the rest of the list that does not match
-         | _ -> ( [], src )
+         | c :: tail when predicate c ->
+            let (consumed: char list), (remaining: char list) = consume predicate tail
+            (c :: consumed, remaining)
+         | _ -> ([], src)
+
+    /// <summary>
+    ///     Searches through the list in order until it reaches an <c>IllegalToken</c>.
+    ///     If it does reach an <c>IllegalToken</c>, the function will return a <c>IO.SyntaxError</c> containing a
+    ///     message which states what the illegal token is.
+    ///     <code>
+    ///         let tokens: Token list = [Number 2; Plus; Number 2; IllegalToken ","]
+    ///         let error: IO.DioriteError = Lexer.getError tokens
+    ///         IO.output $"{error}" |> ignore // output: "SyntaxError "Unexpected token: ','"
+    ///     </code>
+    /// </summary>
+    /// <param name='tokens'> the tokens to check for an <c>IllegalToken</c> </param>
+    /// <returns> the first instance of <c>IllegalToken</c> in the list or <c>None</c> if no error </returns>
+    let rec getError (tokens: Token list): IO.DioriteError option =
+        match tokens with
+         | []                     -> None
+         | IllegalToken t :: tail -> Some ($"Unexpected token: '{t}'" |> IO.SyntaxError)
+         | _              :: tail -> getError tail
 
     /// <summary>
     ///     Converts the supplied <c>src</c> string into a stream of tokens.
     /// </summary>
     /// <param name='src'> the raw string to be tokenized </param>
     /// <returns> a <c>IO.Result</c> that may contain the list of tokens or a <c>LexerError</c> </returns>
-    let lex (src: string): Token list IO.Result =
+    let lex (src: string): Token list =
         let rec scan (src: char list): Token list =
             match src with
              | [] -> []
 
-             // newlines and any other whitespace after it should be recognised as a NewStatement
-             | c :: tail when c = '\n' ->
-                 let _, (remaining: char list) = consume isWhitespace ( c :: tail )
-                 match ( remaining |> List.forall isWhitespace ) with
-                  | true  -> []
-                  | false -> NewStatement :: scan remaining
-
-             // sets
-             | ':' :: tail | '-' :: '>' :: tail ->
-                let _, (remaining: char list) = consume isWhitespace tail
-                match remaining with
-                 | ( 'N' | 'Z' | 'Q' | 'I' | 'R' | 'C' ) :: tail -> SetHint :: NumberSet :: scan tail
-                 | remaining                                     ->
-                     let (consumed: char list), _ = consume any remaining
-                     [ consumed |> charsToString |> IllegalToken ]
-
-             // variables, built-in functions, and constants
-             | c :: tail when isAlpha c ->
-                let (letters: char list), (remaining: char list) = consume isAlpha ( c :: tail )
-                let name: string = charsToString letters
-
-                // any 1-length string of alpha characters is defined as a variable, symbolic name otherwise
-                let tokenType: Token =
-                    match letters with
-                     | [ _ ]   -> Variable name
-                     |   _     -> Symbol   name
-
-                match name with
-                 // constants
-                 | "undefined"        -> Undefined :: scan remaining
-                 | "infinity" | "inf" -> Infinity  :: scan remaining
-                 | "pi"               -> Pi        :: scan remaining
-                 | "tau"              -> Tau       :: scan remaining
-                 | _ ->
-                    match remaining with
-                     | '(' :: tail -> tokenType :: LeftParenthesis :: scan tail
-                       // parenthesis token separated for better parser context
-                     | _           -> tokenType :: scan remaining
-                    
              // numbers
-             | c :: tail when isDigit c ->
-                let digits, remaining = consume isDigit ( c :: tail )
-                match remaining with
-                 | '.' :: tail ->
-                    let (fractionalDigits: char list), (remaining: char list) = consume isDigit ( tail )
-                    let number = charsToString ( digits @ ['.'] @ fractionalDigits )
-                    let result = parseNumber number
-                    Number result :: scan remaining
-                 | _ ->
-                    let number = charsToString digits
-                    let result = parseNumber number
-                    Number result :: scan remaining
-            
-             // operators and symbols
-             | '=' :: tail -> Equals           :: scan tail
+             | c :: tail when Predicates.isDigit c ->
+                 let (integerComponent: char list), (remaining: char list) = consume Predicates.isDigit (c :: tail)
+                 match remaining with
+                 // with decimal component
+                  | '.' :: tail ->
+                      match consume Predicates.isDigit tail with
+                      // produce two separate tokens to say that the '.' is an illegal token after the number
+                       | [], remaining ->
+                           (integerComponent |> Transformers.parseNumber |> Number) ::
+                           IllegalToken "." ::
+                           scan remaining
+                       | decimalComponent, postDecimal ->
+                          let charSequence: char list = integerComponent @ ['.'] @ decimalComponent
+                          (charSequence |> Transformers.parseNumber |> Number) :: scan postDecimal
+                  // only integer component
+                  | _ -> (integerComponent |> Transformers.parseNumber |> Number) :: scan remaining
+
+             // variables (+ subscript), symbols & constants
+             | c :: tail when Predicates.isLetter c ->
+                 match consume Predicates.isLetter tail with
+                 // variables
+                  | [], remaining ->
+                      match remaining with
+                      // subscripts
+                       | digit :: postSubscript when Predicates.isDigit digit ->
+                           Identifier c :: (Transformers.parseDigit(digit) |> float |> Number) :: scan postSubscript
+                       | _ -> Identifier c   :: scan remaining
+                 // symbols, constants, and keywords
+                  | chars, remaining ->
+                      match Transformers.charsToString (c :: chars) with
+                       // keywords
+                       | "if"               -> If         :: scan remaining
+                       | "otherwise"        -> Otherwise  :: scan remaining
+
+                       // constants
+                       | "undefined"        -> Undefined  :: scan remaining
+                       | "infinity" | "inf" -> Infinity   :: scan remaining
+                       | "pi"               -> Pi         :: scan remaining
+                       | "tau"              -> Tau        :: scan remaining
+
+                       // symbols
+                       | sym                -> Symbol sym :: scan remaining
+
+             // integral operator
+             | '\'' :: tail -> Tick :: scan tail
+
+             // boundary operators
+             | '-' :: '>' :: tail -> Arrow :: scan tail
+             | ':'        :: tail -> Colon :: scan tail
+
+             // comparison operators
+             | '<' :: '=' :: tail -> LessThanOrEqual    :: scan tail
+             | '>' :: '=' :: tail -> GreaterThanOrEqual :: scan tail
+             | '!' :: '=' :: tail -> NotEqual           :: scan tail
+             | '='        :: tail -> Equals             :: scan tail
+
+             // arithmetic operators
+             | '^'        :: tail -> Exponent    :: scan tail
+             | '!'        :: tail -> Factorial   :: scan tail
+             | '*'        :: tail -> Multiply    :: scan tail
+             | '/'        :: tail -> Divide      :: scan tail
+             | '%'        :: tail -> Percentage  :: scan tail
+             | '+'        :: tail -> Plus        :: scan tail
+             | '-'        :: tail -> Subtract    :: scan tail
+             | '|'        :: tail -> Bar         :: scan tail
+             | '<'        :: tail -> LessThan    :: scan tail
+             | '>'        :: tail -> GreaterThan :: scan tail
+
+             // brackets, curly braces & square brackets
              | '(' :: tail -> LeftParenthesis  :: scan tail
              | ')' :: tail -> RightParenthesis :: scan tail
-             | '^' :: tail -> Exponent         :: scan tail
-             | '*' :: tail -> Multiply         :: scan tail
-             | '/' :: tail -> Divide           :: scan tail
-             | '%' :: tail -> Percentage       :: scan tail
-             | '+' :: tail -> Plus             :: scan tail
-             | '-' :: tail -> Subtract         :: scan tail
-             | '|' :: tail -> Bar              :: scan tail
-                
-             // Other cases
-             | c :: tail when isWhitespace c -> scan tail
-             | remaining                     ->
-                 let (consumed: char list), _ = consume any remaining
-                 [ consumed |> charsToString |> IllegalToken ]
+             | '{' :: tail -> LeftBrace        :: scan tail
+             | '}' :: tail -> RightBrace       :: scan tail
+             | '[' :: tail -> LeftBracket      :: scan tail
+             | ']' :: tail -> RightBracket     :: scan tail
 
-        let tokens: Token list = src |> stringToChars |> scan
+             // skip whitespace (not newlines)
+             | c :: _ when Predicates.isBlank c ->
+                 let _, (remaining: char list) = consume Predicates.isBlank src
+                 scan remaining
 
-        // we need to know if the lexer failed and find the string that caused it
-        let rec getFailingToken (tokens: Token list): string option =
-            match tokens with
-             | [ IllegalToken lexeme ] -> Some lexeme
-             | _ :: tail               -> getFailingToken tail
-             | _                       -> None
+             // illegal token
+             | _ ->
+                 let (lexeme: char list), (remaining: char list) = consume Predicates.any src
+                 (Transformers.charsToString(lexeme) |> IllegalToken) :: scan remaining
 
-        // fail if IllegalToken was found
-        match tokens |> getFailingToken with
-         | Some lexeme -> IO.Failure($"Unrecognised token: '{lexeme}'" |> IO.LexerError)
-         | None        -> IO.Success tokens
+        src |> Transformers.stringToChars |> scan
 
 /// <summary>
 ///     The <c>Parser</c> module.

@@ -56,23 +56,23 @@ module REPL =
     // processes the provided input from the user
     let private processInput (input: string): bool =
         // tokenize the input
-        let lexResult: Lexer.Token list IO.Result = Lexer.lex input
+        let tokens: Lexer.Token list = Lexer.lex input
 
         // defines what is output depending on the lexer result
         let noOutputIfNoTokens (): unit IO.Result =
-            match lexResult with
-             | IO.Failure err -> IO.compose [
+            let error: IO.DioriteError option = Lexer.getError tokens
+            match error with
+             | Some e -> IO.compose [
                  System.ConsoleColor.Red |> IO.setConsoleForegroundColor |> IO.generalized;
-                 IO.output $" X  {err}\n"
+                 IO.output $" X  {e}\n"
                ]
-             | IO.Success tokens ->
-                 match tokens with
-                  | [] -> IO.Success () // do nothing
-                  | _  -> IO.compose [
+             | None ->
+                  match tokens with
+                   | [] -> IO.Success () // do nothing
+                   | _  -> IO.compose [
                       System.ConsoleColor.DarkGray |> IO.setConsoleForegroundColor |> IO.generalized;
                       IO.output $" ¦  {Lexer.tokens2str tokens}\n"
-                    ]
-
+                   ]
 
         // partial for moving the cursor up or down by n units
         let moveCursorY: int -> (int * int) IO.Result = IO.moveCursorRelative 0
