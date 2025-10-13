@@ -5,93 +5,122 @@
 /*   |_____/|__||_____|__|  |__|____|_____|                                                                           */
 /*                                                                                                                    */
 /* ------------------------------------------------------------------------------------------------------------------ */
-/* This is the grammar specification for the Diorite mathematics computing language.                                  */
-/* This specifictaion uses a mix of BNF and the 'syntax' sugar of EBNF for multiplcity definitions of rule repitions. */
-/* Each rule is a stage/function in the LL(1) (recursive descent) parser.                                             */
-/* This specification is written bottom-top to show the composition of these rules.                                   */
-/* This grammar was written with 'BNF Playground' (https://bnfplayground.pauliankline.com)                            */
-/* Whitespace is implied by this grammar - UNLESS SPECIFIED OTHERWISE                                                 */
+/* The grammar specification for the Diorite mathematics computing language.                                          */
+/* It models both the tokens in the lexer and the parsing stages in the parser                                        */
+/* Each stag eof the parser should be read from bottom-up (hence this grammar starts at the <Equation> rule           */
+/* This grammar was written using the 'BNF Plaground' tool: https://bnfplayground.pauliankline.com                    */
+/* Whitespace is implied by this grammar (unless specified or enforced otherwise                                      */
+/* The raw character 'E' denotes epsilon (ε) an empty string                                                          */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-/* ADDITIONAL INFO:                                                                                                   */
-/* - The character '_' is the equivalent to the ANS or ANSWER button on a calculator, hence it represents the result  */
-/*   of the previous expression                                                                                       */
-/* ------------------------------------------------------------------------------------------------------------------ */
+/* Tokens ----------------------------------------------------------------------------------------------------------- */
 
-/* Value Types & Reserved Words */
-<Number>                 ::= ([0-9]+ ("." [0-9]+)?)
-<Variable>               ::= (([a-z] | [A-Z]) [0-9]*) | "_"
-<Reserved>               ::= "undefined" | "infinity" | "inf" | "pi" | "tau"
+/* value types */
+<Number>             ::= [0-9]+ ("." [0-9]+)?
 
-/* Grouping Type (Final Stage of Parser) */
-<Atom>                   ::= <Reserved> | <Number> | <Variable>
+<Identifier>         ::= ([a-z] | [A-Z])
+                      |  ([a-z] | [A-Z]) [0-9]
 
-/* Operations: Unary */
-<Factorial>              ::= (<Atom> "!"*) | ("(" <Expression> ")")
-<Percentage>             ::= <Factorial> "%"*
-<Signed>                 ::= ("+" | "-")* <Percentage>
+<Symbol>             ::= ([a-z] | [A-Z]) ([a-z] | [A-Z])+
 
-/* Operations: Binary */
-<Exponent>               ::= <Signed> ("^" <Signed>)*
-<Factor>                 ::= <Exponent> (("*" | "/") <Exponent>)*
-<Term>                   ::= <Factor>+ (("+" | "-" | "%") <Factor>)*
-<Expression>             ::= (<Term> | <Builtin> | <FunctionExecution>)
-                          |  ("(" (<Term> | <Builtin> | <FunctionExecution>) ")")+
-                          |  ("|" (<Term> | <Builtin> | <FunctionExecution>) "|")+
+/* constants */
+<Undefined>          ::= "undefined"
+<Infinity>           ::= "infinity" | "inf"
+<Pi>                 ::= "pi"
+<Tau>                ::= "tau"
+<Euler>              ::= "euler"
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-/* Expression Examples:                                                                                               */
-/* a^2 + b^2 - 4ac                  -> a^2+b^2-4ac (as per the BNF)                                                   */
-/* f(g(x)) + f(x) * g(x) - (4y % 4) -> f(g(x))+f(x)*g(x)-(4y%4) (as per the BNF)                                      */
-/* ------------------------------------------------------------------------------------------------------------------ */
+/* operators */
+<Tick>               ::= "'"
+<Comma>              ::= ","
+<Colon>              ::= ":"
+<Arrow>              ::= "->"
+<Equals>             ::= "="
+<LessThan>           ::= "<"
+<GreaterThan>        ::= ">"
+<LessThanOrEqual>    ::= "<="
+<GreaterThanOrEqual> ::= ">="
+<NotEqual>           ::= "!="
+<Hat>                ::= "^"
+<Exclamation>        ::= "!"
+<Asterisk>           ::= "*"
+<Slash>              ::= "/"
+<Percentage>         ::= "%"
+<Plus>               ::= "+"
+<Hyphen>             ::= "-"
+<Bar>                ::= "|"
 
-/* Function Conditionals */
-<If>                     ::= <Expression> "if" <Expression> ("=" | "!=" | "<" | ">" | "<=" | ">=") <Expression>
-<Else>                   ::= <Expression> "otherwise"
-<Conditions>             ::= <If> ((" " | "\n")+ <If>)* (" " | "\n")+ <Else>
+/* control flow */
+<If>                 ::= "if"
+<Otherwise>          ::= "otherwise"
 
-/* Function Set Constraints */
-<Set>                    ::= "N" | "Z" | "Q" | "I" | "R" | "C"
-
-/* Functions */
-<FunctionParam>          ::= <Variable> (":" <Set>)?
-<FunctionParams>         ::= <FunctionParam> ("," <FunctionParam>)*
-<FunctionArguments>      ::= <Expression> ("," <Expression>)*
-<FunctionDefinition>     ::= <Variable> "(" <FunctionParams> ")"
-<FunctionExecution>      ::= <Variable> "(" <FunctionArguments> ")"
-<FunctionBody>           ::= <Expression> | "{" <Conditions> "}"
-
-/* Builtin Functions - they are functions with identifiers with character count of at least 1 so using generic form   */
-<Builtin>                ::= [a-z]+ "(" <FunctionArguments> ")"
+/* parenthesis, brackets, and braces */
+<LeftParenthesis>    ::= "("
+<RightParenthesis>   ::= ")"
+<LeftBracket>        ::= "["
+<RightBracket>       ::= "]"
+<LeftBrace>          ::= "{"
+<RightBrace>         ::= "}"
 
 /* ------------------------------------------------------------------------------------------------------------------ */
-/* Fibonacci Example:                                                                                                 */
-/* F(x) = {                                                                                                           */
-/*     undefined           if x < 0                                                                                   */
-/*     x                   if x < 2                                                                                   */
-/*     F(x - 2) + F(x - 1) otherwise                                                                                  */
-/* }                                                                                                                  */
-/* ------------------------------------------------------------------------------------------------------------------ */
-/* As per the BNF:                                                                                                    */
-/* F(x)={(undefined)if(x)<(0) (x)if(x)<(2) F(x-2)+F(x-1)otherwise}                                                    */
-/* (Whitespace is required for seperating function conditionals)                                                      */
-/* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Equations */
-<Equation>               ::= (<Expression> "=" <Expression>)
-                          |  ((<FunctionDefinition> ("->" <Set>)?) "=" <FunctionBody>)
-                          |  (<FunctionBody> "=" ((<FunctionDefinition> ("->" <Set>)?)))
+/* Parse ------------------------------------------------------------------------------------------------------------ */
+<Value>      ::= <Undefined>
+              |  <Infinity>
+              |  <Pi>
+              |  <Tau>
+              |  <Euler>
+              |  <Identifier>
+              |  <Number>
+
+<Param>      ::= <Identifier>
+              |  <Identifier> <Colon> <Identifier>
+
+<Params>     ::= <Param>
+              |  <Param> <Comma> <Params>
+
+<Return>     ::= E
+              |  <Arrow> <Identifier>
+
+<Args>       ::= <Expression>
+              |  <Expression> <Comma> <Args>
+
+<Attributes> ::= E
+              |  <LeftBracket> <Symbol>                  <RightBracket> <Attributes>
+              |  <LeftBracket> <Symbol> <Colon> <Symbol> <RightBracket> <Attributes>
+
+<Define>     ::= <Attributes> <Identifier> <LeftParenthesis> <Params> <RightParenthesis> <Return>
+
+<Condition>  ::= <Expression> <If> <Expression>
+                 (<Equals> | <NotEqual> | <GreaterThan> | <LessThan> | <GreaterThanOrEqual> | <LessThanOrEqual>)
+                 <Expression> <Condition>
+              |  <Expression> <Otherwise>
+
+<Body>       ::= <Expression>
+              |  <LeftBrace> <Condition> <RightBrace>
+
+/* sub-expression -> value -> symbolic application -> value application */
+<Atom>       ::= <LeftParenthesis> <Expression> <RightParenthesis>
+              |  <Value>
+              |  <Symbol>     <LeftParenthesis> <Args> <RightParenthesis>
+              |  <Identifier> <LeftParenthesis> <Args> <RightParenthesis>
+
+<Exponent>   ::= <Atom>
+              |  <Factor> <Hat> <Exponent>
+
+<Factor>     ::= <Exponent>
+              |  <Factor> <Exclamation>
+
+<Term>       ::= <Factor>
+              |  <Factor> (<Asterisk> | <Slash> | <Percentage>) <Term>
+
+<Expression> ::= <Term>
+              |  <Term> (<Plus> | <Hyphen>) <Expression>
+
+<Equation>   ::= <Define>     <Equals> <Body>
+              |  <Expression> <Equals> <Expression>
 
 /* ------------------------------------------------------------------------------------------------------------------ */
-/* Equation Examples:                                                                                                 */
-/* y = mx + c         -> y=mx+c (as per the BNF)                                                                      */
-/* f(m) = g(m) + h(m) -> f(m)=g(m)+h(m) (as per the BNF)                                                              */
-/* f(x) = 2y + x      -> f(x)=2y+x (as per the BNF) - provided y is defined                                           */
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/* Entry Point */
-<Diorite>                ::= <Equation> | <Expression>
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Diorite | Developed and produced by Arsngrobg and Borngle | 2025                                                   */

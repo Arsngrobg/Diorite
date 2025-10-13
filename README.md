@@ -46,7 +46,7 @@ $ diorite -i <name>.diorite
 After execution, you will be presented with the REPL exactly as you left it, ready to continue where you left off. Note
 that if using an IDE, the integrated terminal does not format well with the REPL environment.
 
-# Feature List for an MVP
+# Feature List
 - Value Types
   - Number:    variables storing a value are implicitly `double` under the hood - but can be bound by a `set hint`
   - Variable:  character with an optional numerical subscript (x, x0, x00 are two different variables)
@@ -54,7 +54,7 @@ that if using an IDE, the integrated terminal does not format well with the REPL
     - `infinity`/`inf`: any operation applied on it will just return `infinity`
     - `π`/`pi`:         `3.14159265...`
     - `τ`/`tau`:        `6.28318530...`  (`2π`)
-    - `e`/`e`:          `2.718281828...` (euler's number)
+    - `e`/`euler`:      `2.718281828...` (euler's number)
 - Operations (BIDMAS)
   - Binary:   exponentiation, multiplication, division, modulo, addition, and subtraction
   - Unary:    plus, minus, factorial
@@ -62,8 +62,12 @@ that if using an IDE, the integrated terminal does not format well with the REPL
 - Variables
   - Initially: `undefined`
   - Storage:   either a value, function, or expression (auto-solve if trivial - e.g. `x = 2+2`)
-  - Internals: array of size `26` (+ `_`) slots that can contain a value or `undefined` and also a *bucket* for the
-               subscript variables
+  - Internals: table of size `(1 + 10) * (26 * 2)`, where:
+    - 1 slot:   the default variable   (e.g. `x` )
+    - 10 slots: the subscript variants (e.g. `x4` - offset `subscript + 1`)
+    - 26 slots: the lowercase characters
+    - 26 slots: the uppercase characters
+    this allows for `616` uniquely defined variables - plenty
 - Functions
   - Storage:    occupies same *memory* as variables
   - Internals:  the abstract syntax tree (AST) is stored in the *memory* location to be executed
@@ -83,23 +87,23 @@ that if using an IDE, the integrated terminal does not format well with the REPL
 - Standard Library
   - Bootstrapped: written in the language itself
   - Examples:
-    ```fsharp
-    abs  (x: R)      : Z   functional wrapper for the absolute operation                 (abs(-2) = |-2|)
-    sign (x: R)      : Z   returns the unit multiple of x                                (sign(7612) = 1)
-    pow  (x: R, n: R): R   functional wrapper around the power operation                 (pow(2,4) = 2^4 = 16)
-    floor(x: R)      : Z   returns the greatest integer less-than or equal-to x          (floor(2.45) = 2)
-    ceil (x: R)      : Z   returns the lowest integer greater-than or equal-to x         (ceil(-12.54) = -12)
-    deg  (r: R)      : R   converts the radians r to degress                             (deg(90) = 0.5π)
-    rad  (d: R)      : R   converts the degress d to radians                             (rad(0.5π) = 90)
-    gcd  (a: Z, b: Z): Z   returns the greatest common denominator of a and b            (gcd(8,12) = 4)
-    lcm  (a: Z, b: Z): Z   returns the lowest common multiple of a and b                 (lcm(8,12) = 24)
-    sin  (x: R)      : R   approximates the value of sin(x) using the Taylor Series      (sin(2π) = 0)
-    cos  (x: R)      : R   approximates the value of cos(x) using the Taylor Series      (cos(2π) = 1)
-    tan  (x: R)      : R   approximates the value of tan(x) using the Taylor Series      (tan(2π) = 0)
-    asin (x: R)      : R   approximates the value of arcsin(x) using the Taylor Series   (asin(0) = 0)
-    acos (x: R)      : R   approximates the value of arccos(x) using the Taylor Series   (acos(1) = 0)
-    atan (x: R)      : R   approximates the value of arctan(x) using the Taylor Series   (atan(0) = 0)
-    ```
+```fsharp
+    abs  (x: R)      : Z   functional wrapper for the absolute operation                 (abs(-2)        = |-2|)
+    sign (x: R)      : Z   returns the unit multiple of x                                (sign(7612)     = 1   )
+    pow  (x: R, n: R): R   functional wrapper around the power operation                 (pow(2,4) = 2^4 = 16  )
+    floor(x: R)      : Z   returns the greatest integer less-than or equal-to x          (floor(2.45)    = 2   )
+    ceil (x: R)      : Z   returns the lowest integer greater-than or equal-to x         (ceil(-12.54)   = -12 )
+    deg  (r: R)      : R   converts the radians r to degress                             (deg(90)        = 0.5π)
+    rad  (d: R)      : R   converts the degress d to radians                             (rad(0.5π)      = 90  )
+    gcd  (a: Z, b: Z): Z   returns the greatest common denominator of a and b            (gcd(8,12)      = 4   )
+    lcm  (a: Z, b: Z): Z   returns the lowest common multiple of a and b                 (lcm(8,12)      = 24  )
+    sin  (x: R)      : R   approximates the value of sin(x) using the Taylor Series      (sin(2π)        = 0   )
+    cos  (x: R)      : R   approximates the value of cos(x) using the Taylor Series      (cos(2π)        = 1   )
+    tan  (x: R)      : R   approximates the value of tan(x) using the Taylor Series      (tan(2π)        = 0   )
+    asin (x: R)      : R   approximates the value of arcsin(x) using the Taylor Series   (asin(0)        = 0   )
+    acos (x: R)      : R   approximates the value of arccos(x) using the Taylor Series   (acos(1)        = 0   )
+    atan (x: R)      : R   approximates the value of arctan(x) using the Taylor Series   (atan(0)        = 0   )
+```
   - External: external linkage to the `plot(fn)` function which is implemented in *F#*.
     ```fsharp
     plot (fn)  visualises the provided function (fn) in the respective interactive environment
