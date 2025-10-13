@@ -135,7 +135,7 @@ module IO =
     /// <summary>
     ///     Computes the chain of actions from left to right.
     ///     Upon each the execution of each function, it checks whether the unsafe function produced a <c>IO.Failure</c>
-    ///     <c>IO.Result</c>. If so, the <c>IO.Failure</c> is returned. A <c>IO.Success</c> is returned when all
+    ///     result. If so, the <c>IO.Failure</c> is returned. A <c>IO.Success</c> is returned when all
     ///     <c>actions</c> have returned successful results. This allows for the chain of operations to be tested as if
     ///     it were a single atomic operation that produces a singular <c>IO.Result</c>.
     ///     <code>
@@ -183,7 +183,7 @@ module IO =
     ///     (<c>'\n'</c>), or carriage return immediately followed by a newline (<c>"\r\n"</c>). The resulting string
     ///     returned contains all the characters until, and not including, the terminating character(s).
     ///     <code>
-    ///         let r: string IO.Result = IO.input ">>> " // output: >>> _
+    ///         let r: string IO.Result = IO.input(Some ">>> ") // output: >>> _
     ///         match r with
     ///          | Success input -> IO.output $"The user entered: {input}" |> ignore
     ///          | Failure err   -> IO.output $"{err}"                     |> ignore
