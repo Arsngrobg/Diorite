@@ -7,7 +7,7 @@
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* The grammar specification for the Diorite mathematics computing language.                                          */
 /* It models both the tokens in the lexer and the parsing stages in the parser                                        */
-/* Each stag eof the parser should be read from bottom-up (hence this grammar starts at the <Equation> rule           */
+/* Each stag eof the parser should be read from bottom-up (hence this grammar starts at the <Parse> rule              */
 /* This grammar was written using the 'BNF Plaground' tool: https://bnfplayground.pauliankline.com                    */
 /* Whitespace is implied by this grammar (unless specified or enforced otherwise                                      */
 /* The raw character 'E' denotes epsilon (ε) an empty string                                                          */
@@ -65,60 +65,70 @@
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /* Parse ------------------------------------------------------------------------------------------------------------ */
-<Value>      ::= <Undefined>
-              |  <Infinity>
-              |  <Pi>
-              |  <Tau>
-              |  <Euler>
-              |  <Identifier>
-              |  <Number>
+<Value>        ::= <Undefined>
+                |  <Infinity>
+                |  <Pi>
+                |  <Tau>
+                |  <Euler>
+                |  <Identifier>
+                |  <Number>
 
-<Param>      ::= <Identifier>
-              |  <Identifier> <Colon> <Identifier>
+<Param>        ::= <Identifier>
+                |  <Identifier> <Colon> <Identifier>
 
-<Params>     ::= <Param>
-              |  <Param> <Comma> <Params>
+<Params>       ::= <Param>
+                |  <Param> <Comma> <Params>
 
-<Return>     ::= E
-              |  <Arrow> <Identifier>
+<Return>       ::= E
+                |  <Arrow> <Identifier>
 
-<Args>       ::= <Expression>
-              |  <Expression> <Comma> <Args>
+<Args>         ::= <Expression>
+                |  <Expression> <Comma> <Args>
 
-<Attributes> ::= E
-              |  <LeftBracket> <Symbol>                  <RightBracket> <Attributes>
-              |  <LeftBracket> <Symbol> <Colon> <Symbol> <RightBracket> <Attributes>
+<Attributes>   ::= E
+                |  <LeftBracket> <Symbol>                  <RightBracket> <Attributes>
+                |  <LeftBracket> <Symbol> <Colon> <Symbol> <RightBracket> <Attributes>
 
-<Define>     ::= <Attributes> <Identifier> <LeftParenthesis> <Params> <RightParenthesis> <Return>
+<Define>       ::= <Attributes> <Identifier> <LeftParenthesis> <Params> <RightParenthesis> <Return>
 
-<Condition>  ::= <Expression> <If> <Expression>
-                 (<Equals> | <NotEqual> | <GreaterThan> | <LessThan> | <GreaterThanOrEqual> | <LessThanOrEqual>)
-                 <Expression> <Condition>
-              |  <Expression> <Otherwise>
+<Condition>    ::= <Expression> <If> <Expression>
+                   (<Equals> | <NotEqual> | <GreaterThan> | <LessThan> | <GreaterThanOrEqual> | <LessThanOrEqual>)
+                   <Expression> <Condition>
+                |  <Expression> <Otherwise>
 
-<Body>       ::= <Expression>
-              |  <LeftBrace> <Condition> <RightBrace>
+<Body>         ::= <Expression>
+                |  <LeftBrace> <Condition> <RightBrace>
 
 /* sub-expression -> value -> symbolic application -> value application */
-<Atom>       ::= <LeftParenthesis> <Expression> <RightParenthesis>
-              |  <Value>
-              |  <Symbol>     <LeftParenthesis> <Args> <RightParenthesis>
-              |  <Identifier> <LeftParenthesis> <Args> <RightParenthesis>
+<Atom>         ::= <LeftParenthesis> <Expression> <RightParenthesis>
+                |  <Bar>             <Expression> <Bar>
+                |  <Value>
+                |  <Symbol>     <LeftParenthesis> <Args> <RightParenthesis>
+                |  <Identifier> <LeftParenthesis> <Args> <RightParenthesis>
 
-<Exponent>   ::= <Atom>
-              |  <Factor> <Hat> <Exponent>
+<Differential>  ::= <Atom>
+                 |  <Integral> <Tick>
 
-<Factor>     ::= <Exponent>
-              |  <Factor> <Exclamation>
+<Integral>      ::= <Differential>
+                 |  <Tick> <Differential>
 
-<Term>       ::= <Factor>
-              |  <Factor> (<Asterisk> | <Slash> | <Percentage>) <Term>
+<Exponent>      ::= <Integral>
+                 |  <Factor> <Hat> <Exponent>
 
-<Expression> ::= <Term>
-              |  <Term> (<Plus> | <Hyphen>) <Expression>
+<Factor>        ::= <Exponent>
+                 |  <Factor> <Exclamation>
 
-<Equation>   ::= <Define>     <Equals> <Body>
-              |  <Expression> <Equals> <Expression>
+<Term>          ::= <Factor>
+                 |  <Factor> (<Asterisk> | <Slash> | <Percentage>) <Term>
+
+<Expression>    ::= <Term>
+                 |  <Term> (<Plus> | <Hyphen>) <Expression>
+
+<Equation>      ::= <Define>     <Equals> <Body>
+                 |  <Expression> <Equals> <Expression>
+
+<Parse>         ::= <Expression>
+                 |  <Equation>
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
