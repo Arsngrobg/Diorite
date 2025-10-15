@@ -8,7 +8,7 @@
 // File:    Transform.fs
 // Summary: The functions for transforming diorite source files into token streams and subsequently ASTs
 // Author:  Arsngrobg, Borngle
-// Version: v1.6
+// Version: v1.7
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
@@ -16,6 +16,7 @@
 namespace Diorite.Lang
 
 // separate module for helper functions since we have a lot of those
+[<RequireQualifiedAccess>]
 module private Transformers =
     let stringToChars (str: string): char list =
         [ for c in str do c ]
@@ -30,6 +31,7 @@ module private Transformers =
         str |> charsToString |> System.Double.Parse
 
 // predicates for the consume function
+[<RequireQualifiedAccess>]
 module private Predicates =
     let isLetter (c: char): bool =
         System.Char.IsLetter c
@@ -52,6 +54,7 @@ module private Predicates =
 ///         printf $"{tokens}" // output: "[VARIABLE "x", EQUALS, NUMBER 2]"
 ///     </code>
 /// </summary>
+[<RequireQualifiedAccess>]
 module Lexer =
     /// <summary>
     ///     All the accepted tokens in the <b>Diorite</b> language.
@@ -141,7 +144,7 @@ module Lexer =
     let rec getError (tokens: Token list): IO.DioriteError option =
         match tokens with
          | []                     -> None
-         | IllegalToken t :: tail -> Some ($"Unexpected token: '{t}'" |> IO.SyntaxError)
+         | IllegalToken t :: _    -> Some ($"Unexpected token: '{t}'" |> IO.SyntaxError)
          | _              :: tail -> getError tail
 
     /// <summary>
@@ -172,16 +175,19 @@ module Lexer =
                   // only integer component
                   | _ -> (integerComponent |> Transformers.parseNumber |> Number) :: scan remaining
 
-             // variables (+ subscript), symbols & constants
+             // identifiers (+ subscript), symbols & constants
              | c :: tail when Predicates.isLetter c ->
                  match consume Predicates.isLetter tail with
-                 // variables
+                 // identifiers
                   | [], remaining ->
                       match remaining with
                       // subscripts
                        | digit :: postSubscript when Predicates.isDigit digit ->
                            Identifier c :: (Transformers.parseDigit(digit) |> float |> Number) :: scan postSubscript
+
+                      // just a letter
                        | _ -> Identifier c   :: scan remaining
+
                  // symbols, constants, and keywords
                   | chars, remaining ->
                       match Transformers.charsToString (c :: chars) with
@@ -244,51 +250,98 @@ module Lexer =
         src |> Transformers.stringToChars |> scan
 
 /// <summary>
-///     The <c>Parser</c> module.
-///     All related functionality for parsing a provided token stream.
+///     The <c>Parser</c> module groups up related bindings for parsing a token stream.
 /// </summary>
+[<RequireQualifiedAccess>]
 module Parser =
     /// <summary>
-    ///     The node types for the AST.
+    ///     The number sets supported by the <c>SetHint</c> feature.
     /// </summary>
-    type NodeType =
-        // value types
-        | NUMBER     of float
-        | VARIABLE   of string
-        // constants
-        | UNDEFINED
-        | INFINITY
-        // operators
-        | EQUALS
-        | EXPONENT
-        | MULTIPLY
-        | DIVIDE
-        | PERCENTAGE
-        | ADD
-        | SUBTRACT
-        // builtin functions
-        | BUILTIN
+    type NumberSet =
+        | Natural    // N = {1, ..., ∞}
+        | Integer    // Z = {-∞, ..., 0, ..., ∞}
+        | Real       // R = {Q & I}
+        | Rational   // Q = {x where x = a/b & b != 0}
+        | Irrational // I = {x where x != a/b}
+        | Complex    // C = {x where x = a + bi}
 
     /// <summary>
-    ///     A node in an Abstract Syntax Tree (AST) of the grammar.
+    ///     The linkage type of functions.
+    ///     <c>Internal</c> linkage means that it is locally defined within the source file.
+    ///     <c>External</c> linkage means that it is defined in the backend.
     /// </summary>
-    /// <param name='nodeType'> the type of <c>ASTNode</c> </param>
-    /// <param name='children'> the children of this <c>ASTNode</c> - can be zero </param>
-    [<Struct>]
-    type ASTNode = {
-        nodeType: NodeType
-        // 0 children = leaf node (number, variable)
-        // 1 child    = unary operation
-        // 2 children = binary operation
-        // x children = function arguments
-        children: ASTNode list
+    type Linkage =
+        | Internal of string
+        | External of string
+
+    /// <summary>
+    ///     The metadata for a function.
+    ///     <c>symbol</c> is the optional string value that also represents this function.
+    ///     <c>inlined</c> is a tuple of <c>bool</c>s where it is of the pattern: <c>enabled * forced</c>.
+    ///     <c>memoized</c> is a tuple of <c>bool</c>s where it is of the pattern: <c>enabled * forced</c>.
+    /// </summary>
+    type FunctionMetadata = {
+        symbol:   string      option // optional, meaningful name that persists throughout the entire program
+        inlined:  bool * bool        // (enabled, forced)
+        memoized: bool * bool        // (enabled, forced)
     }
 
     /// <summary>
-    ///     Parses the supplied list of <c>tokens</c> into a formatted AST.
+    ///     The attributes of a function.
+    ///     If no <c>NumberSet</c> is provided to a parameter or the return type - it defaults to <c>Real</c>.
     /// </summary>
-    /// <param name='tokens'> the token stream to parse into an AST </param>
-    /// <returns> a root node of the parsed sequence of tokens </returns>
-    let parse(tokens: Lexer.Token list): ASTNode =
-        {nodeType=NUMBER 0; children=[]}
+    type FunctionAttributes = {
+        identifier: char * int option                      // the variable name
+        parameters: ((char * int option) * NumberSet) list // parameter name    - defaults: Real
+        returns:    NumberSet                              // return 'type'     - default:  Real
+        metadata:   FunctionMetadata
+    }
 
+    /// <summary>
+    ///     The <c>Node</c> type is a discriminated union which describes the structure of the AST of the <b>Diorite</b>
+    ///     language.
+    /// </summary>
+    type Node =
+        // values
+        | Number          of float
+        | Identifier      of id: char * subscript: int option
+
+        // unary operations
+        | Integration
+        | Differentiation
+        | Percentage
+        | Positive
+        | Negative
+
+        // binary operations
+        | Multiplication
+        | Division
+        | Modulo
+        | Addition
+        | Subtraction
+
+        // comparison operations
+        | Equals
+        | NotEquals
+        | GreaterThan
+        | LessThan
+        | GreaterThanOrEqual
+        | LessThanOrEqual
+
+        // structure
+        | Begin            of Node list
+        | Expression       of left:       Node               * operator:    Node      * right: Node
+        | Comparison       of left:       Node               * operator:    Node      * right: Node
+        | Conditions       of cases:      Node list          * defaultCase: Node
+        | FunctionDef      of data:       FunctionAttributes * body:        Node
+        | FunctionCall     of identifier: Node               * arguments:   Node list
+
+    // matches the provided token with the series of expected tokens - returns the token it matched with
+    let rec private matchIfExpected (token: Lexer.Token) (expected: Lexer.Token list): Lexer.Token option =
+        match expected with
+         | []                             -> None
+         | head :: _    when token = head -> Some head
+         | _    :: tail                   -> matchIfExpected token tail
+
+    let parse(tokens: Lexer.Token list): Node =
+        Begin []
