@@ -184,9 +184,13 @@ module Lexer =
                       // subscripts
                        | digit :: postSubscript when Predicates.isDigit digit ->
                            Identifier c :: (Transformers.parseDigit(digit) |> float |> Number) :: scan postSubscript
-
+                           
+                       // catches blank space between identifier and subscript, misses space after an identifier
+                       | blank :: next :: _ when Predicates.isBlank blank && Predicates.isDigit next ->
+                           IllegalToken (string c) :: scan tail
+                           
                       // just a letter
-                       | _ -> Identifier c   :: scan remaining
+                       | _ -> Identifier c :: scan remaining
 
                  // symbols, constants, and keywords
                   | chars, remaining ->
@@ -236,6 +240,11 @@ module Lexer =
              | '}' :: tail -> RightBrace       :: scan tail
              | '[' :: tail -> LeftBracket      :: scan tail
              | ']' :: tail -> RightBracket     :: scan tail
+             
+             // comment (no token just ignores)
+             | '#' :: tail ->
+                let _, remaining = consume (fun c -> c <> '\n') tail
+                scan remaining
 
              // skip whitespace (not newlines)
              | c :: _ when Predicates.isBlank c ->
