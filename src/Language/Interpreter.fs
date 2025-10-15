@@ -26,6 +26,7 @@ namespace Diorite.Lang
 ///          | false -> IO.output "REPL had an error during execution" |> ignore
 ///     </code>
 /// </summary>
+[<RequireQualifiedAccess>]
 module REPL =
     /// <summary>
     ///     A binding that defines the title of the REPL when in use.

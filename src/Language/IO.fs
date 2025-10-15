@@ -44,6 +44,7 @@ namespace Diorite.Lang
 ///     <c>IO.generalize</c> is a helper function for transforming the resulting generic result (<c>'a IO.Result</c>)
 ///     into the nullified <c>unit IO.result</c> type.
 /// </summary>
+[<RequireQualifiedAccess>]
 module IO =
     /// <summary>
     ///     A discriminated union type for an error in the <b>Diorite</b> language. Every error stores a message that

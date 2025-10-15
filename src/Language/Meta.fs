@@ -24,6 +24,7 @@ namespace Diorite.Lang
 ///         printf $"{langName}, {progName}, {fileExt}" // output: "Diorite, diorite, .diorite"
 ///     </code>
 /// </summary>
+[<RequireQualifiedAccess>]
 module Identity =
     /// <summary>
     ///     A binding that returns the name of the language.
@@ -53,6 +54,7 @@ module Identity =
 ///         printf $"{langVer}"
 ///     </code>
 /// </summary>
+[<RequireQualifiedAccess>]
 module Version =
     // the major version component of the current language version
     let private majorVersion: uint8 = uint8 0

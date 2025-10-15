@@ -18,6 +18,7 @@ namespace Diorite.Lang
 /// <summary>
 ///     The <c>Maths</c> module provides a built-in set of commonly used mathematical functions
 /// </summary>
+[<RequireQualifiedAccess>]
 module Maths =
     let terms = 10 // number of terms in the Taylor series for trigonometric functions
     
