@@ -65,46 +65,46 @@
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /* Parse ------------------------------------------------------------------------------------------------------------ */
-<Value>        ::= <Undefined>
-                |  <Infinity>
-                |  <Pi>
-                |  <Tau>
-                |  <Euler>
-                |  <Identifier>
-                |  <Number>
+<Value>         ::= <Undefined>
+                 |  <Infinity>
+                 |  <Pi>
+                 |  <Tau>
+                 |  <Euler>
+                 |  <Identifier>
+                 |  <Number>
 
-<Param>        ::= <Identifier>
-                |  <Identifier> <Colon> <Identifier>
+<Param>         ::= <Identifier>
+                 |  <Identifier> <Colon> <Identifier>
 
-<Params>       ::= <Param>
-                |  <Param> <Comma> <Params>
+<Params>        ::= <Param>
+                 |  <Param> <Comma> <Params>
 
-<Return>       ::= E
-                |  <Arrow> <Identifier>
+<Return>        ::= E
+                 |  <Arrow> <Identifier>
 
-<Args>         ::= <Expression>
-                |  <Expression> <Comma> <Args>
+<Args>          ::= <Expression>
+                 |  <Expression> <Comma> <Args>
 
-<Attributes>   ::= E
-                |  <LeftBracket> <Symbol>                  <RightBracket> <Attributes>
-                |  <LeftBracket> <Symbol> <Colon> <Symbol> <RightBracket> <Attributes>
+<Attributes>    ::= E
+                 |  <LeftBracket> <Symbol>                  <RightBracket> <Attributes>
+                 |  <LeftBracket> <Symbol> <Colon> <Symbol> <RightBracket> <Attributes>
 
-<Define>       ::= <Attributes> <Identifier> <LeftParenthesis> <Params> <RightParenthesis> <Return>
+<Define>        ::= <Attributes> <Identifier> <LeftParenthesis> <Params> <RightParenthesis> <Return>
 
-<Condition>    ::= <Expression> <If> <Expression>
+<Condition>     ::= <Expression> <If> <Expression>
                    (<Equals> | <NotEqual> | <GreaterThan> | <LessThan> | <GreaterThanOrEqual> | <LessThanOrEqual>)
                    <Expression> <Condition>
-                |  <Expression> <Otherwise>
+                 |  <Expression> <Otherwise>
 
-<Body>         ::= <Expression>
-                |  <LeftBrace> <Condition> <RightBrace>
+<Body>          ::= <Expression>
+                 |  <LeftBrace> <Condition> <RightBrace>
 
 /* sub-expression -> value -> symbolic application -> value application */
-<Atom>         ::= <LeftParenthesis> <Expression> <RightParenthesis>
-                |  <Bar>             <Expression> <Bar>
-                |  <Value>
-                |  <Symbol>     <LeftParenthesis> <Args> <RightParenthesis>
-                |  <Identifier> <LeftParenthesis> <Args> <RightParenthesis>
+<Atom>          ::= <LeftParenthesis> <Expression> <RightParenthesis>
+                 |  <Bar>             <Expression> <Bar>
+                 |  <Value>
+                 |  <Symbol>     <LeftParenthesis> <Args> <RightParenthesis>
+                 |  <Identifier> <LeftParenthesis> <Args> <RightParenthesis>
 
 <Differential>  ::= <Atom>
                  |  <Integral> <Tick>

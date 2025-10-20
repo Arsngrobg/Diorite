@@ -57,7 +57,7 @@ module REPL =
     // processes the provided input from the user
     let private processInput (input: string): bool =
         // tokenize the input
-        let tokens: Lexer.Token list = Lexer.lex input
+        let tokens: Token list = Lexer.lex input
 
         // defines what is output depending on the lexer result
         let noOutputIfNoTokens (): unit Result =

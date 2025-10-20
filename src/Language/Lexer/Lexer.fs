@@ -15,39 +15,6 @@
 
 namespace Diorite.Lang
 
-// separate module for helper functions since we have a lot of those
-[<RequireQualifiedAccess>]
-module private Transformers =
-    let stringToChars (str: string): char list =
-        [ for c in str do c ]
-
-    let parseDigit (c: char): int =
-        int c - int '0'
-
-    let charsToString (chars: char list): string =
-        System.String.Concat chars
-
-    let parseNumber (str: char list): float =
-        str |> charsToString |> System.Double.Parse
-
-// predicates for the consume function
-[<RequireQualifiedAccess>]
-module private Predicates =
-    let isLetter (c: char): bool =
-        System.Char.IsLetter c
-
-    let isDigit (c: char): bool =
-        System.Char.IsDigit c
-
-    let isBlank (c: char): bool =
-        c <> '\n' && System.Char.IsWhiteSpace c
-
-    let untilNewline (c: char): bool =
-        c <> '\n'
-
-    let any (c: char): bool =
-        not(isBlank c)
-
 /// <summary>
 ///     The <c>Lexer</c> module groups up related bindings that represent the tokenization stage of the code
 ///     transformation. The tokens are then passed to the <c>Parser</c> module to extract meaning from the token
@@ -59,70 +26,12 @@ module private Predicates =
 /// </summary>
 [<RequireQualifiedAccess>]
 module Lexer =
-    /// <summary>
-    ///     All the accepted tokens in the <b>Diorite</b> language.
-    ///     <c>IllegalToken</c> is any illegal string and is used for error checking.
-    /// </summary>
-    type Token =
-        // lexing halts when this is discovered by the lexer and is used for syntax errors
-        | IllegalToken      of string // contains the offending lexeme
-
-        // value types
-        | Number            of float             // contains the number literal
-        | Identifier        of char * int option // contains the character + optional subscript
-        | Symbol            of string            // contains the symbol name
-
-        // reserved words
-        | Undefined
-        | Infinity
-
-        // symbolic constants
-        | Pi
-        | Tau
-        | Euler
-
-        // integral operator
-        | Tick
-
-        // boundary operators
-        | Colon
-        | Arrow
-
-        // comparison operators
-        | Equals
-        | LessThan
-        | GreaterThan
-        | LessThanOrEqual
-        | GreaterThanOrEqual
-        | NotEqual
-
-        // arithmetic operators
-        | Exponent
-        | Factorial
-        | Multiply
-        | Divide
-        | Percentage
-        | Plus
-        | Subtract
-        | Bar
-
-        // control flow
-        | If
-        | Otherwise
-
-        // parenthesis, brackets, and braces
-        | LeftParenthesis
-        | RightParenthesis
-        | LeftBracket
-        | RightBracket
-        | LeftBrace
-        | RightBrace
-
+    // TODO: move to logging
     /// <summary>
     ///     A debug function for outputting the tokens in a structured manner from a supplied token stream.
     /// </summary>
     /// <param name="tokens"> the <c>Lexer.Token</c> stream </param>
-    let rec tokens2str (tokens: Token list): string =
+    let rec tokens2str (tokens: TokenStream): string =
         match tokens with
          | []        -> ""
          | t :: tail -> $"({t}) {tokens2str tail}"
@@ -140,14 +49,14 @@ module Lexer =
     ///     If it does reach an <c>IllegalToken</c>, the function will return a <c>IO.SyntaxError</c> containing a
     ///     message which states what the illegal token is.
     ///     <code>
-    ///         let tokens: Token list = [Number 2; Plus; Number 2; IllegalToken ","]
+    ///         let tokens: TokenStream = [Number 2; Plus; Number 2; IllegalToken ","]
     ///         let error: IO.DioriteError = Lexer.getError tokens
     ///         IO.output $"{error}" |> ignore // output: "SyntaxError "Unexpected token: ','"
     ///     </code>
     /// </summary>
     /// <param name='tokens'> the tokens to check for an <c>IllegalToken</c> </param>
     /// <returns> the first instance of <c>IllegalToken</c> in the list or <c>None</c> if no error </returns>
-    let rec getError (tokens: Token list): DioriteError option =
+    let rec getError (tokens: TokenStream): DioriteError option =
         match tokens with
          | []                     -> None
          | IllegalToken t :: _    -> Some ($"Unexpected token: '{t}'" |> SyntaxError)
@@ -158,8 +67,8 @@ module Lexer =
     /// </summary>
     /// <param name='src'> the raw string to be tokenized </param>
     /// <returns> a <c>Result</c> that may contain the list of tokens or a <c>LexerError</c> </returns>
-    let lex (src: string): Token list =
-        let rec scan (src: char list): Token list =
+    let lex (src: string): TokenStream =
+        let rec scan (src: char list): TokenStream =
             match src with
              | [] -> []
 
@@ -231,7 +140,7 @@ module Lexer =
              | '/'        :: tail -> Divide             :: scan tail
              | '%'        :: tail -> Percentage         :: scan tail
              | '+'        :: tail -> Plus               :: scan tail
-             | '-'        :: tail -> Subtract           :: scan tail
+             | '-'        :: tail -> Hyphen             :: scan tail
              | '|'        :: tail -> Bar                :: scan tail
              | '<'        :: tail -> LessThan           :: scan tail
              | '>'        :: tail -> GreaterThan        :: scan tail
