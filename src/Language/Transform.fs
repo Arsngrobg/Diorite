@@ -8,7 +8,7 @@
 // File:    Transform.fs
 // Summary: The functions for transforming diorite source files into token streams and subsequently ASTs
 // Author:  Arsngrobg, Borngle
-// Version: v1.7
+// Version: v1.8
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
@@ -42,6 +42,9 @@ module private Predicates =
     let isBlank (c: char): bool =
         c <> '\n' && System.Char.IsWhiteSpace c
 
+    let untilNewline (c: char): bool =
+        c <> '\n'
+
     let any (c: char): bool =
         not(isBlank c)
 
@@ -65,15 +68,18 @@ module Lexer =
         | IllegalToken      of string // contains the offending lexeme
 
         // value types
-        | Number            of float   // contains the number literal
-        | Identifier        of char    // contains the character
-        | Symbol            of string  // contains the symbol name
+        | Number            of float             // contains the number literal
+        | Identifier        of char * int option // contains the character + optional subscript
+        | Symbol            of string            // contains the symbol name
 
-        // constants
+        // reserved words
         | Undefined
         | Infinity
+
+        // symbolic constants
         | Pi
         | Tau
+        | Euler
 
         // integral operator
         | Tick
@@ -141,17 +147,17 @@ module Lexer =
     /// </summary>
     /// <param name='tokens'> the tokens to check for an <c>IllegalToken</c> </param>
     /// <returns> the first instance of <c>IllegalToken</c> in the list or <c>None</c> if no error </returns>
-    let rec getError (tokens: Token list): IO.DioriteError option =
+    let rec getError (tokens: Token list): DioriteError option =
         match tokens with
          | []                     -> None
-         | IllegalToken t :: _    -> Some ($"Unexpected token: '{t}'" |> IO.SyntaxError)
+         | IllegalToken t :: _    -> Some ($"Unexpected token: '{t}'" |> SyntaxError)
          | _              :: tail -> getError tail
 
     /// <summary>
     ///     Converts the supplied <c>src</c> string into a stream of tokens.
     /// </summary>
     /// <param name='src'> the raw string to be tokenized </param>
-    /// <returns> a <c>IO.Result</c> that may contain the list of tokens or a <c>LexerError</c> </returns>
+    /// <returns> a <c>Result</c> that may contain the list of tokens or a <c>LexerError</c> </returns>
     let lex (src: string): Token list =
         let rec scan (src: char list): Token list =
             match src with
@@ -183,14 +189,10 @@ module Lexer =
                       match remaining with
                       // subscripts
                        | digit :: postSubscript when Predicates.isDigit digit ->
-                           Identifier c :: (Transformers.parseDigit(digit) |> float |> Number) :: scan postSubscript
-                           
-                       // catches blank space between identifier and subscript, misses space after an identifier
-                       | blank :: next :: _ when Predicates.isBlank blank && Predicates.isDigit next ->
-                           IllegalToken (string c) :: scan tail
+                           Identifier (c, Some(digit |> Transformers.parseDigit)) :: scan postSubscript
                            
                       // just a letter
-                       | _ -> Identifier c :: scan remaining
+                       | _ -> Identifier (c, None) :: scan remaining
 
                  // symbols, constants, and keywords
                   | chars, remaining ->
@@ -204,16 +206,17 @@ module Lexer =
                        | "infinity" | "inf" -> Infinity   :: scan remaining
                        | "pi"               -> Pi         :: scan remaining
                        | "tau"              -> Tau        :: scan remaining
+                       | "euler"            -> Euler      :: scan remaining
 
                        // symbols
                        | sym                -> Symbol sym :: scan remaining
 
              // integral operator
-             | '\'' :: tail -> Tick :: scan tail
+             | '\'' :: tail       -> Tick               :: scan tail
 
              // boundary operators
-             | '-' :: '>' :: tail -> Arrow :: scan tail
-             | ':'        :: tail -> Colon :: scan tail
+             | '-' :: '>' :: tail -> Arrow              :: scan tail
+             | ':'        :: tail -> Colon              :: scan tail
 
              // comparison operators
              | '<' :: '=' :: tail -> LessThanOrEqual    :: scan tail
@@ -222,28 +225,28 @@ module Lexer =
              | '='        :: tail -> Equals             :: scan tail
 
              // arithmetic operators
-             | '^'        :: tail -> Exponent    :: scan tail
-             | '!'        :: tail -> Factorial   :: scan tail
-             | '*'        :: tail -> Multiply    :: scan tail
-             | '/'        :: tail -> Divide      :: scan tail
-             | '%'        :: tail -> Percentage  :: scan tail
-             | '+'        :: tail -> Plus        :: scan tail
-             | '-'        :: tail -> Subtract    :: scan tail
-             | '|'        :: tail -> Bar         :: scan tail
-             | '<'        :: tail -> LessThan    :: scan tail
-             | '>'        :: tail -> GreaterThan :: scan tail
+             | '^'        :: tail -> Exponent           :: scan tail
+             | '!'        :: tail -> Factorial          :: scan tail
+             | '*'        :: tail -> Multiply           :: scan tail
+             | '/'        :: tail -> Divide             :: scan tail
+             | '%'        :: tail -> Percentage         :: scan tail
+             | '+'        :: tail -> Plus               :: scan tail
+             | '-'        :: tail -> Subtract           :: scan tail
+             | '|'        :: tail -> Bar                :: scan tail
+             | '<'        :: tail -> LessThan           :: scan tail
+             | '>'        :: tail -> GreaterThan        :: scan tail
 
              // brackets, curly braces & square brackets
-             | '(' :: tail -> LeftParenthesis  :: scan tail
-             | ')' :: tail -> RightParenthesis :: scan tail
-             | '{' :: tail -> LeftBrace        :: scan tail
-             | '}' :: tail -> RightBrace       :: scan tail
-             | '[' :: tail -> LeftBracket      :: scan tail
-             | ']' :: tail -> RightBracket     :: scan tail
+             | '('        :: tail -> LeftParenthesis    :: scan tail
+             | ')'        :: tail -> RightParenthesis   :: scan tail
+             | '{'        :: tail -> LeftBrace          :: scan tail
+             | '}'        :: tail -> RightBrace         :: scan tail
+             | '['        :: tail -> LeftBracket        :: scan tail
+             | ']'        :: tail -> RightBracket       :: scan tail
              
              // comment (no token just ignores)
              | '#' :: tail ->
-                let _, remaining = consume (fun c -> c <> '\n') tail
+                let _, remaining = consume Predicates.untilNewline tail
                 scan remaining
 
              // skip whitespace (not newlines)
@@ -277,7 +280,7 @@ module Parser =
     /// <summary>
     ///     The linkage type of functions.
     ///     <c>Internal</c> linkage means that it is locally defined within the source file.
-    ///     <c>External</c> linkage means that it is defined in the backend.
+    ///     <c>External</c> linkage means that it is defined elsewhere.
     /// </summary>
     type Linkage =
         | Internal of string
@@ -315,6 +318,10 @@ module Parser =
         | Number          of float
         | Identifier      of id: char * subscript: int option
 
+        // reserved words
+        | Undefined
+        | Infinity
+
         // unary operations
         | Integration
         | Differentiation
@@ -339,18 +346,59 @@ module Parser =
 
         // structure
         | Begin            of Node list
-        | Expression       of left:       Node               * operator:    Node      * right: Node
+        | BinaryOperation  of left:       Node               * operator:    Node      * right: Node
+        | UnaryOperation   of operand:    Node               * operator:    Node
         | Comparison       of left:       Node               * operator:    Node      * right: Node
         | Conditions       of cases:      Node list          * defaultCase: Node
         | FunctionDef      of data:       FunctionAttributes * body:        Node
         | FunctionCall     of identifier: Node               * arguments:   Node list
 
-    // matches the provided token with the series of expected tokens - returns the token it matched with
-    let rec private matchIfExpected (token: Lexer.Token) (expected: Lexer.Token list): Lexer.Token option =
-        match expected with
-         | []                             -> None
-         | head :: _    when token = head -> Some head
-         | _    :: tail                   -> matchIfExpected token tail
+    /// <summary>
+    ///     A data-transfer type for obtaining the result from evaluating a parse stage.
+    ///     It contains the sliced token stream in order to advance forward in parsing.
+    ///     If an <c>Failure</c> occurs, the <c>stream</c> is empty.
+    /// </summary>
+    type ParseResult = {
+        node:   Node Result
+        stream: Lexer.Token list
+    }
 
-    let parse(tokens: Lexer.Token list): Node =
-        Begin []
+    /// <summary>
+    ///     Functional wrapper around the success case for a <c>ParseResult</c>.
+    /// </summary>
+    /// <param name='node'> the resulting node </param>
+    /// <param name='stream'> the resulting <c>Lexer.Token</c> stream </param>
+    /// <returns> a <c>ParseResult</c> containing a <c>Parser.Node</c> & <c>Lexer.Token</c> stream </returns>
+    let inline ParseSuccess (node: Node, stream: Lexer.Token list): ParseResult = {
+        node   = Success node
+        stream = stream
+    }
+
+    /// <summary>
+    ///     Functional wrapper around the failure case for a <c>ParseResult</c>.
+    /// </summary>
+    /// <param name='msg'> the error message </param>
+    /// <returns> a <c>ParseResult</c> containing a <c>Failure</c> case </returns>
+    let inline ParseFailure (msg: string): ParseResult = {
+        node   = Failure (SyntaxError msg)
+        stream = []
+    }
+
+    module Stages =
+        let value (tokens: Lexer.Token list): ParseResult =
+            match tokens with
+             | Lexer.Undefined            :: tail -> ParseSuccess (Undefined,                tail)
+             | Lexer.Infinity             :: tail -> ParseSuccess (Infinity,                 tail)
+             | Lexer.Pi                   :: tail -> ParseSuccess (Number 3.141592653589793, tail)
+             | Lexer.Tau                  :: tail -> ParseSuccess (Number 6.283185307179586, tail)
+             | Lexer.Euler                :: tail -> ParseSuccess (Number 2.718281828459045, tail)
+             | Lexer.Identifier (ch, sub) :: tail -> ParseSuccess (Identifier (ch, sub),     tail)
+             | Lexer.Number     num       :: tail -> ParseSuccess (Number num,               tail)
+             | head                       :: _    -> ParseFailure $"Unexpected token: {head.GetType()}"
+             | []                                 -> ParseFailure "Expected value token."
+
+    let parse (tokens: Lexer.Token list): ParseResult =
+        let result = Stages.value(tokens)
+        match result.node with
+         | Success node -> ParseSuccess (Begin [node], tokens)
+         | Failure msg  -> ParseFailure (string msg)
