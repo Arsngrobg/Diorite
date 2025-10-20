@@ -52,6 +52,27 @@ module Error =
     let inline Failure<'a> (err: DioriteError): Result<'a> = Failure err
 
     /// <summary>
+    ///     Functional wrapper around a <c>Result</c> that contains a <c>MathError</c>.
+    /// </summary>
+    /// <param name='msg'> the message to be display upon encountering this <c>MathError</c> </param>
+    /// <returns> a <c>MathError</c> wrapped in a <c>Failure</c> case </returns>
+    let inline MathError<'a> (msg: string): Result<'a> = Failure (MathError msg)
+
+    /// <summary>
+    ///     Functional wrapper around a <c>Result</c> that contains a <c>SyntaxError</c>.
+    /// </summary>
+    /// <param name='msg'> the message to be display upon encountering this <c>SyntaxError</c> </param>
+    /// <returns> a <c>SyntaxError</c> wrapped in a <c>Failure</c> case </returns>
+    let inline SyntaxError<'a> (msg: string): Result<'a> = Failure (SyntaxError msg)
+
+    /// <summary>
+    ///     Functional wrapper around a <c>Result</c> that contains a <c>SystemError</c>.
+    /// </summary>
+    /// <param name='msg'> the message to be display upon encountering this error </param>
+    /// <returns> a <c>SystemError</c> wrapped in a <c>Failure</c> case </returns>
+    let inline SystemError<'a> (msg: string): Result<'a> = Failure (SystemError msg)
+
+    /// <summary>
     ///     Safely unwraps the provided <c>result</c> by either returning the value wrapped by the
     ///     <c>Success</c> case, or the <c>alternative</c> value provided to this function.
     ///     <code>

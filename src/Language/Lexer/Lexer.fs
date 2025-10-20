@@ -59,7 +59,7 @@ module Lexer =
     let rec getError (tokens: TokenStream): DioriteError option =
         match tokens with
          | []                     -> None
-         | IllegalToken t :: _    -> Some ($"Unexpected token: '{t}'" |> SyntaxError)
+         | IllegalToken t :: _    -> Some (DioriteError.SyntaxError $"Unexpected token: '{t}'")
          | _              :: tail -> getError tail
 
     /// <summary>
@@ -134,10 +134,10 @@ module Lexer =
              | '='        :: tail -> Equals             :: scan tail
 
              // arithmetic operators
-             | '^'        :: tail -> Exponent           :: scan tail
-             | '!'        :: tail -> Factorial          :: scan tail
-             | '*'        :: tail -> Multiply           :: scan tail
-             | '/'        :: tail -> Divide             :: scan tail
+             | '^'        :: tail -> Hat                :: scan tail
+             | '!'        :: tail -> Exclamation        :: scan tail
+             | '*'        :: tail -> Asterisk           :: scan tail
+             | '/'        :: tail -> ForwardSlash       :: scan tail
              | '%'        :: tail -> Percentage         :: scan tail
              | '+'        :: tail -> Plus               :: scan tail
              | '-'        :: tail -> Hyphen             :: scan tail

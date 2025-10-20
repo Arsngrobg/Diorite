@@ -53,10 +53,10 @@ type Token =
     | NotEqual
 
     // arithmetic operators
-    | Exponent
-    | Factorial
-    | Multiply
-    | Divide
+    | Hat
+    | Exclamation
+    | Asterisk
+    | ForwardSlash
     | Percentage
     | Plus
     | Hyphen

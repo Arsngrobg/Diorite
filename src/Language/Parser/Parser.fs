@@ -20,15 +20,76 @@ namespace Diorite.Lang
 /// </summary>
 [<RequireQualifiedAccess>]
 module Parser =
-    let parse
-    let parseExpression (tokens: Token list): ParseResult =
-        Success (Addition, [])
-
-
     /// <summary>
-    ///     Analyses the provided token stream and parses it into a structured AST (Abstract Syntax Tree).
+    ///     This is the type that is returned by parsing functions.
     /// </summary>
-    /// <param name='tokens'> the token stream to parse </param>
-    /// <returns> a <c>Result</c> that may contain the successful result of the parse, or <c>Failure</c> </returns>
-    let parse(tokens: Token): unit Result =
-        Success ()
+    type ParseResult = (ASTNode * TokenStream) Result
+
+    // <Value>     ::= <Undefined>
+    //              |  <Infinity>
+    //              |  <Pi>
+    //              |  <Tau>
+    //              |  <Euler>
+    //              |  <Identifier>
+    //              |  <Number>
+    // let parseValue (tokens: TokenStream): ParseResult =
+    //     match tokens with
+    //      | Token.Undefined            :: tail -> Success (ASTNode.Undefined,                tail)
+    //      | Token.Infinity             :: tail -> Success (ASTNode.Infinity,                 tail)
+    //      | Token.Pi                   :: tail -> Success (ASTNode.Number     3.14159265358, tail)
+    //      | Token.Tau                  :: tail -> Success (ASTNode.Number     6.28318530717, tail)
+    //      | Token.Euler                :: tail -> Success (ASTNode.Number     2.71828182845, tail)
+    //      | Token.Identifier (ch, sub) :: tail -> Success (ASTNode.Identifier (ch, sub),     tail)
+    //      | Token.Number      num      :: tail -> Success (ASTNode.Number     num,           tail)
+    //      | token                      :: _    -> SyntaxError $"Unexpected token: {token}"
+    //      | []                                 -> SyntaxError "Expected token yet no value found"
+
+    let parser (tokens: TokenStream): TokenStream =
+        let rec E (tokens: TokenStream): TokenStream = (T >> Eopt) tokens
+        and Eopt (tokens: TokenStream): TokenStream =
+            match tokens with
+            | Token.Plus   :: tail -> (T >> Eopt) tail
+            | Token.Hyphen :: tail -> (T >> Eopt) tail
+            | _                    -> tokens
+        and T (tokens: TokenStream): TokenStream = (NR >> Topt) tokens
+        and Topt (tokens: TokenStream): TokenStream =
+            match tokens with
+            | Asterisk     :: tail -> (NR >> Topt) tail
+            | ForwardSlash :: tail -> (NR >> Topt) tail
+            | _ -> tokens
+        and NR (tokens: TokenStream): TokenStream =
+            match tokens with
+            | Token.Number value :: tail -> Token.Number value :: tail
+            | LeftParenthesis    :: tail ->
+                match E tail with
+                 | RightParenthesis :: tail -> tail
+                 | _ -> raise (System.Exception("SyntaxError"))
+            | _ -> raise (System.Exception("SyntaxError"))
+        E tokens
+
+    let eval (tokens: TokenStream) =
+        let rec E (tokens: TokenStream) = (T >> Eopt) (tokens: TokenStream)
+        and Eopt (tokens, value) =
+            match tokens with
+            | Plus   :: tail -> let (remaining, current) = T tail
+                                Eopt (remaining, value + current)
+            | Hyphen :: tail -> let (remaining, current) = T tail
+                                Eopt (remaining, value - current)
+            | _ -> (tokens, value)
+        and T (tokens: TokenStream) = (NR >> Topt) (tokens: TokenStream)
+        and Topt (tokens, value) =
+            match tokens with
+            | Asterisk    :: tail -> let (remaining, current) = NR tail
+                                     Topt (remaining, value * current)
+            | ForwardSlash :: tail -> let (remaining, current) = NR tail
+                                      Topt (remaining, value / current)
+            | _ -> ((tokens: TokenStream), value)
+        and NR (tokens: TokenStream) =
+            match (tokens: TokenStream) with
+            | Token.Number value :: tail -> (tail, value)
+            | LeftParenthesis    :: tail -> let (remaining, current) = E tail
+                                            match remaining with
+                                             | RightParenthesis :: tail -> (tail, current)
+                                             | _ -> raise (System.Exception("SyntaxError"))
+            | _ -> raise (System.Exception("SyntaxError"))
+        E tokens

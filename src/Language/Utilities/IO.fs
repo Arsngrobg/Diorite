@@ -51,7 +51,7 @@ module IO =
     // it returns a custom Result discriminated union type depending on Success or Failure
     let inline private test<'a> (unsafe: unit -> 'a): 'a Result =
         try Success (unsafe ())
-        with ex -> Failure ( SystemError $"{ex.GetType.ToString()}: {ex.Message}" )
+        with ex -> SystemError $"{ex.GetType.ToString()}: {ex.Message}"
 
     /// <summary>
     ///     Computes the chain of actions from left to right.
@@ -111,7 +111,7 @@ module IO =
     ///                             // output: EXCEPTION_NAME: ERROR_MESSAGE
     ///     </code>
     /// </summary>
-    /// <param name="prompt"> the optional prompt string to display to the user </param>
+    /// <param name='prompt'> the optional prompt string to display to the user </param>
     /// <returns> an <c>Result</c> that may contain the input string or the <c>Exception</c> it may throw </returns>
     let input (prompt: string option): string Result =
         match prompt with
@@ -132,8 +132,8 @@ module IO =
     ///          | Failure _      -> IO.output "Could not get console position." |> ignore
     ///     </code>
     /// </summary>
-    /// <param name="dx"> the amount to move along the x-axis </param>
-    /// <param name="dy"> the amount to move along the y-axis </param>
+    /// <param name='dx'> the amount to move along the x-axis </param>
+    /// <param name='dy'> the amount to move along the y-axis </param>
     /// <returns>
     ///     an <c>Result</c> that may contain the new position of the cursor on the console or an error
     /// </returns>
@@ -246,7 +246,7 @@ module IO =
     ///          | Failure err  -> IO.output $"{err}"  |> ignore // output: EXCEPTION_NAME: ERROR_MESSAGE
     ///     </code>
     /// </summary>
-    /// <param name="path"> the relative or absolute file path to the file to be read </param>
+    /// <param name='path'> the relative or absolute file path to the file to be read </param>
     /// <returns>
     ///     a <c>Result</c> that may contain the file contents as a complete <c>string</c> or an <c>Exception</c>
     /// </returns>
