@@ -7,8 +7,8 @@
 // ------------------------------------------------------------------------------------------------------------------
 // File:    ParserTypes.fs
 // Summary: The types used by the parser - in global namespace for the project
-// Author:  Arsngrobg, Borngle
-// Version: v1.8
+// Author:  Arsngrobg
+// Version: v1.7
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
@@ -101,3 +101,9 @@ type ASTNode =
     | Conditions       of cases:      ASTNode list       * defaultCase: ASTNode
     | FunctionDef      of data:       FunctionAttributes * body:        ASTNode
     | FunctionCall     of identifier: ASTNode            * arguments:   ASTNode list
+
+/// <summary>
+///     A <c>Result</c> type that is specific to storing a tuple of the resulting <c>ASTNode</c> and the
+///     <c>TokenStream</c> as a result from the previous parsing stage.
+/// </summary>
+type ParseResult = (ASTNode * TokenStream) Result

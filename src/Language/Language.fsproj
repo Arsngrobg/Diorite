@@ -24,6 +24,7 @@
     <ItemGroup>
         <Compile Include="Parser\ParserTypes.fs" />
         <Compile Include="Parser\Parser.fs"      />
+        <Compile Include="Parser\Combinators.fs" />
     </ItemGroup>
 
     <!-- main -->
