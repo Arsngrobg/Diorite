@@ -20,7 +20,7 @@ namespace Diorite.Lang
 /// </summary>
 [<RequireQualifiedAccess>]
 module Maths =
-    let terms = 10 // number of terms in the Taylor series for trigonometric functions
+    let terms: int = 10 // number of terms in the Taylor series for trigonometric functions
     
     /// <summary>
     /// Returns the magnitude of a number value
