@@ -8,7 +8,7 @@
 // File:    Interpreter.fs
 // Summary: The interpreter of for the Diorite language, which also includes a REPL
 // Author:  Arsngrobg
-// Version: v1.4
+// Version: v1.5
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
@@ -57,7 +57,7 @@ module REPL =
     // processes the provided input from the user
     let private processInput (input: string): bool =
         // tokenize the input
-        let tokens: Token list = Lexer.lex input
+        let tokens: Lexer.TokenStream = Lexer.tokenize input
 
         // defines what is output depending on the lexer result
         let noOutputIfNoTokens (): unit Result =
@@ -73,9 +73,6 @@ module REPL =
                    | _  -> IO.compose [
                       System.ConsoleColor.DarkGray |> IO.setConsoleForegroundColor |> generalized;
                       IO.output $" ¦  {Lexer.tokens2str tokens}\n"
-                      // TODO: make better or sum
-                      IO.output $" ¬  {(Parser.parser >> Lexer.tokens2str) tokens}\n"
-                      IO.output $" =  {(Parser.parser >> Parser.eval) tokens}\n"
                    ]
 
         // partial for moving the cursor up or down by n units
@@ -88,7 +85,7 @@ module REPL =
             " |"                         |> IO.output
             System.ConsoleColor.White    |> IO.setConsoleForegroundColor |> generalized
             $"  {input}\n"               |> IO.output;
-                                            noOutputIfNoTokens()
+            ()                           |> noOutputIfNoTokens
             System.ConsoleColor.White    |> IO.setConsoleForegroundColor |> generalized
         ]
         match result with

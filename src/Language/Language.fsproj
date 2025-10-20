@@ -4,33 +4,15 @@
         <OutputType>Exe</OutputType>
         <TargetFramework>net9.0</TargetFramework>
     </PropertyGroup>
-
-    <!-- utilities -->
+    
     <ItemGroup>
-        <Compile Include="Utilities\Meta.fs"     />
-        <Compile Include="Utilities\Error.fs"    />
-        <Compile Include="Utilities\IO.fs"       />
-    </ItemGroup>
-
-    <!-- lexer -->
-    <ItemGroup>
-        <Compile Include="Lexer\LexerTypes.fs"   />
-        <Compile Include="Lexer\Transformers.fs" />
-        <Compile Include="Lexer\Predicates.fs"   />
-        <Compile Include="Lexer\Lexer.fs"        />
-    </ItemGroup>
-
-    <!-- parser -->
-    <ItemGroup>
-        <Compile Include="Parser\ParserTypes.fs" />
-        <Compile Include="Parser\Parser.fs"      />
-    </ItemGroup>
-
-    <!-- main -->
-    <ItemGroup>
-        <Compile Include="Library.fs"            />
-        <Compile Include="Interpreter.fs"        />
-        <Compile Include="CLI.fs"                />
+        <Compile Include="Meta.fs"        />
+        <Compile Include="Error.fs"       />
+        <Compile Include="IO.fs"          />
+        <Compile Include="Library.fs"     />
+        <Compile Include="Transform.fs"   />
+        <Compile Include="Interpreter.fs" />
+        <Compile Include="CLI.fs"         />
     </ItemGroup>
 
 </Project>
