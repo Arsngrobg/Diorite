@@ -6,13 +6,14 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="Meta.fs" />
-        <Compile Include="Error.fs" />
-        <Compile Include="Library.fs" />
-        <Compile Include="IO.fs" />
-        <Compile Include="Transform.fs" />
+        <Compile Include="Meta.fs"        />
+        <Compile Include="Error.fs"       />
+        <Compile Include="Library.fs"     />
+        <Compile Include="IO.fs"          />
+        <Compile Include="Lexer.fs"       />
+        <Compile Include="Parser.fs"      />
         <Compile Include="Interpreter.fs" />
-        <Compile Include="CLI.fs" />
+        <Compile Include="CLI.fs"         />
     </ItemGroup>
 
 </Project>
