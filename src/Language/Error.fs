@@ -38,16 +38,14 @@ module Error =
         | Failure of DioriteError
 
     /// <summary>
-    ///     Functional wrapper around the <c>IO.Result.Success</c> union type.
-    ///     It can be referenced through the <c>IO</c> module over the <c>IO.Result</c> type.
+    ///     Functional wrapper around the <c>Result.Success</c> union type.
     /// </summary>
     /// <param name='value'> the value to represent this <c>Result</c> </param>
     /// <returns> a <c>Success</c> case in the <c>Result</c> union type, containing the <c>value</c> </returns>
     let inline Success<'a> (value: 'a): Result<'a> = Success value
 
     /// <summary>
-    ///     Functional wrapper around the <c>IO.Result.Failure</c> union type.
-    ///     It can be referenced through the <c>IO</c> module over the <c>IO.Result</c> type.
+    ///     Functional wrapper around the <c>Result.Failure</c> union type.
     /// </summary>
     /// <param name='err'> the error to represent this <c>Result</c> </param>
     /// <returns> a <c>Failure</c> case in the <c>Result</c> union type, containing the <c>err</c> </returns>
@@ -55,16 +53,16 @@ module Error =
 
     /// <summary>
     ///     Safely unwraps the provided <c>result</c> by either returning the value wrapped by the
-    ///     <c>IO.Success</c> case, or the <c>alternative</c> value provided to this function.
+    ///     <c>Success</c> case, or the <c>alternative</c> value provided to this function.
     ///     <code>
-    ///         let result: string = IO.getOrElse (IO.input(Some "Enter something: ")) "hi"
+    ///         let result: string = getOrElse (IO.input(Some "Enter something: ")) "hi"
     ///         IO.output result
     ///     </code>
     /// </summary>
-    /// <param name='result'> the <c>IO.Result</c> to be unwrapped </param>
-    /// <param name='alternative'> the alternative value to be returned if it was a <c>IO.Failure</c> </param>
+    /// <param name='result'> the <c>Result</c> to be unwrapped </param>
+    /// <param name='alternative'> the alternative value to be returned if it was a <c>Failure</c> </param>
     /// <returns>
-    ///     either the value wrapped by the <c>IO.Result</c> or the <c>alternative</c> value instead
+    ///     either the value wrapped by the <c>Result</c> or the <c>alternative</c> value instead
     /// </returns>
     let getOrElse (result: 'a Result) (alternative: 'a): 'a =
         match result with
