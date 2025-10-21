@@ -8,7 +8,7 @@
 // File:    Interpreter.fs
 // Summary: The interpreter of for the Diorite language, which also includes a REPL
 // Author:  Arsngrobg
-// Version: v1.3
+// Version: v1.5
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
@@ -41,56 +41,58 @@ module REPL =
     // initializes the console environment and hence the REPL environment.
     let private initialiseConsole (): bool =
         // execute batch operation
-        let result: unit IO.Result = IO.compose [
-            title                        |> IO.setConsoleTitle           |> IO.generalized
-            None                         |> IO.clearConsole              |> IO.generalized
-            System.ConsoleColor.DarkGray |> IO.setConsoleBackgroundColor |> IO.generalized
-            System.ConsoleColor.Black    |> IO.setConsoleForegroundColor |> IO.generalized
+        let result: unit Result = IO.compose [
+            title                        |> IO.setConsoleTitle           |> generalized
+            None                         |> IO.clearConsole              |> generalized
+            System.ConsoleColor.DarkGray |> IO.setConsoleBackgroundColor |> generalized
+            System.ConsoleColor.Black    |> IO.setConsoleForegroundColor |> generalized
             $"    {title} \n"            |> IO.output
-            System.ConsoleColor.White    |> IO.setConsoleForegroundColor |> IO.generalized
-            System.ConsoleColor.Black    |> IO.setConsoleBackgroundColor |> IO.generalized
+            System.ConsoleColor.White    |> IO.setConsoleForegroundColor |> generalized
+            System.ConsoleColor.Black    |> IO.setConsoleBackgroundColor |> generalized
         ]
         match result with
-         | IO.Failure _ -> false
-         | IO.Success _ -> true
+         | Failure _ -> false
+         | Success _ -> true
 
     // processes the provided input from the user
     let private processInput (input: string): bool =
         // tokenize the input
-        let tokens: Lexer.Token list = Lexer.lex input
+        let tokens: Lexer.TokenStream = Lexer.tokenize input
 
         // defines what is output depending on the lexer result
-        let noOutputIfNoTokens (): unit IO.Result =
-            let error: IO.DioriteError option = Lexer.getError tokens
+        let noOutputIfNoTokens (): unit Result =
+            let error: DioriteError option = Lexer.getError tokens
             match error with
              | Some e -> IO.compose [
-                 System.ConsoleColor.Red |> IO.setConsoleForegroundColor |> IO.generalized;
+                 System.ConsoleColor.Red |> IO.setConsoleForegroundColor |> generalized;
                  IO.output $" X  {e}\n"
                ]
              | None ->
                   match tokens with
-                   | [] -> IO.Success () // do nothing
+                   | [] -> Success () // do nothing
                    | _  -> IO.compose [
-                      System.ConsoleColor.DarkGray |> IO.setConsoleForegroundColor |> IO.generalized;
+                      System.ConsoleColor.DarkGray |> IO.setConsoleForegroundColor |> generalized;
                       IO.output $" ¦  {Lexer.tokens2str tokens}\n"
+                      IO.output $" ¦  {(Parser.parser >> Lexer.tokens2str) tokens}\n"
+                      IO.output $" =  {(Parser.parser >> Parser.eval) tokens}\n"
                    ]
 
         // partial for moving the cursor up or down by n units
-        let moveCursorY: int -> (int * int) IO.Result = IO.moveCursorRelative 0
+        let moveCursorY: int -> (int * int) Result = IO.moveCursorRelative 0
 
         // execute batch operation
-        let result: unit IO.Result = IO.compose [
-            -1                           |> moveCursorY                  |> IO.generalized
-            System.ConsoleColor.DarkGray |> IO.setConsoleForegroundColor |> IO.generalized
+        let result: unit Result = IO.compose [
+            -1                           |> moveCursorY                  |> generalized
+            System.ConsoleColor.DarkGray |> IO.setConsoleForegroundColor |> generalized
             " |"                         |> IO.output
-            System.ConsoleColor.White    |> IO.setConsoleForegroundColor |> IO.generalized
+            System.ConsoleColor.White    |> IO.setConsoleForegroundColor |> generalized
             $"  {input}\n"               |> IO.output;
-                                            noOutputIfNoTokens()
-            System.ConsoleColor.White    |> IO.setConsoleForegroundColor |> IO.generalized
+            ()                           |> noOutputIfNoTokens
+            System.ConsoleColor.White    |> IO.setConsoleForegroundColor |> generalized
         ]
         match result with
-         | IO.Failure _ -> false
-         | IO.Success _ -> true
+         | Failure _ -> false
+         | Success _ -> true
 
     /// <summary>
     ///     Launches the REPL environment in the user's terminal.
@@ -99,8 +101,8 @@ module REPL =
     let rec launch (): bool =
         let rec env (): bool =
             match IO.input(Some ">>> ") with
-             | IO.Failure _     -> false
-             | IO.Success input ->
+             | Failure _     -> false
+             | Success input ->
                  match input with
                   | "@quit" -> true
                   | _       ->
