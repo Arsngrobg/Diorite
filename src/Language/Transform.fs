@@ -365,7 +365,7 @@ module Parser =
     ///     A <c>Result</c> type that is specific to storing a tuple of the resulting <c>ASTNode</c> and the
     ///     <c>TokenStream</c> as a result from the previous parsing stage.
     /// </summary>
-    type ParseResult = ASTNode Result * Lexer.TokenStream
+    type ParseResult = ASTNode option * Lexer.TokenStream
 
     // <Value>     ::= <Undefined>
     //              |  <Infinity>
@@ -376,63 +376,77 @@ module Parser =
     //              |  <Number>
     let parseValue (tokens: Lexer.TokenStream): ParseResult =
         match tokens with
-         | Lexer.Undefined            :: tail -> (Success  ASTNode.Undefined               ,      tail)
-         | Lexer.Infinity             :: tail -> (Success  ASTNode.Infinity                ,      tail)
-         | Lexer.Pi                   :: tail -> (Success (ASTNode.Number     3.14159265358),      tail)
-         | Lexer.Tau                  :: tail -> (Success (ASTNode.Number     6.28318530717),      tail)
-         | Lexer.Euler                :: tail -> (Success (ASTNode.Number     2.71828182845),      tail)
-         | Lexer.Identifier (ch, sub) :: tail -> (Success (ASTNode.Identifier (ch, sub)    ),      tail)
-         | Lexer.Number      num      :: tail -> (Success (ASTNode.Number     num          ),      tail)
-         | token                      :: tail -> (SyntaxError $"Unexpected token: {token}"  ,      tail)
-         | []                                 -> (SyntaxError "Expected token yet no value found", []  )
+         | Lexer.Undefined            :: tail -> (Some  ASTNode.Undefined               ,  tail  )
+         | Lexer.Infinity             :: tail -> (Some  ASTNode.Infinity                ,  tail  )
+         | Lexer.Pi                   :: tail -> (Some (ASTNode.Number     3.14159265358), tail  )
+         | Lexer.Tau                  :: tail -> (Some (ASTNode.Number     6.28318530717), tail  )
+         | Lexer.Euler                :: tail -> (Some (ASTNode.Number     2.71828182845), tail  )
+         | Lexer.Identifier (ch, sub) :: tail -> (Some (ASTNode.Identifier (ch, sub)    ), tail  )
+         | Lexer.Number      num      :: tail -> (Some (ASTNode.Number     num          ), tail  )
+         | _                                  -> (None                                   , tokens)
 
-    // let parser (tokens: TokenStream): TokenStream =
-    //     let rec E (tokens: TokenStream): TokenStream = (T >> Eopt) tokens
-    //     and Eopt (tokens: TokenStream): TokenStream =
+    let Exception: System.Exception = System.Exception("SyntaxError")
+
+    // let parse (tokens: Lexer.TokenStream): ParseResult =
+    //     let rec E (tokens: Lexer.TokenStream): ParseResult =
+    //         match T tokens with
+    //          | (Some node, remaining) -> Some node
+    //          | (None     , _        ) -> raise Exception
+    //     and Eop (tokens: Lexer.TokenStream): ParseResult =
     //         match tokens with
-    //         | Token.Plus   :: tail -> (T >> Eopt) tail
-    //         | Token.Hyphen :: tail -> (T >> Eopt) tail
-    //         | _                    -> tokens
-    //     and T (tokens: TokenStream): TokenStream = (NR >> Topt) tokens
-    //     and Topt (tokens: TokenStream): TokenStream =
-    //         match tokens with
-    //         | Asterisk     :: tail -> (NR >> Topt) tail
-    //         | ForwardSlash :: tail -> (NR >> Topt) tail
-    //         | _ -> tokens
-    //     and NR (tokens: TokenStream): TokenStream =
-    //         match tokens with
-    //         | Token.Number value :: tail -> Token.Number value :: tail
-    //         | LeftParenthesis    :: tail ->
-    //             match E tail with
-    //              | RightParenthesis :: tail -> tail
-    //              | _ -> raise (System.Exception("SyntaxError"))
-    //         | _ -> raise (System.Exception("SyntaxError"))
+    //          | Lexer.Plus   :: tail -> Some ASTNode.Addition,    tail
+    //          | Lexer.Hyphen :: tail -> Some ASTNode.Subtraction, tail
+    //          | _                    -> None                    , tokens
+    //     and T (tokens: Lexer.TokenStream): ParseResult = parseValue tokens
     //     E tokens
-    //
-    // let eval (tokens: TokenStream) =
-    //     let rec E (tokens: TokenStream) = (T >> Eopt) (tokens: TokenStream)
-    //     and Eopt (tokens, value) =
-    //         match tokens with
-    //         | Plus   :: tail -> let (remaining, current) = T tail
-    //                             Eopt (remaining, value + current)
-    //         | Hyphen :: tail -> let (remaining, current) = T tail
-    //                             Eopt (remaining, value - current)
-    //         | _ -> (tokens, value)
-    //     and T (tokens: TokenStream) = (NR >> Topt) (tokens: TokenStream)
-    //     and Topt (tokens, value) =
-    //         match tokens with
-    //         | Asterisk    :: tail -> let (remaining, current) = NR tail
-    //                                  Topt (remaining, value * current)
-    //         | ForwardSlash :: tail -> let (remaining, current) = NR tail
-    //                                   Topt (remaining, value / current)
-    //         | _ -> ((tokens: TokenStream), value)
-    //     and NR (tokens: TokenStream) =
-    //         match (tokens: TokenStream) with
-    //         | Token.Number value :: tail -> (tail, value)
-    //         | LeftParenthesis    :: tail -> let (remaining, current) = E tail
-    //                                         match remaining with
-    //                                          | RightParenthesis :: tail -> (tail, current)
-    //                                          | _ -> raise (System.Exception("SyntaxError"))
-    //         | _ -> raise (System.Exception("SyntaxError"))
-    //     E tokens
+
+    let parser (tokens) =
+        let rec E (tokens) = (T >> Eopt) tokens
+        and Eopt (tokens) =
+            match tokens with
+            | Lexer.Plus   :: tail -> (T >> Eopt) tail
+            | Lexer.Hyphen :: tail -> (T >> Eopt) tail
+            | _                    -> tokens
+        and T (tokens) = (NR >> Topt) tokens
+        and Topt (tokens) =
+            match tokens with
+            | Lexer.Asterisk     :: tail -> (NR >> Topt) tail
+            | Lexer.ForwardSlash :: tail -> (NR >> Topt) tail
+            | _ -> tokens
+        and NR tokens =
+            match tokens with
+            | Lexer.Number value :: tail -> Lexer.Number value :: tail
+            | Lexer.LeftParenthesis    :: tail ->
+                match E tail with
+                 | Lexer.RightParenthesis :: tail -> tail
+                 | _ -> raise (System.Exception("SyntaxError"))
+            | _ -> raise (System.Exception("SyntaxError"))
+        E tokens
+
+    let eval (tokens: Lexer.TokenStream) =
+        let rec E (tokens: Lexer.TokenStream) = (T >> Eopt) tokens
+        and Eopt (tokens, value) =
+            match tokens with
+            | Lexer.Plus   :: tail -> let (remaining, current) = T tail
+                                      Eopt (remaining, value + current)
+            | Lexer.Hyphen :: tail -> let (remaining, current) = T tail
+                                      Eopt (remaining, value - current)
+            | _ -> (tokens, value)
+        and T tokens = (NR >> Topt) tokens
+        and Topt (tokens, value) =
+            match tokens with
+            | Lexer.Asterisk     :: tail -> let (remaining, current) = NR tail
+                                            Topt (remaining, value * current)
+            | Lexer.ForwardSlash :: tail -> let (remaining, current) = NR tail
+                                            Topt (remaining, value / current)
+            | _ -> (tokens, value)
+        and NR (tokens: Lexer.TokenStream) =
+            match tokens with
+            | Lexer.Number value :: tail -> (tail, value)
+            | Lexer.LeftParenthesis    :: tail -> let (remaining, current) = E tail
+                                                  match remaining with
+                                                  | Lexer.RightParenthesis :: tail -> (tail, current)
+                                                  | _ -> raise (System.Exception("SyntaxError"))
+            | _ -> raise (System.Exception("SyntaxError"))
+        E tokens
 

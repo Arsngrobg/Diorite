@@ -73,6 +73,8 @@ module REPL =
                    | _  -> IO.compose [
                       System.ConsoleColor.DarkGray |> IO.setConsoleForegroundColor |> generalized;
                       IO.output $" ¦  {Lexer.tokens2str tokens}\n"
+                      IO.output $" ¦  {(Parser.parser >> Lexer.tokens2str) tokens}\n"
+                      IO.output $" =  {(Parser.parser >> Parser.eval) tokens}\n"
                    ]
 
         // partial for moving the cursor up or down by n units
