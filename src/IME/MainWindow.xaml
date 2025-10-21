@@ -1,0 +1,32 @@
+﻿<Window x:Class="IME.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="MainWindow" Height="500" Width="500">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <!-- Input -->
+            <RowDefinition Height="0"/> <!-- Space -->
+            <RowDefinition Height="Auto"/> <!-- Result -->
+        </Grid.RowDefinitions>
+        <StackPanel Grid.Row="0" Orientation="Vertical" HorizontalAlignment="Left" Margin="10">
+            <TextBlock Text="Input expression:"
+                       FontFamily="Times New Roman"
+                       FontWeight="Bold"
+                       Margin="0,0,0,5"/>
+            <TextBox x:Name="Input" IsReadOnly="False" 
+                     FontFamily="Times New Roman" FontSize="16"
+                     FontStyle="Italic" Height="Auto" Width="250" TextWrapping="Wrap" KeyDown="KeyDownHandler"
+                     KeyUp="KeyUpHandler" TextInput="TextInputHandler"
+                     TextChanged="TextChanged"/>
+        </StackPanel>
+        <StackPanel Grid.Row="2" Orientation="Vertical" HorizontalAlignment="Left" Margin="10">
+            <TextBlock Text="Result:"
+                       FontFamily="Times New Roman"
+                       FontWeight="Bold"
+                       Margin="0,0,0,5"/>
+            <TextBox x:Name="Output" IsReadOnly="True"
+                     FontFamily="Times New Roman" FontSize="16"
+                     FontStyle="Italic" Height="Auto" Width="250" TextWrapping="Wrap"/>
+        </StackPanel>
+    </Grid>
+</Window>
