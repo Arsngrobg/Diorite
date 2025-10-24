@@ -50,9 +50,7 @@ module REPL =
             System.ConsoleColor.White    |> IO.setConsoleForegroundColor |> generalized
             System.ConsoleColor.Black    |> IO.setConsoleBackgroundColor |> generalized
         ]
-        match result with
-         | Failure _ -> false
-         | Success _ -> true
+        asBool result
 
     // processes the provided input from the user
     let private processInput (input: string): bool =
@@ -63,19 +61,26 @@ module REPL =
         let noOutputIfNoTokens (): unit Result =
             let error: DioriteError option = Lexer.getError tokens
             match error with
-             | Some e -> IO.compose [
-                 System.ConsoleColor.Red |> IO.setConsoleForegroundColor |> generalized;
-                 IO.output $" X  {e}\n"
+             | Some err -> IO.compose [
+                 System.ConsoleColor.Red   |> IO.setConsoleForegroundColor |> generalized;
+                 IO.output $" X  {err}\n"
+                 System.ConsoleColor.White |> IO.setConsoleForegroundColor |> generalized;
                ]
              | None ->
                   match tokens with
-                   | [] -> Success () // do nothing
-                   | _  -> IO.compose [
-                      System.ConsoleColor.DarkGray |> IO.setConsoleForegroundColor |> generalized;
-                      IO.output $" ¦  {Lexer.tokens2str tokens}\n"
-                      IO.output $" ¦  {(Parser.parser >> Lexer.tokens2str) tokens}\n"
-                      IO.output $" =  {(Parser.parser >> Parser.eval) tokens}\n"
-                   ]
+                   | [] -> Ok () // do nothing
+                   | _  ->
+                       match Parser.parse tokens with
+                        | Error err -> IO.compose [
+                            System.ConsoleColor.Red   |> IO.setConsoleForegroundColor |> generalized;
+                            IO.output $" X  {err}\n"
+                            System.ConsoleColor.White |> IO.setConsoleForegroundColor |> generalized;
+                         ]
+                        | Ok root -> IO.compose [
+                            System.ConsoleColor.DarkGray |> IO.setConsoleForegroundColor |> generalized
+                            IO.output $" ¦  {Lexer.tokens2str tokens}\n"
+                            IO.output $" ¦  {root}\n"
+                         ]
 
         // partial for moving the cursor up or down by n units
         let moveCursorY: int -> (int * int) Result = IO.moveCursorRelative 0
@@ -90,9 +95,7 @@ module REPL =
             ()                           |> noOutputIfNoTokens
             System.ConsoleColor.White    |> IO.setConsoleForegroundColor |> generalized
         ]
-        match result with
-         | Failure _ -> false
-         | Success _ -> true
+        asBool result
 
     /// <summary>
     ///     Launches the REPL environment in the user's terminal.
@@ -101,8 +104,8 @@ module REPL =
     let rec launch (): bool =
         let rec env (): bool =
             match IO.input(Some ">>> ") with
-             | Failure _     -> false
-             | Success input ->
+             | Error _     -> false
+             | Ok input ->
                  match input with
                   | "@quit" -> true
                   | _       ->

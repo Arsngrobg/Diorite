@@ -8,7 +8,7 @@
 // File:    IO.fs
 // Summary: Module consisting of functions that may have side effects and ways of handling side effects
 // Author:  Arsngrobg
-// Version: v1.6
+// Version: v1.7
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
@@ -22,8 +22,8 @@ namespace Diorite.Lang
 ///     <code>
 ///         let result: unit Result = IO.input "Enter your name: "
 ///         match result with
-///          | Success name -> IO.output $"Hello {name}!" |> ignore
-///          | Failure err  -> System.exception($"console broke {err}")
+///          | Ok    name -> IO.output $"Hello {name}!" |> ignore
+///          | Error err  -> System.exception($"console broke {err}")
 ///     </code>
 ///     As shown above, we used <c>IO.output</c>. This is a wrapper around the <c>System.Console.Write</c> method. It is
 ///     also a side-effecting method so it can fail. However, in most cases you should be fine with using <c>ignore</c>
@@ -31,15 +31,15 @@ namespace Diorite.Lang
 ///         IO.output "Hello, World!" |> ignore // ignore the Result
 ///     </code>
 ///     Unsafe <c>IO</c> functions can be composed or chained together as if it were a single atomic operation that
-///     produces an overall <c>Success</c> or <c>Failure</c> <c>Result</c>.
+///     produces an overall <c>Ok</c> or <c>Error</c> <c>Result</c>.
 ///     <code>
 ///         let result: unit Result = IO.compose [
 ///             IO.output "Hello, World!"
 ///             IO.input  Some("Enter something: ") |> IO.generalize // throws away the output (does nothing)
 ///         ]
 ///         match result with
-///          | Success _ -> IO.output  "Task Success!" |> ignore
-///          | Failure e -> IO.output $"Error: {err}"  |> ignore
+///          | Ok    _ -> IO.output  "Task Success!" |> ignore
+///          | Error e -> IO.output $"Error: {err}"  |> ignore
 ///     </code>
 ///     <c>IO.generalize</c> is a helper function for transforming the resulting generic result (<c>'a Result</c>)
 ///     into the nullified <c>unit Result</c> type.
@@ -48,36 +48,36 @@ namespace Diorite.Lang
 module IO =
     // private helper for easily extracting errors from side-effecting interop code
     // it receives an 'unsafe' function that wraps an executable block of code that returns a generic value
-    // it returns a custom Result discriminated union type depending on Success or Failure
+    // it returns a custom Result discriminated union type depending on Ok or Error
     let inline private test<'a> (unsafe: unit -> 'a): 'a Result =
-        try Success (unsafe ())
+        try Ok (unsafe ())
         with ex -> SystemError $"{ex.GetType.ToString()}: {ex.Message}"
 
     /// <summary>
     ///     Computes the chain of actions from left to right.
-    ///     Upon each the execution of each function, it checks whether the unsafe function produced a <c>Failure</c>
-    ///     result. If so, the <c>Failure</c> is returned. A <c>Success</c> is returned when all
-    ///     <c>actions</c> have returned successful results. This allows for the chain of operations to be tested as if
-    ///     it were a single atomic operation that produces a singular <c>Result</c>.
+    ///     Upon each the execution of each function, it checks whether the unsafe function produced an <c>Error</c>
+    ///     result. If so, the <c>Error</c> is returned. A <c>Ok</c> is returned when all <c>actions</c> have returned
+    ///     successful results. This allows for the chain of operations to be tested as if it were a single atomic
+    ///     operation that produces a singular <c>Result</c>.
     ///     <code>
     ///         let result: unit Result = IO.compose [
     ///             IO.output "Hello, World!"
     ///             IO.input  Some("Enter something: ") |> IO.generalize // throws away the output (does nothing)
     ///         ]
     ///         match result with
-    ///          | Success _ -> IO.output  "Task Success!" |> ignore
-    ///          | Failure e -> IO.output $"Error: {err}"  |> ignore
+    ///          | Ok    _ -> IO.output  "Task Success!" |> ignore
+    ///          | Error e -> IO.output $"Error: {err}"  |> ignore
     ///     </code>
     /// </summary>
     /// <param name='actions'> the list of operations that produce <c>Result</c>s </param>
     /// <returns> a singular <c>Result</c> that determines the success state of the operation chain </returns>
     let rec compose (actions: unit Result list): unit Result =
         match actions with
-         | []           -> Success ()
+         | []           -> Ok ()
          | head :: tail ->
              match head with
-              | Failure e -> Failure e
-              | Success _ -> compose tail
+              | Error e -> Error e
+              | Ok    _ -> compose tail
 
     /// <summary>
     ///     Outputs the supplied <c>str</c> argument to the console.
@@ -86,8 +86,8 @@ module IO =
     ///     <code>
     ///         let r: unit Result = IO.output "Hello, World!" // output: "Hello, World!"
     ///         let success: bool = match r with
-    ///          | Success _ -> true  // success = true
-    ///          | Failure _ -> false // success = false
+    ///          | Ok    _ -> true  // success = true
+    ///          | Error _ -> false // success = false
     ///     </code>
     /// </summary>
     /// <param name='str'> the string to output to the console </param>
@@ -106,9 +106,9 @@ module IO =
     ///     <code>
     ///         let r: string Result = IO.input(Some ">>> ") // output: >>> _
     ///         match r with
-    ///          | Success input -> IO.output $"The user entered: {input}" |> ignore
-    ///          | Failure err   -> IO.output $"{err}"                     |> ignore
-    ///                             // output: EXCEPTION_NAME: ERROR_MESSAGE
+    ///          | OK    input -> IO.output $"The user entered: {input}" |> ignore
+    ///          | Error err   -> IO.output $"{err}"                     |> ignore
+    ///                           // output: EXCEPTION_NAME: ERROR_MESSAGE
     ///     </code>
     /// </summary>
     /// <param name='prompt'> the optional prompt string to display to the user </param>
@@ -128,8 +128,8 @@ module IO =
     ///         // assume cursor starts at (0, 0)
     ///         let newPos: (int * int) Result = IO.moveCursorRelative 1 1
     ///         match newPos with
-    ///          | Success (x, y) -> IO.output $"({x}, {y})"                     |> ignore // output: "(1, 1)"
-    ///          | Failure _      -> IO.output "Could not get console position." |> ignore
+    ///          | OK   (x, y) -> IO.output $"({x}, {y})"                      |> ignore // output: "(1, 1)"
+    ///          | Error _      -> IO.output "Could not get console position." |> ignore
     ///     </code>
     /// </summary>
     /// <param name='dx'> the amount to move along the x-axis </param>
@@ -151,8 +151,8 @@ module IO =
     ///     <code>
     ///         let result: System.ConsoleColor Result = setConsoleBackgroundColor System.ConsoleColor.White
     ///         match result with
-    ///          | Success c -> IO.output $"Set the background color to: {c}"     |> ignore
-    ///          | Failure _ -> IO.output "Could not change the background color" |> ignore
+    ///          | Ok    c -> IO.output $"Set the background color to: {c}"     |> ignore
+    ///          | Error _ -> IO.output "Could not change the background color" |> ignore
     ///     </code>
     /// </summary>
     /// <param name='color'> the color to set the console background to </param>
@@ -170,8 +170,8 @@ module IO =
     ///     <code>
     ///         let result: System.ConsoleColor Result = setBackgroundConsoleColor System.ConsoleColor.Black
     ///         match result with
-    ///          | Success c -> IO.output $"Set the foreground color to: {c}"     |> ignore
-    ///          | Failure _ -> IO.output "Could not change the foreground color" |> ignore
+    ///          | Ok    c -> IO.output $"Set the foreground color to: {c}"     |> ignore
+    ///          | Error _ -> IO.output "Could not change the foreground color" |> ignore
     ///     </code>
     /// </summary>
     /// <param name='color'> the color to set the console foreground to </param>
@@ -189,8 +189,8 @@ module IO =
     ///     <code>
     ///         let result: string Result = setConsoleTitle "Hello, World!"
     ///         match result with
-    ///          | Success t -> IO.output $"Set the title color to: {t}" |> ignore
-    ///          | Failure _ -> IO.output "Could not change the title"   |> ignore
+    ///          | Ok    t -> IO.output $"Set the title color to: {t}" |> ignore
+    ///          | Error _ -> IO.output "Could not change the title"   |> ignore
     ///     </code>
     /// </summary>
     /// <param name='title'> the title to set the console title to </param>
@@ -210,8 +210,8 @@ module IO =
     ///     <code>
     ///         let result: System.ConsoleColor = clearConsole None // uses the current color or Black
     ///         match result with
-    ///          | Success c -> IO.output $"Cleared the console with the color: {c}"         |> ignore
-    ///          | Failure _ -> IO.output "Cleared the console with the default Black color" |> ignore
+    ///          | Ok    c -> IO.output $"Cleared the console with the color: {c}"         |> ignore
+    ///          | Error _ -> IO.output "Cleared the console with the default Black color" |> ignore
     ///     </code>
     /// </summary>
     /// <param name='color'> the color to clear the console with </param>
@@ -242,8 +242,8 @@ module IO =
     ///     <code>
     ///         let r: string Result = IO.readFile "example.diorite"
     ///         match r with
-    ///          | Success file -> IO.output $"{file}" |> ignore // output: FILE_CONTENTS
-    ///          | Failure err  -> IO.output $"{err}"  |> ignore // output: EXCEPTION_NAME: ERROR_MESSAGE
+    ///          | OK    file -> IO.output $"{file}" |> ignore // output: FILE_CONTENTS
+    ///          | Error err  -> IO.output $"{err}"  |> ignore // output: EXCEPTION_NAME: ERROR_MESSAGE
     ///     </code>
     /// </summary>
     /// <param name='path'> the relative or absolute file path to the file to be read </param>

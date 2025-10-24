@@ -8,7 +8,7 @@
 // File:    Error.fs
 // Summary: a module for containing the bindings and type declaration for within the error system in Diorite
 // Author:  Arsngrobg
-// Version: v1.2
+// Version: v1.4
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
@@ -33,44 +33,42 @@ module Error =
     ///     A stricter version of the standard <c>Result</c> where it is strictly bound to the <c>DioriteError</c> error
     ///     type.
     /// </summary>
-    type Result<'a> =
-        | Success of 'a
-        | Failure of DioriteError
-
-    /// <summary>
-    ///     Functional wrapper around the <c>Result.Success</c> union type.
-    /// </summary>
-    /// <param name='value'> the value to represent this <c>Result</c> </param>
-    /// <returns> a <c>Success</c> case in the <c>Result</c> union type, containing the <c>value</c> </returns>
-    let inline Success<'a> (value: 'a): Result<'a> = Success value
-
-    /// <summary>
-    ///     Functional wrapper around the <c>Result.Failure</c> union type.
-    /// </summary>
-    /// <param name='err'> the error to represent this <c>Result</c> </param>
-    /// <returns> a <c>Failure</c> case in the <c>Result</c> union type, containing the <c>err</c> </returns>
-    let inline Failure<'a> (err: DioriteError): Result<'a> = Failure err
+    type Result<'a> = Result<'a, DioriteError>
 
     /// <summary>
     ///     Functional wrapper around a <c>Result</c> that contains a <c>MathError</c>.
     /// </summary>
     /// <param name='msg'> the message to be display upon encountering this <c>MathError</c> </param>
-    /// <returns> a <c>MathError</c> wrapped in a <c>Failure</c> case </returns>
-    let inline MathError<'a> (msg: string): Result<'a> = Failure (MathError msg)
+    /// <returns> a <c>MathError</c> wrapped in an <c>Error</c> case </returns>
+    let inline MathError<'a> (msg: string): Result<'a> = Error (MathError msg)
 
     /// <summary>
     ///     Functional wrapper around a <c>Result</c> that contains a <c>SyntaxError</c>.
     /// </summary>
     /// <param name='msg'> the message to be display upon encountering this <c>SyntaxError</c> </param>
-    /// <returns> a <c>SyntaxError</c> wrapped in a <c>Failure</c> case </returns>
-    let inline SyntaxError<'a> (msg: string): Result<'a> = Failure (SyntaxError msg)
+    /// <returns> a <c>SyntaxError</c> wrapped in a <c>Error</c> case </returns>
+    let inline SyntaxError<'a> (msg: string): Result<'a> = Error (SyntaxError msg)
 
     /// <summary>
     ///     Functional wrapper around a <c>Result</c> that contains a <c>SystemError</c>.
     /// </summary>
     /// <param name='msg'> the message to be display upon encountering this error </param>
-    /// <returns> a <c>SystemError</c> wrapped in a <c>Failure</c> case </returns>
-    let inline SystemError<'a> (msg: string): Result<'a> = Failure (SystemError msg)
+    /// <returns> a <c>SystemError</c> wrapped in an <c>Error</c> case </returns>
+    let inline SystemError<'a> (msg: string): Result<'a> = Error (SystemError msg)
+
+    /// <summary>
+    ///     Interprets the supplied generic <c>Result</c> as a <c>bool</c>.
+    ///     <code>
+    ///         let result: Result = functionThatReturnsResult ()
+    ///         IO.output $"success: {asBool(result)}\n" |> ignore
+    ///     </code>
+    /// </summary>
+    /// <param name='result'> the <c>Result</c> </param>
+    /// <returns> <c>true</c> if <c>Ok</c>; <c>false</c> if an <c>Error</c> </returns>
+    let inline asBool (result: unit Result): bool =
+        match result with
+         | Ok    _ -> true
+         | Error _ -> false
 
     /// <summary>
     ///     Safely unwraps the provided <c>result</c> by either returning the value wrapped by the
@@ -81,14 +79,14 @@ module Error =
     ///     </code>
     /// </summary>
     /// <param name='result'> the <c>Result</c> to be unwrapped </param>
-    /// <param name='alternative'> the alternative value to be returned if it was a <c>Failure</c> </param>
+    /// <param name='alternative'> the alternative value to be returned if it was an <c>Error</c> </param>
     /// <returns>
     ///     either the value wrapped by the <c>Result</c> or the <c>alternative</c> value instead
     /// </returns>
     let getOrElse (result: 'a Result) (alternative: 'a): 'a =
         match result with
-         | Success value -> value
-         | Failure _     -> alternative
+         | Ok    value -> value
+         | Error _     -> alternative
 
     /// <summary>
     ///     Coerces the provided <c>Result</c> bound by the generic type <c>'a</c> into a <c>unit</c> bound
@@ -98,8 +96,8 @@ module Error =
     /// <returns> a nullified <c>Result</c> </returns>
     let inline generalized<'a> (result: 'a Result): unit Result =
         match result with
-         | Failure e -> Failure e
-         | Success _ -> Success ()
+         | Error e -> Error e
+         | Ok    _ -> Ok    ()
 
     /// <summary>
     ///     Forcefully unwraps the value within the supplied <c>Result</c>.
@@ -109,10 +107,10 @@ module Error =
     ///     </b>
     /// </summary>
     /// <param name='result'> the <c>Result</c> to unwrap </param>
-    /// <returns> the value stored within the <c>Result</c> if it was a <c>Success</c> </returns>
-    /// <exception cref='System.Exception'> if the <c>Result</c> is a <c>Failure</c> </exception>
+    /// <returns> the value stored within the <c>Result</c> if it was a <c>Ok</c> </returns>
+    /// <exception cref='System.Exception'> if the <c>Result</c> is an <c>Error</c> </exception>
     [<System.Obsolete("Do not use this - use getOrElse instead!")>]
     let forceUnwrap<'a> (result: 'a Result): 'a =
         match result with
-         | Success value -> value
-         | Failure err   -> raise <| System.Exception $"Result failed{err}"
+         | Error err   -> raise <| System.Exception $"Result failed{err}"
+         | Ok    value -> value
