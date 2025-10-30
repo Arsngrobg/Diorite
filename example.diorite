@@ -1,11 +1,47 @@
-﻿x = (2)+(-2)*3--3
+﻿# ------------------------------------------------------------------------------------------------------------------
+#    _____  __              __ __
+#   |     \|__|.-----.----.|__|  |_.-----.
+#   |  --  |  ||  _  |   _||  |   _|  -__|
+#   |_____/|__||_____|__|  |__|____|_____|
+#
+# ------------------------------------------------------------------------------------------------------------------
+# This is an example file - primarily for testing purposes for the Diorite Mathematics Computing Language
+# ------------------------------------------------------------------------------------------------------------------
 
-[inlined]
-f(y: R) -> R = 2 * y
+# value types
+100        # numbers
+x          # variables
+undefined  # undefined (null)
+infinity   # infinity
+inf        # also infinity
 
-[symbol:fibonacci][memoized]
-g(n: Z) -> Z = {
-    undefined           if n < 0
-    n                   if n < 2
-    g(n - 2) + g(n - 1) otherwise
+# constants
+pi         # 3.1415926
+tau        # 6.2831853
+euler      # 2.7182818
+
+# expressions
+1 + 2      # addition
+3 - 4      # subtraction
+5 * 6      # mutliplication
+7 / 8      # division
+9 % 10     # modulo
+11 ^ 12    # exponentiation
+13!        # factorial
+
+# illegal operations
+x = undefined
+x + 1  # MathError "x is undefined"
+
+# assignments
+x = 100
+y = infinity
+
+# functions
+f(x) = 2*x + 1    # expression functions
+
+g(n: Z) -> Z = {  # conditional functions
+    undefined    if x < 0
+    1            if x = 1
+    n * f(n - 1) otherwise
 }
