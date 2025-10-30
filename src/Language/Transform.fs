@@ -435,6 +435,11 @@ module Parser =
         | FunctionDef      of data:       FunctionAttributes * body:        ASTNode
         | FunctionCall     of name:       FunctionName       * arguments:   ASTNode list
 
+    // the parser uses the idea of parser combinators for the parsing strategy
+    // each stage of the parser is a parser within itself
+    // very good resource:
+    // https://tgdwyer.github.io/parsercombinators
+
     /// <summary>
     ///     The <c>ParseState</c> is the return type of successful <c>Parser</c> invocation.
     ///     It contains the <c>'a</c> which indicates a successful parse of an arbitrary sequence of tokens; and the
