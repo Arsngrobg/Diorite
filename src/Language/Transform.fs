@@ -118,6 +118,9 @@ module Lexer =
         | RightBracket
         | LeftBrace
         | RightBrace
+        
+        // end of statement
+        | SemiColon
 
     /// <summary>
     ///     A descriptive wrapper for a <c>Token</c> list.
@@ -250,6 +253,9 @@ module Lexer =
              | '}'        :: tail -> RightBrace         :: scan tail
              | '['        :: tail -> LeftBracket        :: scan tail
              | ']'        :: tail -> RightBracket       :: scan tail
+             
+             // end of statement
+             | ';'        :: tail -> SemiColon          :: scan tail
              
              // comment (no token just ignores)
              | '#' :: tail ->
