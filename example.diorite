@@ -1,5 +1,9 @@
-﻿x = 2 + 2
+﻿x = (2)+(-2)*3--3
 
-f(x: R) -> Z = floor(x)
+f(x: R) -> R = 2 * x
 
-f(20)
+g(n: Z) -> Z = {
+    undefined           if n < 0
+    n                   if n < 2
+    g(n - 2) + g(n - 1) otherwise
+}

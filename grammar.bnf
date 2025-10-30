@@ -6,131 +6,124 @@
 /*                                                                                                                    */
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* The grammar specification for the Diorite mathematics computing language.                                          */
-/* It models both the tokens in the lexer and the parsing stages in the parser                                        */
-/* Each stag eof the parser should be read from bottom-up (hence this grammar starts at the <Parse> rule              */
-/* This grammar was written using the 'BNF Plaground' tool: https://bnfplayground.pauliankline.com                    */
-/* Whitespace is implied by this grammar (unless specified or enforced otherwise                                      */
+/* Whitespace is implied by this grammar (unless specified or enforced otherwise)                                     */
 /* The raw character 'E' denotes epsilon (ε) an empty string                                                          */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/* Tokens ----------------------------------------------------------------------------------------------------------- */
+/* fundamental types */
+<digit>         ::= "1"|"2"|"3"|"4"|"5"|"6"|"7"|"8"|"9"|"0"
 
-/* value types */
-<Number>             ::= [0-9]+ ("." [0-9]+)?
+<digits>        ::= <digit>
+                 |  <digit> <digits>
 
-<Identifier>         ::= ([a-z] | [A-Z])
-                      |  ([a-z] | [A-Z]) [0-9]
+<letter>        ::= "a"|"b"|"c"|"d"|"e"|"f"|"g"|"h"|"i"|"j"|"l"|"m"|"n"|"o"|"p"|"q"|"r"|"s"|"t"|"u"|"v"|"w"|"x"|"y"|"z"
+                 |  "A"|"B"|"C"|"D"|"E"|"F"|"G"|"H"|"I"|"J"|"L"|"M"|"N"|"O"|"P"|"Q"|"R"|"S"|"T"|"U"|"V"|"W"|"X"|"Y"|"Z"
 
-<Symbol>             ::= ([a-z] | [A-Z]) ([a-z] | [A-Z])+
+<letters>       ::= <letter>
+                 |  <letter> <letters>
 
-/* constants */
-<Undefined>          ::= "undefined"
-<Infinity>           ::= "infinity" | "inf"
-<Pi>                 ::= "pi"
-<Tau>                ::= "tau"
-<Euler>              ::= "euler"
+<number>        ::= <digits>
+                 |  <digits> "." <digits>
 
-/* operators */
-<Tick>               ::= "'"
-<Comma>              ::= ","
-<Colon>              ::= ":"
-<Arrow>              ::= "->"
-<Equals>             ::= "="
-<LessThan>           ::= "<"
-<GreaterThan>        ::= ">"
-<LessThanOrEqual>    ::= "<="
-<GreaterThanOrEqual> ::= ">="
-<NotEqual>           ::= "!="
-<Hat>                ::= "^"
-<Exclamation>        ::= "!"
-<Asterisk>           ::= "*"
-<Slash>              ::= "/"
-<Percentage>         ::= "%"
-<Plus>               ::= "+"
-<Hyphen>             ::= "-"
-<Bar>                ::= "|"
+<identifier>    ::= <letter>
+                 |  <letter> <digit>
 
-/* control flow */
-<If>                 ::= "if"
-<Otherwise>          ::= "otherwise"
+/* program */
+<program>       ::= <equation>
+                 |  <equation> "\n" <program>
 
-/* parenthesis, brackets, and braces */
-<LeftParenthesis>    ::= "("
-<RightParenthesis>   ::= ")"
-<LeftBracket>        ::= "["
-<RightBracket>       ::= "]"
-<LeftBrace>          ::= "{"
-<RightBrace>         ::= "}"
+/* expressions */
+<equation>       ::= <functiondef> "=" <functionbody>
+                  |  <identifier>  "=" <expression>
+                  |  <expression>
 
-/* ------------------------------------------------------------------------------------------------------------------ */
+<expression>     ::= <term>
+                  |  <term> "+" <expression>
+                  |  <term> "-" <expression>
 
-/* Parse ------------------------------------------------------------------------------------------------------------ */
-<Value>         ::= <Undefined>
-                 |  <Infinity>
-                 |  <Pi>
-                 |  <Tau>
-                 |  <Euler>
-                 |  <Identifier>
-                 |  <Number>
+<term>           ::= <factor>
+                  |  <factor> "*" <term>
+                  |  <factor> "/" <term>
+                  |  <factor> "%" <term>
 
-<Param>         ::= <Identifier>
-                 |  <Identifier> <Colon> <Identifier>
+<factor>         ::= <signed>
+                  |  <signed> "^" <signed>
 
-<Params>        ::= <Param>
-                 |  <Param> <Comma> <Params>
+<signed>         ::= <exponent>
+                  |  "+" <exponent>
+                  |  "-" <exponent>
 
-<Return>        ::= E
-                 |  <Arrow> <Identifier>
+<exponent>       ::= <integral> <exponent'>
 
-<Args>          ::= <Expression>
-                 |  <Expression> <Comma> <Args>
+<exponent'>      ::= ε
+                  |  "!" <exponent'>
 
-<Attributes>    ::= E
-                 |  <LeftBracket> <Symbol>                  <RightBracket> <Attributes>
-                 |  <LeftBracket> <Symbol> <Colon> <Symbol> <RightBracket> <Attributes>
+<integral>       ::= <subexpression> <integral'>
+                  |  "'" <integral>
 
-<Define>        ::= <Attributes> <Identifier> <LeftParenthesis> <Params> <RightParenthesis> <Return>
+<integral'>      ::= ε
+                  |  "'" <integral'>
 
-<Condition>     ::= <Expression> <If> <Expression>
-                   (<Equals> | <NotEqual> | <GreaterThan> | <LessThan> | <GreaterThanOrEqual> | <LessThanOrEqual>)
-                   <Expression> <Condition>
-                 |  <Expression> <Otherwise>
+<subexpression>  ::= <value>
+                  |  "(" <expression> ")"
+                  |  "|" <expression> "|"
+                  |  <identifier> "(" <args> ")"
+                  |  <letters>    "(" <args> ")"
 
-<Body>          ::= <Expression>
-                 |  <LeftBrace> <Condition> <RightBrace>
+<args>           ::= <expression>
+                  |  <expression> "," <args>
 
-/* sub-expression -> value -> symbolic application -> value application */
-<Atom>          ::= <LeftParenthesis> <Expression> <RightParenthesis>
-                 |  <Bar>             <Expression> <Bar>
-                 |  <Value>
-                 |  <Symbol>     <LeftParenthesis> <Args> <RightParenthesis>
-                 |  <Identifier> <LeftParenthesis> <Args> <RightParenthesis>
+<value>          ::= "undefined"
+                  |  "infinity" | "inf"
+                  |  "pi"
+                  |  "tau"
+                  |  "euler"
+                  |  <letters> <digit>
+                  |  <number>
 
-<Differential>  ::= <Atom>
-                 |  <Integral> <Tick>
+/* functions */
+<functiondef>    ::= <functionmeta> <identifier> "(" <functionparams> ")" <functionreturn>
 
-<Integral>      ::= <Differential>
-                 |  <Tick> <Differential>
+<functionmeta>   ::= ε
+                  |  "[" <letters> "]"
+                  |  "[" <letters> ":" <letters> "]"
 
-<Exponent>      ::= <Integral>
-                 |  <Factor> <Hat> <Exponent>
+<functionparams> ::= <functionparam>
+                  |  <functionparam> "," <functionparams>
 
-<Factor>        ::= <Exponent>
-                 |  <Factor> <Exclamation>
+<functionparam>  ::= <identifier>
+                  |  <identifier> ":" "N"
+                  |  <identifier> ":" "Z"
+                  |  <identifier> ":" "R"
+                  |  <identifier> ":" "Q"
+                  |  <identifier> ":" "I"
+                  |  <identifier> ":" "C"
 
-<Term>          ::= <Factor>
-                 |  <Factor> (<Asterisk> | <Slash> | <Percentage>) <Term>
+<functionreturn> ::= ε
+                  |  "->" "N"
+                  |  "->" "Z"
+                  |  "->" "R"
+                  |  "->" "Q"
+                  |  "->" "I"
+                  |  "->" "C"
 
-<Expression>    ::= <Term>
-                 |  <Term> (<Plus> | <Hyphen>) <Expression>
+<functionbody>   ::= <expression>
+                  |  "{" <conditions> "}"
 
-<Equation>      ::= <Define>     <Equals> <Body>
-                 |  <Expression> <Equals> <Expression>
+/* conditions */
+<conditions>     ::= <ifcond> "\n" <conditions>
+                  |  <ifcond> "\n" <otherwisecond>
 
-<Parse>         ::= <Expression>
-                 |  <Equation>
+<ifcond>         ::= <expression> "if" <expression> <comparison> <expression>
 
-/* ------------------------------------------------------------------------------------------------------------------ */
+<otherwisecond>  ::= <expression> "otherwise"
+
+<comparison>     ::= "="
+                  |  "!="
+                  |  "<"
+                  |  "<="
+                  |  ">"
+                  |  ">="
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Diorite | Developed and produced by Arsngrobg and Borngle | 2025                                                   */

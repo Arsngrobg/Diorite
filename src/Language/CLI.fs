@@ -105,7 +105,19 @@ module CLI =
               | false -> ExitCode.REPLFailure
 
          // attempt to load the file into the REPL environment
-         | [ Interpreter; Literal _ ] -> failwith "[TODO] load in the file into the REPL"
+         | [ Interpreter; Literal filename ] ->
+             match IO.readFile filename with
+              | Ok fileContents ->
+                  let tokens = Lexer.tokenize(fileContents)
+                  IO.output $"{Lexer.tokens2str tokens}\n" |> ignore
+                  let result = Parser.parse tokens
+                  match result with
+                   | Ok root   -> IO.output $"{root}\n" |> ignore
+                   | Error err -> IO.output $"{err}\n"  |> ignore
+                  ExitCode.NoError
+              | Error err ->
+                  IO.output $"{err}\n" |> ignore
+                  ExitCode.FileNotFound
 
          // compile the given .diorite file
          | [ Compile; Literal _ ] -> failwith "[TODO] Compile that shit"

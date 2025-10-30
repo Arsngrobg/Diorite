@@ -8,7 +8,7 @@
 // File:    Transform.fs
 // Summary: The bindings for transforming a stream of characters to a TokenStream or Abstract Syntax Tree (AST)
 // Author:  Arsngrobg, Borngle
-// Version: v1.9
+// Version: v1.11
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
@@ -21,7 +21,7 @@ namespace Diorite.Lang
 ///     stream.
 ///     <code>
 ///         let tokens = Lexer.tokenize("x = 2")
-///         printf $"{tokens}" // output: "[VARIABLE "x", EQUALS, NUMBER 2]"
+///         IO.output $"{tokens}\n" |> ignore // output: "[VARIABLE "x", EQUALS, NUMBER 2]"
 ///     </code>
 /// </summary>
 [<RequireQualifiedAccess>]
@@ -56,6 +56,9 @@ module Lexer =
         let untilNewline (c: char): bool =
             c <> '\n'
 
+        let isNewline (c: char): bool =
+            c = '\n'
+
         let any (c: char): bool =
             not(isBlank c)
 
@@ -63,15 +66,16 @@ module Lexer =
     ///     All the valid tokens that can be accepted in the <b>Diorite</b> language.
     ///     <c>IllegalToken</c> is used to determine errors in source files / input.
     /// </summary>
-    [<AutoOpen>]
     type Token =
         // lexing continues upon discovering an IllegalToken as it helps with finding all illegal tokens
-        | IllegalToken      of string            // contains the offending lexeme
+        | IllegalToken      of lexeme: string                   // contains the offending lexeme
+
+        | NewStatement                                          // since no explicit statement suffix (e.g. semicolon)
 
         // value types
-        | Number            of float             // contains the number literal
-        | Identifier        of char * int option // contains the character + optional subscript
-        | Symbol            of string            // contains the symbol name
+        | Number            of value: float                     // contains the number literal
+        | Identifier        of id: char * subscript: int option // contains the character + optional subscript
+        | Symbol            of value: string                    // contains the symbol name
 
         // reserved words
         | Undefined
@@ -88,6 +92,9 @@ module Lexer =
         // boundary operators
         | Colon
         | Arrow
+
+        // args & params
+        | Comma
 
         // comparison operators
         | Equals
@@ -128,11 +135,25 @@ module Lexer =
     /// <summary>
     ///     A debug function for outputting the tokens in a structured manner from a supplied token stream.
     /// </summary>
-    /// <param name="tokens"> the <c>Lexer.Token</c> stream </param>
+    /// <param name='tokens'> the <c>Lexer.Token</c> stream </param>
     let rec tokens2str (tokens: TokenStream): string =
         match tokens with
-         | []        -> ""
-         | t :: tail -> $"({t}) {tokens2str tail}"
+         | []                   -> ""
+         | NewStatement :: tail -> $"\n{tokens2str tail}"
+         | t :: tail            -> $"({t}) {tokens2str tail}"
+
+    /// <summary>
+    ///     Reads the current statement from the head of this <c>TokenStream</c> to see if it contains the supplied
+    ///     <c>token</c>.
+    /// </summary>
+    /// <param name='stream'> the token steam </param>
+    /// <param name='token'> the token to check for this current statement </param>
+    /// <returns> <c>true</c> if the supplied <c>Token</c> is within the current statement </returns>
+    let rec statementContainsToken (stream: TokenStream) (token: Token): bool =
+        match stream with
+         | [] | NewStatement :: _         -> false
+         | head :: _    when head = token -> true
+         | _    :: tail                   -> statementContainsToken tail token
     
     // recursively consume character given that they satisfy the given predicate
     let rec private consume (predicate: char -> bool) (src: char list): char list * char list =
@@ -179,14 +200,14 @@ module Lexer =
                       match consume Predicates.isDigit tail with
                       // produce two separate tokens to say that the '.' is an illegal token after the number
                        | [], remaining ->
-                           (integerComponent |> Transformers.parseNumber |> Number) ::
+                           (Transformers.parseNumber >> Number) integerComponent ::
                            IllegalToken "." ::
                            scan remaining
                        | decimalComponent, postDecimal ->
                           let charSequence: char list = integerComponent @ ['.'] @ decimalComponent
-                          (charSequence |> Transformers.parseNumber |> Number) :: scan postDecimal
+                          (Transformers.parseNumber >> Number) charSequence :: scan postDecimal
                   // only integer component
-                  | _ -> (integerComponent |> Transformers.parseNumber |> Number) :: scan remaining
+                  | _ -> (Transformers.parseNumber >> Number) integerComponent :: scan remaining
 
              // identifiers (+ subscript), symbols & constants
              | c :: tail when Predicates.isLetter c ->
@@ -196,7 +217,7 @@ module Lexer =
                       match remaining with
                       // subscripts
                        | digit :: postSubscript when Predicates.isDigit digit ->
-                           Identifier (c, Some(digit |> Transformers.parseDigit)) :: scan postSubscript
+                           Identifier (c, (Transformers.parseDigit >> Some) digit) :: scan postSubscript
                            
                       // just a letter
                        | _ -> Identifier (c, None) :: scan remaining
@@ -217,6 +238,9 @@ module Lexer =
 
                        // symbols
                        | sym                -> Symbol sym :: scan remaining
+
+             // args & params
+             | ','  :: tail       -> Comma              :: scan tail
 
              // integral operator
              | '\'' :: tail       -> Tick               :: scan tail
@@ -261,6 +285,13 @@ module Lexer =
                  let _, (remaining: char list) = consume Predicates.isBlank src
                  scan remaining
 
+             // if newline - insert NewStatement, unless it is unless the last newlines of the source
+             | c :: _ when Predicates.isNewline c ->
+                 let _, (remaining: char list) = consume System.Char.IsWhiteSpace src
+                 match remaining with
+                  | [] -> []
+                  | remaining -> NewStatement :: scan remaining
+
              // illegal token
              | _ ->
                  let (lexeme: char list), (remaining: char list) = consume Predicates.any src
@@ -285,36 +316,57 @@ module Parser =
         | Complex    // C = {x where x = a + bi}
 
     /// <summary>
-    ///     The linkage type of functions.
-    ///     <c>Internal</c> linkage means that it is locally defined within the source file.
-    ///     <c>External</c> linkage means that it is defined elsewhere.
+    ///     Gets the equivalent <c>NumberSet</c> for the supplied <c>ch</c> character.
     /// </summary>
-    type Linkage =
-        | Internal of string
-        | External of string
+    /// <param name='ch'> the character to match with the respective <c>NumberSet</c> </param>
+    /// <returns> the equivalent <c>NumberSet</c> if it matches; <c>None</c> otherwise </returns>
+    let getNumberSet (ch: char): NumberSet option =
+        match ch with
+         | 'N' -> Some Natural
+         | 'Z' -> Some Integer
+         | 'R' -> Some Real
+         | 'Q' -> Some Rational
+         | 'I' -> Some Irrational
+         | 'C' -> Some Complex
+         |  _  -> None
 
     /// <summary>
     ///     The metadata for a function.
     ///     <c>symbol</c> is the optional string value that also represents this function.
-    ///     <c>inlined</c> is a tuple of <c>bool</c>s where it is of the pattern: <c>enabled * forced</c>.
-    ///     <c>memoized</c> is a tuple of <c>bool</c>s where it is of the pattern: <c>enabled * forced</c>.
+    ///     <c>inlined</c> is a <b>bool</b> which indicates whether the function is inlined.
+    ///     <c>memoized</c> is a <b>bool</b> which indicates whether the function is memoized.
     /// </summary>
+    [<Struct>]
     type FunctionMetadata = {
-        symbol:   string      option // optional, meaningful name that persists throughout the entire program
-        inlined:  bool * bool        // (enabled, forced)
-        memoized: bool * bool        // (enabled, forced)
+        symbol:   string option // optional, meaningful name that persists throughout the lifetime of the program
+        inlined:  bool          // enabled/disabled
+        memoized: bool          // enabled/disabled
     }
+
+    /// <summary>
+    ///     A <c>FunctionParameter</c> is a tuple consisting of an identifier and a number set.
+    ///     By default, the number set is <c>Real</c>.
+    /// </summary>
+    type FunctionParameter = (char * int option) * NumberSet
 
     /// <summary>
     ///     The attributes of a function.
     ///     If no <c>NumberSet</c> is provided to a parameter or the return type - it defaults to <c>Real</c>.
     /// </summary>
+    [<Struct>]
     type FunctionAttributes = {
-        identifier: char * int option                      // the variable name
-        parameters: ((char * int option) * NumberSet) list // parameter name    - defaults: Real
-        returns:    NumberSet                              // return 'type'     - default:  Real
+        identifier: char * int option      // the variable name
+        parameters: FunctionParameter list // parameter name    - defaults: Real
+        returns:    NumberSet              // return 'type'     - default:  Real
         metadata:   FunctionMetadata
     }
+
+    /// <summary>
+    ///     A function name is either a symbolic name or a <c>Identifier</c> name.
+    /// </summary>
+    type FunctionName =
+        | Symbolic     of string
+        | Identifiable of id: char * subscript: int option
 
     /// <summary>
     ///     The <c>ASTNode</c> type is a discriminated union which describes the structure of the AST of the <b>Diorite</b>
@@ -336,8 +388,11 @@ module Parser =
         | Percentage
         | Positive
         | Negative
+        | Absolution
 
         // binary operations
+        | Factorial
+        | Exponentiation
         | Multiplication
         | Division
         | Modulo
@@ -346,7 +401,7 @@ module Parser =
 
         // comparison operations
         | Equals
-        | NotEquals
+        | NotEqual
         | GreaterThan
         | LessThan
         | GreaterThanOrEqual
@@ -356,97 +411,452 @@ module Parser =
         | Begin            of ASTNode list
         | BinaryOperation  of left:       ASTNode            * operator:    ASTNode      * right: ASTNode
         | UnaryOperation   of operand:    ASTNode            * operator:    ASTNode
-        | Comparison       of left:       ASTNode            * operator:    ASTNode      * right: ASTNode
+        | Comparison       of ifTrue: ASTNode * left: ASTNode * operator: ASTNode * right: ASTNode
         | Conditions       of cases:      ASTNode list       * defaultCase: ASTNode
         | FunctionDef      of data:       FunctionAttributes * body:        ASTNode
-        | FunctionCall     of identifier: ASTNode            * arguments:   ASTNode list
+        | FunctionCall     of name:       FunctionName       * arguments:   ASTNode list
 
     /// <summary>
-    ///     A <c>Result</c> type that is specific to storing a tuple of the resulting <c>ASTNode</c> and the
-    ///     <c>TokenStream</c> as a result from the previous parsing stage.
+    ///     The <c>ParseState</c> is the return type of successful <c>Parser</c> invocation.
+    ///     It contains the <c>'a</c> which indicates a successful parse of an arbitrary sequence of tokens; and the
+    ///     remaining tokens to parse as a result of the current call to a <c>Parser</c>.
     /// </summary>
-    type ParseResult = ASTNode option * Lexer.TokenStream
+    type ParseState<'a> = 'a * Lexer.TokenStream
 
-    // <Value>     ::= <Undefined>
-    //              |  <Infinity>
-    //              |  <Pi>
-    //              |  <Tau>
-    //              |  <Euler>
-    //              |  <Identifier>
-    //              |  <Number>
-    let parseValue (tokens: Lexer.TokenStream): ParseResult =
+    /// <summary>
+    ///     The <c>Parser</c> is a function that accepts a <c>TokenStream</c> and returns a <c>ParseState</c>.
+    /// </summary>
+    type Parser<'a> = Lexer.TokenStream -> ParseState<'a> Result
+
+    /// <summary>
+    ///     The function signature for a function which accepts a raw <c>ParseState</c> and uplifts it to a
+    ///     <c>Result</c>.
+    /// </summary>
+    type ResultLifter<'a, 'b> = ParseState<'a> -> ParseState<'b> Result
+
+    // helper function for subsequent execution upon an accepted parse state - handles error propagation automatically
+    let private ifOk<'a, 'b> (prev: ParseState<'a> Result) (callback: ResultLifter<'a, 'b>): ParseState<'b> Result =
+        match prev with
+         | Error err   -> Error err
+         | Ok    value -> callback value
+
+    // <program> ::= <equation>
+    //            |  <equation> <program>
+    let rec program: Parser<ASTNode list> = (fun tokens ->
+        ifOk (equation tokens) (fun (root, remaining) ->
+            match remaining with
+             // <program> ::= <equation>
+             | [] -> Ok ([root], remaining)
+             // <program> ::= <equation> "\n" <program>
+             | Lexer.NewStatement :: programTail ->
+                 ifOk (program programTail) (fun (roots, remaining) ->
+                      Ok (root :: roots, remaining)
+                 )
+             | head :: _ -> SyntaxError $"Unexpected trailing token - got {head}"
+        )
+    )
+    // <equation> ::= <functiondef> "=" <functionbody>
+    //             |  <identifier>  "=" <expression>
+    //             |  <expression>
+    and equation: Parser<ASTNode> = (fun tokens ->
+        // lookahead to check for '=' token
+        match Lexer.statementContainsToken tokens Lexer.Equals with
+         // <equation> ::= <expression>
+         | false -> expression tokens
+         // <equation> ::= <functiondef> "=" <expression>
+         //             |  <identifier>  "=" <expression>
+         | true ->
+             match tokens with
+              | Lexer.Identifier (ch, sb) :: Lexer.Equals :: equationTail ->
+                  ifOk (expression equationTail) (fun (expression, remaining) ->
+                      Ok (BinaryOperation (Identifier (ch, sb), Equals, expression), remaining)
+                  )
+              | _ ->
+                 ifOk (functiondef tokens) (fun (functionAttributes, equationTail) ->
+                     match equationTail with
+                      | Lexer.Equals :: equationTail ->
+                           ifOk (functionbody equationTail) (fun (functionBody, remaining) ->
+                              Ok (FunctionDef (functionAttributes, functionBody), remaining)
+                           )
+                      | _ -> SyntaxError "Expected Equals token for function definition"
+                 )
+    )
+    // <expression> ::= <term>
+    //               |  <term> "+" <expression>
+    //               |  <term> "-" <expression>
+    and expression: Parser<ASTNode> = (fun tokens ->
+        ifOk (term tokens) (fun (termNode, remaining) ->
+            match remaining with
+             // <expression> ::= <term> "+" <expression>
+             | Lexer.Plus :: expressionTail ->
+                 ifOk (expression expressionTail) (fun (expNode, remaining) ->
+                     Ok (BinaryOperation (termNode, Addition, expNode), remaining)
+                 )
+             // <expression> ::= <term> "-" <expression>
+             | Lexer.Hyphen :: expressionTail ->
+                 ifOk (expression expressionTail) (fun (expNode, remaining) ->
+                     Ok (BinaryOperation (termNode, Subtraction, expNode), remaining)
+                 )
+             // <expression> ::= <term>
+             | remaining -> Ok (termNode, remaining)
+        )
+    )
+    // <term> ::= <factor>
+    //         |  <factor> "*" <term>
+    //         |  <factor> "/" <term>
+    //         |  <factor> "%" <term>
+    and term: Parser<ASTNode> = (fun tokens ->
+        ifOk (factor tokens) (fun (factorNode, remaining) ->
+            match remaining with
+             // <term> ::= <factor> "*" <term>
+             | Lexer.Asterisk :: termTail ->
+                 ifOk (term termTail) (fun (termNode, remaining) ->
+                     Ok (BinaryOperation (factorNode, Multiplication, termNode), remaining)
+                 )
+             // <term> ::= <factor> "/" <term>
+             | Lexer.ForwardSlash :: termTail ->
+                 ifOk (term termTail) (fun (termNode, remaining) ->
+                     Ok (BinaryOperation (factorNode, Division, termNode), remaining)
+                 )
+             // <term> ::= <factor> "%" <term>
+             | Lexer.Percentage :: termTail ->
+                 ifOk (term termTail) (fun (termNode, remaining) ->
+                     Ok (BinaryOperation (factorNode, Modulo, termNode), remaining)
+                 )
+             // <term> ::= <factor>
+             | remaining -> Ok (factorNode, remaining)
+        )
+    )
+    // <factor> ::= <signed>
+    //           |  <signed> "^" <signed>
+    and factor: Parser<ASTNode> = (fun tokens ->
+        ifOk (signed tokens) (fun (exponentNode, remaining) ->
+            match remaining with
+             // <factor> ::= <exponent> "^" <subexpression>
+             | Lexer.Hat :: factorTail ->
+                 ifOk (signed factorTail) (fun (subExpNode, remaining) ->
+                     Ok (BinaryOperation (exponentNode, Exponentiation, subExpNode), remaining)
+                 )
+             // <factor> ::= <exponent>
+             | remaining -> Ok (exponentNode, remaining)
+        )
+    )
+    // <signed> ::= <exponent>
+    //           |  "+" <signed>
+    //           |  "-" <signed>
+    and signed: Parser<ASTNode> = (fun tokens ->
         match tokens with
-         | Lexer.Undefined            :: tail -> (Some  ASTNode.Undefined               ,  tail  )
-         | Lexer.Infinity             :: tail -> (Some  ASTNode.Infinity                ,  tail  )
-         | Lexer.Pi                   :: tail -> (Some (ASTNode.Number     3.14159265358), tail  )
-         | Lexer.Tau                  :: tail -> (Some (ASTNode.Number     6.28318530717), tail  )
-         | Lexer.Euler                :: tail -> (Some (ASTNode.Number     2.71828182845), tail  )
-         | Lexer.Identifier (ch, sub) :: tail -> (Some (ASTNode.Identifier (ch, sub)    ), tail  )
-         | Lexer.Number      num      :: tail -> (Some (ASTNode.Number     num          ), tail  )
-         | _                                  -> (None                                   , tokens)
+         | Lexer.Plus :: signedTail ->
+             ifOk (signed signedTail) (fun (exponentNode, remaining) ->
+                 Ok (UnaryOperation (exponentNode, Positive), remaining)
+             )
+         | Lexer.Hyphen :: signedTail ->
+             ifOk (signed signedTail) (fun (exponentNode, remaining) ->
+                 Ok (UnaryOperation (exponentNode, Negative), remaining)
+             )
+         | signedTail -> exponent signedTail
+    )
+    // <exponent> ::= <integral> <exponent'>
+    and exponent: Parser<ASTNode> = (fun tokens ->
+        ifOk (integral tokens) (fun (integralNode, exponentTail) ->
+            ifOk (exponent' exponentTail) (fun state ->
+                match state with
+                 // <exponent> ::= <integral> <exponent'>
+                 | Some factorialNode, remaining ->
+                     Ok (UnaryOperation (integralNode, factorialNode), remaining)
+                 // <exponent> ::= <integral>
+                 | None, remaining -> Ok (integralNode, remaining)
+            )
+        )
+    )
+    // <exponent'> ::= ε
+    //              |  "!" <exponent'>
+    and exponent': Parser<ASTNode option> = (fun tokens ->
+        match tokens with
+         // <exponent'> ::= "!" <exponent'>
+         | Lexer.Exclamation :: exponent'Tail ->
+             ifOk (exponent' exponent'Tail) (fun state ->
+                 match state with
+                  | Some factorialNode, remaining ->
+                      Ok ((UnaryOperation >> Some) (factorialNode, Factorial), remaining)
+                  | None, remaining -> Ok (Some Factorial, remaining)
+             )
+         // <exponent'> ::= ε
+         | exponent'Tail -> Ok (None, exponent'Tail)
+    )
+    // <integral> ::= <subexpression> <integral'>
+    //             |  "'" <integral>
+    and integral: Parser<ASTNode> = (fun tokens ->
+        match tokens with
+         // <integral> ::= "'" <integral>
+         | Lexer.Tick :: integralTail ->
+             ifOk (integral integralTail) (fun (integralNode, remaining) ->
+                 Ok (UnaryOperation (integralNode, Integration), remaining)
+             )
+         // <integral> ::= <subexpression> <integral'>
+         | integralTail ->
+             ifOk (subexpression integralTail) (fun (subExpNode, integralTail) ->
+                 ifOk (integral' integralTail) (fun state ->
+                     match state with
+                      // <integral> ::= <subexpression> <integral'>
+                      | Some differentialNode, remaining ->
+                          Ok (UnaryOperation (subExpNode, differentialNode), remaining)
+                      // <integral> ::= <subexpression>
+                      | None, remaining -> Ok (subExpNode, remaining)
+                 )
+             )
+    )
+    // <integral'> ::= ε
+    //              |  "'" <integral'>
+    and integral': Parser<ASTNode option> = (fun tokens ->
+        match tokens with
+         // <integral'> ::= "'" <integral'>
+         | Lexer.Tick :: integral'Tail ->
+             ifOk (integral' integral'Tail) (fun state ->
+                 match state with
+                  // <integral'> ::= "'" <integral'>
+                  | Some differentialNode, remaining ->
+                      Ok ((UnaryOperation >> Some) (differentialNode, Differentiation), remaining)
+                  // <integral'> ::= "'"
+                  | None, remaining -> Ok (Some Differentiation, remaining)
+             )
+         // <exponent'> ::= ε
+         | integral'Tail -> Ok (None, integral'Tail)
+    )
+    // <subexpression> ::= <value>
+    //                  |  "(" <expression> ")"
+    //                  |  "|" <expression> "|"
+    //                  |  <identifier> "(" <args> ")"
+    //                  |  <letters>    "(" <args> ")"
+    and subexpression: Parser<ASTNode> = (fun tokens ->
+        match tokens with
+         // <subexpression> ::= "|" <expression> "|"
+         | Lexer.LeftParenthesis :: subexpressionTail ->
+             ifOk (expression subexpressionTail) (fun (expressionNode, remaining) ->
+                 match remaining with
+                  | Lexer.RightParenthesis :: remaining ->
+                      Ok (expressionNode, remaining)
+                  | _ ->
+                      SyntaxError "Missing closing parenthesis for expression"
+             )
+         // <subexpression> ::= "(" <expression> ")"
+         | Lexer.Bar :: subexpressionTail ->
+             ifOk (expression subexpressionTail) (fun (expressionNode, remaining) ->
+                 match remaining with
+                  | Lexer.Bar :: remaining ->
+                      Ok (UnaryOperation (expressionNode, Absolution), remaining)
+                  | _ ->
+                      SyntaxError "Missing closing bar for absolute expression"
+             )
+         | Lexer.Identifier (ch, sb) :: Lexer.LeftParenthesis :: subexpressionTail ->
+             ifOk (args subexpressionTail) (fun (argList, remaining) ->
+                 match remaining with
+                  | Lexer.RightParenthesis :: remaining ->
+                      Ok (FunctionCall (Identifiable (ch, sb), argList), remaining)
+                  | _ -> SyntaxError "Missing closing parenthesis for application"
+             )
+         // <subexpression> ::= <value>
+         | subexpressionTail -> value subexpressionTail
+    )
+    // <args> ::= <expression>
+    //         |  <expression> "," <args>
+    and args: Parser<ASTNode list> = (fun tokens ->
+        ifOk (expression tokens) (fun (expressionNode, argsTail) ->
+            match argsTail with
+             // <args> ::= <expression> "," <args>
+             | Lexer.Comma :: argsTail ->
+                 ifOk (args argsTail) (fun (argsList, remaining) ->
+                     Ok ([expressionNode] @ argsList, remaining)
+                 )
+             // <args> ::= <expression>
+             | remaining -> Ok ([expressionNode], remaining)
+        )
+    )
+    // <value> ::= "undefined"
+    //          |  "infinity" | "inf"
+    //          |  "pi"
+    //          |  "tau"
+    //          |  "euler"
+    //          |  <letters> <digit>
+    //          |  <number>
+    and value: Parser<ASTNode> = (fun tokens ->
+        match tokens with
+         | Lexer.Undefined           :: remaining -> Ok (Undefined,           remaining)
+         | Lexer.Infinity            :: remaining -> Ok (Infinity,            remaining)
+         | Lexer.Pi                  :: remaining -> Ok (Number 3.1415926,    remaining)
+         | Lexer.Tau                 :: remaining -> Ok (Number 6.2831853,    remaining)
+         | Lexer.Euler               :: remaining -> Ok (Number 2.7182818,    remaining)
+         | Lexer.Identifier (ch, sb) :: remaining -> Ok (Identifier (ch, sb), remaining)
+         | Lexer.Number      number  :: remaining -> Ok (Number number,       remaining)
+         | head                      :: _         -> SyntaxError $"Expected value - got {head} instead"
+         | []                                     -> SyntaxError "Expected value when TokenStream empty"
+    )
+    // <functiondef> ::= <functionmeta> <identifier> "(" <functionparams> ")" <functionreturn>
+    and functiondef: Parser<FunctionAttributes> = (fun tokens ->
+        match tokens with
+         // <functiondef> ::= <functionmeta> <identifier> "(" <functionparams> ")" <functionreturn>
+         | Lexer.Identifier (ch, sb) :: Lexer.LeftParenthesis :: functionTail ->
+             ifOk (functionparams functionTail) (fun (parameters, remaining) ->
+                 match remaining with
+                  | Lexer.RightParenthesis :: functionTail ->
+                      ifOk (functionreturn functionTail) (fun (parsedReturn, remaining) ->
+                          Ok ({
+                              identifier = (ch, sb)
+                              parameters = parameters
+                              returns    = match parsedReturn with None -> Real | Some set -> set
+                              metadata   = {
+                                  symbol   = None
+                                  inlined  = false
+                                  memoized = false
+                              }
+                          }, remaining)
+                      )
+                  | _ -> SyntaxError "Missing closing parenthesis for function definition"
+             )
+         | _ -> SyntaxError "Missing identifier for function definition"
+    )
+    and functionmeta: Parser<FunctionMetadata option> = (fun tokens ->
+        // TODO
+    )
+    // <functionparams> ::= <functionparam>
+    //                   |  <functionparam> "," <functionparams>
+    and functionparams: Parser<FunctionParameter list> = (fun tokens ->
+        ifOk (functionparam tokens) (fun (paramsHead, remaining) ->
+            match remaining with
+             // <functionparams> ::= <functionparam> "," <functionparams>
+             | Lexer.Comma :: tail ->
+                 ifOk (functionparams tail) (fun (paramsTail, remaining) ->
+                     Ok (paramsHead :: paramsTail, remaining)
+                 )
+             // <functionparams> ::= <functionparam>
+             | remaining -> Ok ([paramsHead], remaining)
+        )
+    )
+    // <functionparam> ::= <identifier>
+    //                  |  <identifier> ":" "N"
+    //                  |  <identifier> ":" "Z"
+    //                  |  <identifier> ":" "R"
+    //                  |  <identifier> ":" "Q"
+    //                  |  <identifier> ":" "I"
+    //                  |  <identifier> ":" "C"
+    and functionparam: Parser<FunctionParameter> = (fun tokens ->
+        match tokens with
+         | Lexer.Identifier (ch, sb) :: Lexer.Colon :: Lexer.Identifier (maybeSet, _) :: paramTail ->
+             match getNumberSet maybeSet with
+              | None -> SyntaxError $"Expected valid number set - got {maybeSet} instead"
+              // <functionparam> ::= <identifier> ":" "N"
+              //                  |  <identifier> ":" "Z"
+              //                  |  <identifier> ":" "R"
+              //                  |  <identifier> ":" "Q"
+              //                  |  <identifier> ":" "I"
+              //                  |  <identifier> ":" "C"
+              | Some set -> Ok (((ch, sb), set), paramTail)
+         | Lexer.Identifier (ch, sb) :: paramTail -> Ok (((ch, sb), Real), paramTail)
+         // <functionparam> ::= <identifier>
+         | _ -> SyntaxError "Expected identifier"
+    )
+    // <functionreturn> ::= ε
+    //                   |  "->" "N"
+    //                   |  "->" "Z"
+    //                   |  "->" "R"
+    //                   |  "->" "Q"
+    //                   |  "->" "I"
+    //                   |  "->" "C"
+    and functionreturn: Parser<NumberSet option> = (fun tokens ->
+        match tokens with
+         | Lexer.Arrow :: Lexer.Identifier (maybeSet, _) :: returnTail ->
+             match getNumberSet maybeSet with
+              | None     -> SyntaxError "Illegal number set for return set"
+              | Some set -> Ok (Some set, returnTail)
+         | tokens -> Ok (None, tokens)
+    )
+    // <functionbody> ::= <expression>
+    //                 |  "{" <conditions> "}"
+    and functionbody: Parser<ASTNode> = (fun tokens ->
+        match tokens with
+         | Lexer.LeftBrace :: Lexer.NewStatement :: bodyTail
+         | Lexer.LeftBrace :: bodyTail                       ->
+             ifOk (conditions bodyTail) (fun (functionBody, bodyTail) ->
+                 match bodyTail with
+                  | Lexer.NewStatement :: Lexer.RightBrace :: remaining
+                  | Lexer.RightBrace :: remaining ->
+                      Ok (functionBody, remaining)
+                  | _ -> SyntaxError "Missing closing brace from function body"
+             )
+         | tokens                                            -> expression tokens
+    )
+    // <conditions> ::= <ifcond> "\n" <conditions>
+    //               |  <ifcond> "\n" <otherwisecond>
+    and conditions: Parser<ASTNode> = (fun tokens ->
+        ifOk (ifcond tokens) (fun (ifCondition, conditionsTail) ->
+            match conditionsTail with
+             | Lexer.NewStatement :: conditionsTail ->
+                 match Lexer.statementContainsToken conditionsTail Lexer.If with
+                  | true ->
+                      ifOk (conditions conditionsTail) (fun (conditions, remaining) ->
+                          match conditions with
+                           | Conditions (cases, defaultCase) ->
+                               Ok (Conditions ([ifCondition] @ cases, defaultCase), remaining)
+                           | node -> SystemError $"Unexpected node {node} - should be Conditions"
+                      )
+                  | false ->
+                      ifOk (otherwisecond conditionsTail) (fun (defaultCase, remaining) ->
+                          Ok (Conditions ([ifCondition], defaultCase), remaining)
+                      )
+             | _ -> SyntaxError "Expected newline after condition"
+        )
+    )
+    // <ifcond> ::= <expression> "if" <expression> <comparison> <expression>
+    and ifcond: Parser<ASTNode> = (fun tokens ->
+        ifOk (expression tokens) (fun (ifTrue, ifTail) ->
+            match ifTail with
+             | Lexer.If :: ifTail ->
+                 ifOk (expression ifTail) (fun (lhs, ifTail) ->
+                     ifOk (comparison ifTail) (fun (cmpOp, ifTail) ->
+                         ifOk (expression ifTail) (fun (rhs, remaining) ->
+                             Ok (Comparison (ifTrue, lhs, cmpOp, rhs), remaining)
+                         )
+                     )
+                 )
+             | _ -> SyntaxError "Expected If token"
+        )
+    )
+    // <otherwisecond> ::= <expression> "otherwise"
+    and otherwisecond: Parser<ASTNode> = (fun tokens ->
+        ifOk (expression tokens) (fun (defaultCase, otherwiseTail) ->
+            match otherwiseTail with
+             | Lexer.Otherwise :: remaining ->
+                 Ok (defaultCase, remaining)
+             | _ -> SyntaxError "Expected otherwise"
+        )
+    )
+    // <comparison> ::= "="
+    //               |  "!="
+    //               |  "<"
+    //               |  "<="
+    //               |  ">"
+    //               |  ">="
+    and comparison: Parser<ASTNode> = (fun tokens ->
+        match tokens with
+         | Lexer.Equals             :: remaining -> Ok (Equals,             remaining)
+         | Lexer.NotEqual           :: remaining -> Ok (NotEqual,           remaining)
+         | Lexer.LessThan           :: remaining -> Ok (LessThan,           remaining)
+         | Lexer.LessThanOrEqual    :: remaining -> Ok (LessThanOrEqual,    remaining)
+         | Lexer.GreaterThan        :: remaining -> Ok (GreaterThan,        remaining)
+         | Lexer.GreaterThanOrEqual :: remaining -> Ok (GreaterThanOrEqual, remaining)
+         | head                      :: _        -> SyntaxError $"Expected comparison - got {head} instead"
+         | []                                    -> SyntaxError "Expected value when TokenStream empty"
+    )
 
-    let Exception: System.Exception = System.Exception("SyntaxError")
-
-    // let parse (tokens: Lexer.TokenStream): ParseResult =
-    //     let rec E (tokens: Lexer.TokenStream): ParseResult =
-    //         match T tokens with
-    //          | (Some node, remaining) -> Some node
-    //          | (None     , _        ) -> raise Exception
-    //     and Eop (tokens: Lexer.TokenStream): ParseResult =
-    //         match tokens with
-    //          | Lexer.Plus   :: tail -> Some ASTNode.Addition,    tail
-    //          | Lexer.Hyphen :: tail -> Some ASTNode.Subtraction, tail
-    //          | _                    -> None                    , tokens
-    //     and T (tokens: Lexer.TokenStream): ParseResult = parseValue tokens
-    //     E tokens
-
-    let parser (tokens) =
-        let rec E (tokens) = (T >> Eopt) tokens
-        and Eopt (tokens) =
-            match tokens with
-            | Lexer.Plus   :: tail -> (T >> Eopt) tail
-            | Lexer.Hyphen :: tail -> (T >> Eopt) tail
-            | _                    -> tokens
-        and T (tokens) = (NR >> Topt) tokens
-        and Topt (tokens) =
-            match tokens with
-            | Lexer.Asterisk     :: tail -> (NR >> Topt) tail
-            | Lexer.ForwardSlash :: tail -> (NR >> Topt) tail
-            | _ -> tokens
-        and NR tokens =
-            match tokens with
-            | Lexer.Number value :: tail -> Lexer.Number value :: tail
-            | Lexer.LeftParenthesis    :: tail ->
-                match E tail with
-                 | Lexer.RightParenthesis :: tail -> tail
-                 | _ -> raise (System.Exception("SyntaxError"))
-            | _ -> raise (System.Exception("SyntaxError"))
-        E tokens
-
-    let eval (tokens: Lexer.TokenStream) =
-        let rec E (tokens: Lexer.TokenStream) = (T >> Eopt) tokens
-        and Eopt (tokens, value) =
-            match tokens with
-            | Lexer.Plus   :: tail -> let (remaining, current) = T tail
-                                      Eopt (remaining, value + current)
-            | Lexer.Hyphen :: tail -> let (remaining, current) = T tail
-                                      Eopt (remaining, value - current)
-            | _ -> (tokens, value)
-        and T tokens = (NR >> Topt) tokens
-        and Topt (tokens, value) =
-            match tokens with
-            | Lexer.Asterisk     :: tail -> let (remaining, current) = NR tail
-                                            Topt (remaining, value * current)
-            | Lexer.ForwardSlash :: tail -> let (remaining, current) = NR tail
-                                            Topt (remaining, value / current)
-            | _ -> (tokens, value)
-        and NR (tokens: Lexer.TokenStream) =
-            match tokens with
-            | Lexer.Number value :: tail -> (tail, value)
-            | Lexer.LeftParenthesis    :: tail -> let (remaining, current) = E tail
-                                                  match remaining with
-                                                  | Lexer.RightParenthesis :: tail -> (tail, current)
-                                                  | _ -> raise (System.Exception("SyntaxError"))
-            | _ -> raise (System.Exception("SyntaxError"))
-        E tokens
-
+    /// <summary>
+    ///     Parses the provided <c>tokens</c> into an AST (Abstract Syntax Tree).
+    ///     Any syntax errors will be propagated upwards through the parse tree and therefore should be checked
+    ///     whenever parsing.
+    /// </summary>
+    /// <param name='tokens'> the <c>TokenStream</c> to be parsed </param>
+    /// <returns> the root <c>ASTNode</c> that is ready to be evaluated </returns>
+    let parse (tokens: Lexer.TokenStream): ASTNode Result =
+        match program tokens with
+         | Error err                -> Error err
+         | Ok    (nodes, [])        -> (Begin >> Ok) nodes
+         | Ok    (_,     head :: _) -> SyntaxError $"Unexpected trailing token: {head}"
