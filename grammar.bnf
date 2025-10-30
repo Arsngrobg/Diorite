@@ -85,8 +85,9 @@
 <functiondef>    ::= <functionmeta> <identifier> "(" <functionparams> ")" <functionreturn>
 
 <functionmeta>   ::= ε
-                  |  "[" <letters> "]"
-                  |  "[" <letters> ":" <letters> "]"
+                  |  "[" "inlined"  "]"             <functionmeta>
+                  |  "[" "memoized" "]"             <functionmeta>
+                  |  "[" "symbol" ":" <letters> "]" <functionmeta>
 
 <functionparams> ::= <functionparam>
                   |  <functionparam> "," <functionparams>

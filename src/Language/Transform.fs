@@ -139,7 +139,7 @@ module Lexer =
     let rec tokens2str (tokens: TokenStream): string =
         match tokens with
          | []                   -> ""
-         | NewStatement :: tail -> $"\n{tokens2str tail}"
+         //| NewStatement :: tail -> $"\n{tokens2str tail}"
          | t :: tail            -> $"({t}) {tokens2str tail}"
 
     /// <summary>
@@ -154,6 +154,18 @@ module Lexer =
          | [] | NewStatement :: _         -> false
          | head :: _    when head = token -> true
          | _    :: tail                   -> statementContainsToken tail token
+
+    /// <summary>
+    ///     Reads the token stream to see if it contains the supplied <c>token</c>.
+    /// </summary>
+    /// <param name='stream'> the token steam </param>
+    /// <param name='token'> the token to seek for </param>
+    /// <returns> <c>true</c> if the supplied <c>Token</c> is in the <c>TokenStream</c> </returns>
+    let rec streamContainsToken (stream: TokenStream) (token: Token): bool =
+        match stream with
+         | []                             -> false
+         | head :: _    when head = token -> true
+         | _    :: tail                   -> streamContainsToken tail token
     
     // recursively consume character given that they satisfy the given predicate
     let rec private consume (predicate: char -> bool) (src: char list): char list * char list =
@@ -344,6 +356,16 @@ module Parser =
     }
 
     /// <summary>
+    ///     The default <c>FunctionMetadata</c>.
+    ///     (Everything is disabled or <c>None</c>)
+    /// </summary>
+    let defaultMetadata: FunctionMetadata = {
+        inlined  = false
+        memoized = false
+        symbol   = None
+    }
+
+    /// <summary>
     ///     A <c>FunctionParameter</c> is a tuple consisting of an identifier and a number set.
     ///     By default, the number set is <c>Real</c>.
     /// </summary>
@@ -460,7 +482,7 @@ module Parser =
     //             |  <expression>
     and equation: Parser<ASTNode> = (fun tokens ->
         // lookahead to check for '=' token
-        match Lexer.statementContainsToken tokens Lexer.Equals with
+        match Lexer.streamContainsToken tokens Lexer.Equals with
          // <equation> ::= <expression>
          | false -> expression tokens
          // <equation> ::= <functiondef> "=" <expression>
@@ -693,30 +715,92 @@ module Parser =
     )
     // <functiondef> ::= <functionmeta> <identifier> "(" <functionparams> ")" <functionreturn>
     and functiondef: Parser<FunctionAttributes> = (fun tokens ->
-        match tokens with
-         // <functiondef> ::= <functionmeta> <identifier> "(" <functionparams> ")" <functionreturn>
-         | Lexer.Identifier (ch, sb) :: Lexer.LeftParenthesis :: functionTail ->
-             ifOk (functionparams functionTail) (fun (parameters, remaining) ->
-                 match remaining with
-                  | Lexer.RightParenthesis :: functionTail ->
-                      ifOk (functionreturn functionTail) (fun (parsedReturn, remaining) ->
-                          Ok ({
-                              identifier = (ch, sb)
-                              parameters = parameters
-                              returns    = match parsedReturn with None -> Real | Some set -> set
-                              metadata   = {
-                                  symbol   = None
-                                  inlined  = false
-                                  memoized = false
-                              }
-                          }, remaining)
-                      )
-                  | _ -> SyntaxError "Missing closing parenthesis for function definition"
-             )
-         | _ -> SyntaxError "Missing identifier for function definition"
+        ifOk (functionmeta tokens) (fun (maybeMeta, functionTail) ->
+            let functionMeta = match maybeMeta with
+                               | None      -> defaultMetadata
+                               | Some meta -> meta
+            // newlines are optional - hence skip if any
+            let functionTail =
+                match functionTail with
+                 | Lexer.NewStatement :: functionTail -> functionTail
+                 | functionTail                       -> functionTail
+            match functionTail with
+             // <functiondef> ::= <functionmeta> <identifier> "(" <functionparams> ")" <functionreturn>
+             | Lexer.Identifier (ch, sb) :: Lexer.LeftParenthesis :: functionTail ->
+                 ifOk (functionparams functionTail) (fun (parameters, remaining) ->
+                     match remaining with
+                      | Lexer.RightParenthesis :: functionTail ->
+                          ifOk (functionreturn functionTail) (fun (parsedReturn, remaining) ->
+                              Ok ({
+                                  identifier = (ch, sb)
+                                  parameters = parameters
+                                  returns    = match parsedReturn with None -> Real | Some set -> set
+                                  metadata   = functionMeta
+                              }, remaining)
+                          )
+                      | _ -> SyntaxError "Missing closing parenthesis for function definition"
+                 )
+             | _ -> SyntaxError "Missing identifier for function definition"
+        )
     )
+    // <functionmeta> ::= ε
+    //                 |  "[" "inlined"  "]"             <functionmeta>
+    //                 |  "[" "memoized" "]"             <functionmeta>
+    //                 |  "[" "symbol" ":" <letters> "]" <functionmeta>
     and functionmeta: Parser<FunctionMetadata option> = (fun tokens ->
-        // TODO
+        match tokens with
+         | Lexer.LeftBracket :: metaTail ->
+             match metaTail with
+              // <functionmeta> ::= "[" "inlined" "]" <functionmeta>
+              | Lexer.Symbol "inlined" :: Lexer.RightBracket :: metaTail ->
+                  ifOk (functionmeta metaTail) (fun (maybeMeta, remaining) ->
+                      match maybeMeta with
+                       | None -> Ok (Some {
+                           inlined  = true
+                           memoized = defaultMetadata.memoized
+                           symbol   = defaultMetadata.symbol
+                         }, remaining)
+                       | Some functionMeta ->
+                           Ok (Some {
+                               inlined  = true
+                               memoized = functionMeta.memoized
+                               symbol   = functionMeta.symbol
+                           }, remaining)
+                  )
+              // <functionmeta> ::= "[" "memoized" "]" <functionmeta>
+              | Lexer.Symbol "memoized" :: Lexer.RightBracket :: metaTail ->
+                  ifOk (functionmeta metaTail) (fun (maybeMeta, remaining) ->
+                      match maybeMeta with
+                       | None -> Ok (Some {
+                           inlined  = defaultMetadata.inlined
+                           memoized = true
+                           symbol   = defaultMetadata.symbol
+                         }, remaining)
+                       | Some functionMeta ->
+                           Ok (Some {
+                               inlined  = functionMeta.inlined
+                               memoized = true
+                               symbol   = functionMeta.symbol
+                           }, remaining)
+                  )
+              // <functionmeta> ::= "[" "symbol" ":" <letters> "]" <functionmeta>
+              | Lexer.Symbol "symbol" :: Lexer.Colon :: Lexer.Symbol symbolicName :: Lexer.RightBracket :: metaTail ->
+                  ifOk (functionmeta metaTail) (fun (maybeMeta, remaining) ->
+                      match maybeMeta with
+                       | None -> Ok (Some {
+                           inlined  = defaultMetadata.inlined
+                           memoized = defaultMetadata.memoized
+                           symbol   = Some symbolicName
+                         }, remaining)
+                       | Some functionMeta ->
+                           Ok (Some {
+                               inlined  = functionMeta.inlined
+                               memoized = functionMeta.memoized
+                               symbol   = Some symbolicName
+                           }, remaining)
+                  )
+              | _ -> SyntaxError "Illegal meta attribute for function"
+         | remaining -> Ok (None, remaining)
     )
     // <functionparams> ::= <functionparam>
     //                   |  <functionparam> "," <functionparams>

@@ -109,7 +109,7 @@ module CLI =
              match IO.readFile filename with
               | Ok fileContents ->
                   let tokens = Lexer.tokenize(fileContents)
-                  IO.output $"{Lexer.tokens2str tokens}\n" |> ignore
+                  //IO.output $"{Lexer.tokens2str tokens}\n" |> ignore
                   let result = Parser.parse tokens
                   match result with
                    | Ok root   -> IO.output $"{root}\n" |> ignore
@@ -132,7 +132,7 @@ module CLI =
     ///         printf $"{args}" // output: "[ARG_INTERPRETER; ARG_LITERAL]"
     ///     </code>
     /// </summary>
-    /// <param name="argv"> the variadic list of raw string arguments </param>
+    /// <param name='argv'> the variadic list of raw string arguments </param>
     /// <returns> a list of typed <c>Argument</c> union type </returns>
     let collectArgs (argv: string list): Argument list =
         let rec read (argv: string list): Argument list =

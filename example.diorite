@@ -1,7 +1,9 @@
 ﻿x = (2)+(-2)*3--3
 
-f(x: R) -> R = 2 * x
+[inlined]
+f(y: R) -> R = 2 * y
 
+[symbol:fibonacci][memoized]
 g(n: Z) -> Z = {
     undefined           if n < 0
     n                   if n < 2
