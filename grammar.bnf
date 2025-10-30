@@ -30,12 +30,12 @@
 
 /* program */
 <program>       ::= <equation>
-                 |  <equation> "\n" <program>
+                 |  <equation> <program>
 
 /* expressions */
 <equation>       ::= <functiondef> "=" <functionbody>
-                  |  <identifier>  "=" <expression>
-                  |  <expression>
+                  |  <identifier>  "=" <expression> ";"
+                  |  <expression> ";"
 
 <expression>     ::= <term>
                   |  <term> "+" <expression>
@@ -108,12 +108,12 @@
                   |  "->" "I"
                   |  "->" "C"
 
-<functionbody>   ::= <expression>
+<functionbody>   ::= <expression> ";"
                   |  "{" <conditions> "}"
 
 /* conditions */
-<conditions>     ::= <ifcond> "\n" <conditions>
-                  |  <ifcond> "\n" <otherwisecond>
+<conditions>     ::= <ifcond> ";" <conditions>
+                  |  <ifcond> ";" <otherwisecond> ";"
 
 <ifcond>         ::= <expression> "if" <expression> <comparison> <expression>
 

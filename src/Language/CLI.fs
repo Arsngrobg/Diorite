@@ -109,7 +109,7 @@ module CLI =
              match IO.readFile filename with
               | Ok fileContents ->
                   let tokens = Lexer.tokenize(fileContents)
-                  //IO.output $"{Lexer.tokens2str tokens}\n" |> ignore
+                  IO.output $"{Lexer.tokens2str tokens}\n" |> ignore
                   let result = Parser.parse tokens
                   match result with
                    | Ok root   -> IO.output $"{root}\n" |> ignore

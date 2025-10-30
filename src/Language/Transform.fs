@@ -51,7 +51,7 @@ module Lexer =
             System.Char.IsDigit c
 
         let isBlank (c: char): bool =
-            c <> '\n' && System.Char.IsWhiteSpace c
+            System.Char.IsWhiteSpace c
 
         let untilNewline (c: char): bool =
             c <> '\n'
@@ -69,8 +69,6 @@ module Lexer =
     type Token =
         // lexing continues upon discovering an IllegalToken as it helps with finding all illegal tokens
         | IllegalToken      of lexeme: string                   // contains the offending lexeme
-
-        | NewStatement                                          // since no explicit statement suffix (e.g. semicolon)
 
         // value types
         | Number            of value: float                     // contains the number literal
@@ -142,7 +140,7 @@ module Lexer =
     let rec tokens2str (tokens: TokenStream): string =
         match tokens with
          | []                   -> ""
-         //| NewStatement :: tail -> $"\n{tokens2str tail}"
+         | SemiColon :: tail -> $"\n{tokens2str tail}"
          | t :: tail            -> $"({t}) {tokens2str tail}"
 
     /// <summary>
@@ -154,7 +152,7 @@ module Lexer =
     /// <returns> <c>true</c> if the supplied <c>Token</c> is within the current statement </returns>
     let rec statementContainsToken (stream: TokenStream) (token: Token): bool =
         match stream with
-         | [] | NewStatement :: _         -> false
+         | [] | SemiColon :: _            -> false
          | head :: _    when head = token -> true
          | _    :: tail                   -> statementContainsToken tail token
 
@@ -298,17 +296,10 @@ module Lexer =
                 let _, (remaining: char list) = consume Predicates.untilNewline tail
                 scan remaining
 
-             // skip whitespace (not newlines)
+             // skip whitespace
              | c :: _ when Predicates.isBlank c ->
                  let _, (remaining: char list) = consume Predicates.isBlank src
                  scan remaining
-
-             // if newline - insert NewStatement, unless it is unless the last newlines of the source
-             | c :: _ when Predicates.isNewline c ->
-                 let _, (remaining: char list) = consume System.Char.IsWhiteSpace src
-                 match remaining with
-                  | [] -> []
-                  | remaining -> NewStatement :: scan remaining
 
              // illegal token
              | _ ->
@@ -473,31 +464,39 @@ module Parser =
     let rec program: Parser<ASTNode list> = (fun tokens ->
         ifOk (equation tokens) (fun (root, remaining) ->
             match remaining with
-             // <program> ::= <equation>
+             // <program> ::= <equation> ";"
              | [] -> Ok ([root], remaining)
-             // <program> ::= <equation> "\n" <program>
-             | Lexer.NewStatement :: programTail ->
+             // <program> ::= <equation> ";" <program>
+             | programTail ->
                  ifOk (program programTail) (fun (roots, remaining) ->
                       Ok (root :: roots, remaining)
                  )
-             | head :: _ -> SyntaxError $"Unexpected trailing token - got {head}"
         )
     )
     // <equation> ::= <functiondef> "=" <functionbody>
-    //             |  <identifier>  "=" <expression>
-    //             |  <expression>
+    //             |  <identifier>  "=" <expression> ";"
+    //             |  <expression> ";"
     and equation: Parser<ASTNode> = (fun tokens ->
         // lookahead to check for '=' token
-        match Lexer.streamContainsToken tokens Lexer.Equals with
-         // <equation> ::= <expression>
-         | false -> expression tokens
-         // <equation> ::= <functiondef> "=" <expression>
-         //             |  <identifier>  "=" <expression>
+        match Lexer.statementContainsToken tokens Lexer.Equals with
+         // <equation> ::= <expression> ";"
+         | false ->
+             ifOk (expression tokens) (fun (node, remaining) ->
+                 match remaining with
+                  | Lexer.SemiColon :: remaining ->
+                      Ok (node, remaining)
+                  | _ -> SyntaxError "Missing semicolon for expression"
+             )
+         // <equation> ::= <functiondef> "=" <functionbody>
+         //             |  <identifier>  "=" <expression> ";"
          | true ->
              match tokens with
               | Lexer.Identifier (ch, sb) :: Lexer.Equals :: equationTail ->
                   ifOk (expression equationTail) (fun (expression, remaining) ->
-                      Ok (BinaryOperation (Identifier (ch, sb), Equals, expression), remaining)
+                      match remaining with
+                       | Lexer.SemiColon :: remaining ->
+                           Ok (BinaryOperation (Identifier (ch, sb), Equals, expression), remaining)
+                       | _ -> SyntaxError "Missing semicolon for assignment"
                   )
               | _ ->
                  ifOk (functiondef tokens) (fun (functionAttributes, equationTail) ->
@@ -676,12 +675,21 @@ module Parser =
                   | _ ->
                       SyntaxError "Missing closing bar for absolute expression"
              )
+         // <subexpression> ::= <identifier> "(" <args> ")"
          | Lexer.Identifier (ch, sb) :: Lexer.LeftParenthesis :: subexpressionTail ->
              ifOk (args subexpressionTail) (fun (argList, remaining) ->
                  match remaining with
                   | Lexer.RightParenthesis :: remaining ->
                       Ok (FunctionCall (Identifiable (ch, sb), argList), remaining)
                   | _ -> SyntaxError "Missing closing parenthesis for application"
+             )
+         // <subexpression> ::= <letters> "(" <args> ")"
+         | Lexer.Symbol symbolicName :: Lexer.LeftParenthesis :: subexpressionTail ->
+             ifOk (args subexpressionTail) (fun (argList, remaining) ->
+                 match remaining with
+                  | Lexer.RightParenthesis :: remaining ->
+                      Ok (FunctionCall (Symbolic symbolicName, argList), remaining)
+                  | _ -> SyntaxError "Missing closing parenthesis for symbolic function"
              )
          // <subexpression> ::= <value>
          | subexpressionTail -> value subexpressionTail
@@ -694,7 +702,7 @@ module Parser =
              // <args> ::= <expression> "," <args>
              | Lexer.Comma :: argsTail ->
                  ifOk (args argsTail) (fun (argsList, remaining) ->
-                     Ok ([expressionNode] @ argsList, remaining)
+                     Ok (expressionNode :: argsList, remaining)
                  )
              // <args> ::= <expression>
              | remaining -> Ok ([expressionNode], remaining)
@@ -721,15 +729,11 @@ module Parser =
     )
     // <functiondef> ::= <functionmeta> <identifier> "(" <functionparams> ")" <functionreturn>
     and functiondef: Parser<FunctionAttributes> = (fun tokens ->
+        printf $"{tokens}\n"
         ifOk (functionmeta tokens) (fun (maybeMeta, functionTail) ->
             let functionMeta = match maybeMeta with
                                | None      -> defaultMetadata
                                | Some meta -> meta
-            // newlines are optional - hence skip if any
-            let functionTail =
-                match functionTail with
-                 | Lexer.NewStatement :: functionTail -> functionTail
-                 | functionTail                       -> functionTail
             match functionTail with
              // <functiondef> ::= <functionmeta> <identifier> "(" <functionparams> ")" <functionreturn>
              | Lexer.Identifier (ch, sb) :: Lexer.LeftParenthesis :: functionTail ->
@@ -860,40 +864,50 @@ module Parser =
               | Some set -> Ok (Some set, returnTail)
          | tokens -> Ok (None, tokens)
     )
-    // <functionbody> ::= <expression>
+    // <functionbody> ::= <expression> ";"
     //                 |  "{" <conditions> "}"
     and functionbody: Parser<ASTNode> = (fun tokens ->
         match tokens with
-         | Lexer.LeftBrace :: Lexer.NewStatement :: bodyTail
+         // <functionbody> ::= "{" <conditions> "}"
          | Lexer.LeftBrace :: bodyTail                       ->
              ifOk (conditions bodyTail) (fun (functionBody, bodyTail) ->
                  match bodyTail with
-                  | Lexer.NewStatement :: Lexer.RightBrace :: remaining
                   | Lexer.RightBrace :: remaining ->
                       Ok (functionBody, remaining)
                   | _ -> SyntaxError "Missing closing brace from function body"
              )
-         | tokens                                            -> expression tokens
+         // <functionbody> ::= <expression> ";"
+         | tokens ->
+             ifOk (expression tokens) (fun (node, remaining) ->
+                 match remaining with
+                  | Lexer.SemiColon :: remaining -> Ok (node, remaining)
+                  | _ -> SyntaxError "Missing semicolon for expression"
+             )
     )
-    // <conditions> ::= <ifcond> "\n" <conditions>
-    //               |  <ifcond> "\n" <otherwisecond>
+    // <conditions> ::= <ifcond> ";" <conditions>
+    //               |  <ifcond> ";" <otherwisecond> ";"
     and conditions: Parser<ASTNode> = (fun tokens ->
         ifOk (ifcond tokens) (fun (ifCondition, conditionsTail) ->
             match conditionsTail with
-             | Lexer.NewStatement :: conditionsTail ->
+             | Lexer.SemiColon :: conditionsTail ->
                  match Lexer.statementContainsToken conditionsTail Lexer.If with
+                  // <conditions> ::= <ifcond> ";" <conditions>
                   | true ->
                       ifOk (conditions conditionsTail) (fun (conditions, remaining) ->
                           match conditions with
                            | Conditions (cases, defaultCase) ->
-                               Ok (Conditions ([ifCondition] @ cases, defaultCase), remaining)
+                               Ok (Conditions (ifCondition :: cases, defaultCase), remaining)
                            | node -> SystemError $"Unexpected node {node} - should be Conditions"
                       )
                   | false ->
+                      // <ifcond> ";" <otherwisecond> ";"
                       ifOk (otherwisecond conditionsTail) (fun (defaultCase, remaining) ->
-                          Ok (Conditions ([ifCondition], defaultCase), remaining)
+                          match remaining with
+                           | Lexer.SemiColon :: remaining ->
+                               Ok (Conditions ([ifCondition], defaultCase), remaining)
+                           | _ -> SyntaxError "Missing semicolon for default case"
                       )
-             | _ -> SyntaxError "Expected newline after condition"
+             | _ -> SyntaxError "Missing semicolon for If condition"
         )
     )
     // <ifcond> ::= <expression> "if" <expression> <comparison> <expression>
