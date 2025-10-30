@@ -7,7 +7,6 @@
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* The grammar specification for the Diorite mathematics computing language.                                          */
 /* Whitespace is implied by this grammar (unless specified or enforced otherwise)                                     */
-/* The raw character 'E' denotes epsilon (ε) an empty string                                                          */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /* fundamental types */
