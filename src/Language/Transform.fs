@@ -289,7 +289,7 @@ module Lexer =
              
              // comment (no token just ignores)
              | '#' :: tail ->
-                let _, remaining = consume Predicates.untilNewline tail
+                let _, (remaining: char list) = consume Predicates.untilNewline tail
                 scan remaining
 
              // skip whitespace (not newlines)
@@ -309,7 +309,7 @@ module Lexer =
                  let (lexeme: char list), (remaining: char list) = consume Predicates.any src
                  (Transformers.charsToString(lexeme) |> IllegalToken) :: scan remaining
 
-        src |> Transformers.stringToChars |> scan
+        (Transformers.stringToChars >> scan) src
 
 /// <summary>
 ///     The <c>Parser</c> module groups up related bindings for parsing a token stream.
