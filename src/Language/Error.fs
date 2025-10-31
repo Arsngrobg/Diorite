@@ -65,7 +65,7 @@ module Error =
     /// </summary>
     /// <param name='result'> the <c>Result</c> </param>
     /// <returns> <c>true</c> if <c>Ok</c>; <c>false</c> if an <c>Error</c> </returns>
-    let inline asBool (result: unit Result): bool =
+    let inline resultAsBool (result: unit Result): bool =
         match result with
          | Ok    _ -> true
          | Error _ -> false
