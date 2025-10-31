@@ -50,7 +50,7 @@ module REPL =
             System.ConsoleColor.White    |> IO.setConsoleForegroundColor |> generalized
             System.ConsoleColor.Black    |> IO.setConsoleBackgroundColor |> generalized
         ]
-        asBool result
+        resultAsBool result
 
     // processes the provided input from the user
     let private processInput (input: string): bool =
@@ -95,7 +95,7 @@ module REPL =
             ()                           |> noOutputIfNoTokens
             System.ConsoleColor.White    |> IO.setConsoleForegroundColor |> generalized
         ]
-        asBool result
+        resultAsBool result
 
     /// <summary>
     ///     Launches the REPL environment in the user's terminal.
