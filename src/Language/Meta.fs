@@ -60,7 +60,7 @@ module Version =
     let private majorVersion: uint8 = uint8 0
 
     // the minor version component of the current language version
-    let private minorVersion: uint8 = uint8 5
+    let private minorVersion: uint8 = uint8 7
 
     /// <summary>
     ///     A type that wraps a tuple, grouping the <b>major</b> and <b>minor</b> version components together.
