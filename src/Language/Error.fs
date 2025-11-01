@@ -83,7 +83,7 @@ module Error =
     /// <returns>
     ///     either the value wrapped by the <c>Result</c> or the <c>alternative</c> value instead
     /// </returns>
-    let getOrElse (result: 'a Result) (alternative: 'a): 'a =
+    let inline getOrElse<'a> (result: 'a Result) (alternative: 'a): 'a =
         match result with
          | Ok    value -> value
          | Error _     -> alternative
