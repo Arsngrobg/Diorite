@@ -8,7 +8,7 @@
 // File:    Interpreter.fs
 // Summary: The interpreter of for the Diorite language, which also includes a REPL
 // Author:  Arsngrobg
-// Version: v1.5
+// Version: v1.6
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
