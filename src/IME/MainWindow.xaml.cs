@@ -8,7 +8,7 @@
 // File:    MainWindow.xaml.cs
 // Summary: a module for handling GUI functionality and user interactions with elements in the GUI
 // Author:  Borngle
-// Version: v1.0
+// Version: v1.2
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------

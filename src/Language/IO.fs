@@ -8,7 +8,7 @@
 // File:    IO.fs
 // Summary: Module consisting of functions that may have side effects and ways of handling side effects
 // Author:  Arsngrobg
-// Version: v1.7
+// Version: v1.8
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
