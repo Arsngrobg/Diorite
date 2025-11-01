@@ -25,6 +25,24 @@ namespace IME {
         
         public MainWindow() {
             InitializeComponent();
+            Loaded += PlotLoaded;
+        }
+
+        private void PlotLoaded(object sender, RoutedEventArgs e) {
+            // Generate data
+            double[] xValues = Enumerable.Range(-100, 201).Select(i => i / 10.0).ToArray(); // Range of x values for function to be applied to
+            double[] yValues = xValues.Select(x => (2 * x) + 1).ToArray(); // Parse and calculate for each x and result is ys
+            var scatter = plot.Plot.Add.Scatter(xValues, yValues);
+            scatter.Label = ""; // Statement entered
+            scatter.LineWidth = 2;
+            scatter.Color = ScottPlot.Colors.Blue.WithAlpha(0.8);
+            plot.Plot.Axes.Title.Label.Text = scatter.Label;
+            plot.Plot.Axes.Bottom.Label.Text = "x";
+            plot.Plot.Axes.Left.Label.Text = "y";
+            plot.Plot.Legend.IsVisible = false;
+            plot.Plot.Legend.Alignment = ScottPlot.Alignment.UpperLeft;
+            plot.Plot.Axes.AutoScale();
+            plot.Refresh();
         }
         
         /// <summary>
@@ -40,8 +58,8 @@ namespace IME {
                     var input = inputBox.Text;
                     try {
                         var tokens = Lexer.tokenize(input);
-                        var value = Parser.eval(tokens);
-                        string result = value.Item2.ToString();
+                        var value = Parser.parse(tokens); // Needs to evaluate
+                        string result = value.ResultValue.ToString();
                         Output.Text = result;
                     }
                     catch (Exception exception) {
