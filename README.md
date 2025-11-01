@@ -67,7 +67,8 @@ that if using an IDE, the integrated terminal does not format well with the REPL
     - 10 slots: the subscript variants (e.g. `x4` - offset `subscript + 1`)
     - 26 slots: the lowercase characters
     - 26 slots: the uppercase characters
-    this allows for `616` uniquely defined variables - plenty
+    <br>
+    This allows for `572` uniquely defined variables - plenty
 - Functions
   - Storage:    occupies same *memory* as variables
   - Internals:  the abstract syntax tree (AST) is stored in the *memory* location to be executed

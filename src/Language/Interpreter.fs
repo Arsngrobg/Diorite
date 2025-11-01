@@ -15,6 +15,44 @@
 
 namespace Diorite.Lang
 
+
+/// <summary>
+/// The <c>Memory</c> module contains functionality for variable storage, retrieval, and
+/// modification.
+/// </summary>
+module Memory =
+    let letters = ['a'..'z'] @ ['A'..'Z']
+    // Using option as all variables initially empty
+    let table : float option[,] = Array2D.create 11 letters.Length None; // 11 rows (subscripts), and 52 columns (characters)
+    
+    /// <summary>
+    /// Simple helper function to find the column index where a character is.
+    /// </summary>
+    /// <param name="character"> an alphabetical character </param>
+    let findColIndex (character : char) =
+        letters |> List.findIndex ((=) character)
+    
+    /// <summary>
+    /// Gets the value of a given variable in the table.
+    /// </summary>
+    /// <param name="character"> the alphabetical character of the variable </param>
+    /// <param name="rowIndex"> the row in the table where the character is, indicating the subscript </param>
+    let get (character : char) (rowIndex : int) =
+        let colIndex = findColIndex character
+        match table[rowIndex, colIndex] with
+        | None -> Error "Variable not initialised (null)"
+        | Some value -> Ok value
+        
+    /// <summary>
+    /// Sets the value of a given variable in the table.
+    /// </summary>
+    /// <param name="character"> the alphabetical character of the variable </param>
+    /// <param name="rowIndex"> the row in the table where the character is, indicating the subscript </param>
+    /// <param name="value"> the value being assigned </param>
+    let set (character : char) (rowIndex : int) (value : float) =
+        let colIndex = findColIndex character
+        table[rowIndex, colIndex] <- Some value
+        
 /// <summary>
 ///     The <c>REPL</c> module is the functionality related to the live interpreter environment in the terminal.
 ///     It provides a neat and simple environment for writing <b>Diorite</b> mathematics code.
