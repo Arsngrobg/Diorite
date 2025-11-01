@@ -66,8 +66,7 @@ that if using an IDE, the integrated terminal does not format well with the REPL
     - 1 slot:   the default variable   (e.g. `x` )
     - 10 slots: the subscript variants (e.g. `x4` - offset `subscript + 1`)
     - 26 slots: the lowercase characters
-    - 26 slots: the uppercase characters
-    <br>
+    - 26 slots: the uppercase characters <br>
     This allows for `572` uniquely defined variables - plenty
 - Functions
   - Storage:    occupies same *memory* as variables
