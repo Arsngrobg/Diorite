@@ -31,7 +31,7 @@ namespace IME {
         private void PlotLoaded(object sender, RoutedEventArgs e) {
             // Generate data
             double[] xValues = Enumerable.Range(-100, 201).Select(i => i / 10.0).ToArray(); // Range of x values for function to be applied to
-            double[] yValues = xValues.Select(x => (2 * x) + 1).ToArray(); // Parse and calculate for each x and result is ys
+            double[] yValues = xValues.Select(x => (2 * x) + 1).ToArray(); // Parse and calculate for each x and result is yValues
             var scatter = plot.Plot.Add.Scatter(xValues, yValues);
             scatter.Label = ""; // Statement entered
             scatter.LineWidth = 2;
@@ -108,6 +108,32 @@ namespace IME {
                 textBox.CaretIndex = caret;
             }
             _updating = false;
+        }
+
+        /// <summary>
+        /// Handler for when the help button is clicked
+        /// </summary>
+        /// <param name="sender">the object in the XAML that the event was invoked on</param>
+        /// <param name="e">data for the <c>RoutedEventArgs</c></param>
+        private void HelpClick(object sender, RoutedEventArgs e) {
+            Button help = sender as Button;
+            if (help != null) {
+                Grid helpGrid = HelpMenu;
+                helpGrid.Visibility = Visibility.Visible;
+            }
+        }
+
+        /// <summary>
+        /// Handler for when the close help button is clicked
+        /// </summary>
+        /// <param name="sender">the object in the XAML that the event was invoked on</param>
+        /// <param name="e">data for the <c>RoutedEventArgs</c></param>
+        private void CloseHelpClick(object sender, RoutedEventArgs e) {
+            Button help = sender as Button;
+            if (help != null) {
+                Grid helpGrid = HelpMenu;
+                helpGrid.Visibility = Visibility.Hidden;
+            }
         }
     }
 }
