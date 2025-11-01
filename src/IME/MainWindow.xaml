@@ -1,32 +1,73 @@
 ﻿<Window x:Class="IME.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:scottPlot="clr-namespace:ScottPlot.WPF;assembly=ScottPlot.WPF"
         Title="MainWindow" Height="500" Width="500">
-    <Grid Margin="10">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/> <!-- Input -->
-            <RowDefinition Height="0"/> <!-- Space -->
-            <RowDefinition Height="Auto"/> <!-- Result -->
-        </Grid.RowDefinitions>
-        <StackPanel Grid.Row="0" Orientation="Vertical" HorizontalAlignment="Left" Margin="10">
+    <Grid Margin="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center" Width="250">
+            <Button Content="Help" Click="HelpClick" HorizontalAlignment="Right" 
+                    VerticalAlignment="Top" Margin="0,10,10,0"/>
+            <scottPlot:WpfPlot x:Name="plot" Height="250" Width="Auto"/>
+            <Border Height="20" Background="Transparent"/>
             <TextBlock Text="Input expression:"
-                       FontFamily="Times New Roman"
-                       FontWeight="Bold"
-                       Margin="0,0,0,5"/>
-            <TextBox x:Name="Input" IsReadOnly="False" 
-                     FontFamily="Times New Roman" FontSize="16"
-                     FontStyle="Italic" Height="Auto" Width="250" TextWrapping="Wrap" KeyDown="KeyDownHandler"
+                       FontFamily="Times New Roman" FontWeight="Bold"
+                       Margin="0,0,0,5" TextAlignment="Left"/>
+            <TextBox x:Name="Input" IsReadOnly="False" FontFamily="Times New Roman"
+                     FontSize="16" FontStyle="Italic"
+                     Height="Auto" TextWrapping="Wrap"
+                     VerticalContentAlignment="Center" KeyDown="KeyDownHandler"
                      KeyUp="KeyUpHandler" TextInput="TextInputHandler"
                      TextChanged="TextChanged"/>
-        </StackPanel>
-        <StackPanel Grid.Row="2" Orientation="Vertical" HorizontalAlignment="Left" Margin="10">
+            <Border Height="20" Background="Transparent"/>
             <TextBlock Text="Result:"
-                       FontFamily="Times New Roman"
-                       FontWeight="Bold"
-                       Margin="0,0,0,5"/>
-            <TextBox x:Name="Output" IsReadOnly="True"
-                     FontFamily="Times New Roman" FontSize="16"
-                     FontStyle="Italic" Height="Auto" Width="250" TextWrapping="Wrap"/>
+                       FontFamily="Times New Roman" FontWeight="Bold"
+                       Margin="0,0,0,5" TextAlignment="Left"/>
+            <TextBox x:Name="Output"
+                     IsReadOnly="True" FontFamily="Times New Roman"
+                     FontSize="16" FontStyle="Italic"
+                     Height="Auto" TextWrapping="Wrap"
+                     VerticalContentAlignment="Center"/>
         </StackPanel>
+        
+        <Grid x:Name="HelpMenu" Visibility="Collapsed" Panel.ZIndex="1">
+            <Border Background="White" Padding="20" CornerRadius="10"
+                    HorizontalAlignment="Center" VerticalAlignment="Center" 
+                    BorderBrush="Black" BorderThickness="1"
+                    MaxHeight="250" MaxWidth="250">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="0,0,10,0">
+                        <DockPanel Margin="0,0,-10,10">
+                            <Button Content="Close" Click="CloseHelpClick"
+                                    VerticalAlignment="Center"
+                                    DockPanel.Dock="Right"/>
+                            <TextBlock Text="Diorite Syntax"
+                                       FontFamily="Times New Roman"
+                                       FontSize="20" FontWeight="Bold"
+                                       VerticalAlignment="Center"/>
+                        </DockPanel>
+                        <TextBlock Text="Values" TextWrapping="Wrap"
+                                   FontFamily="Times New Roman" FontSize="16" FontWeight="Bold"
+                                   Margin="0,0,0,10"> <LineBreak/>
+                            <Run Text="- Numbers (e.g., 100 or 0.5)" FontWeight="Normal"/> <LineBreak/>
+                            <Run Text="- Variables defined in the format [a-Z] on their own or followed by a subscript number, e.g., x or x0" FontWeight="Normal"/> <LineBreak/>
+                            <Run Text="- infinity or inf" FontWeight="Normal"/> <LineBreak/>
+                            <Run Text="- undefined" FontWeight="Normal"/>
+                        </TextBlock>
+                        <TextBlock Text="Constants" TextWrapping="Wrap"
+                                   FontFamily="Times New Roman" FontSize="16" FontWeight="Bold"
+                                   Margin="0,0,0,10"> <LineBreak/>
+                            <Run Text="- pi" FontWeight="Normal"/> <LineBreak/> 
+                            <Run Text="- tau" FontWeight="Normal"/> <LineBreak/>
+                            <Run Text="- euler" FontWeight="Normal"/>
+                        </TextBlock>
+                        <TextBlock Text="Notation" TextWrapping="Wrap"
+                                   FontFamily="Times New Roman" FontSize="16" FontWeight="Bold"
+                                   Margin="0,0,0,10"> <LineBreak/>
+                            <Run Text="- All statements must be closed by a semi-colon (;)" FontWeight="Normal"/>
+                        </TextBlock>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
     </Grid>
 </Window>

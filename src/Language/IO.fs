@@ -15,6 +15,8 @@
 
 namespace Diorite.Lang
 
+open System.IO
+
 /// <summary>
 /// 	The <c>IO</c> module consists of functions that may have side effects and are deemed <i>unsafe</i>.
 ///     For example, <c>System.Console.ReadLine</c> is a method that has side effects (it may not allow for input all
@@ -259,3 +261,22 @@ module IO =
             content
 
         test <| unsafe
+
+    /// <summary>
+    /// Writes input string to a ".diorite" file
+    /// </summary>
+    /// <param name="fileName"> name of file to be written to </param>
+    /// <param name="directory"> location the file is written to </param>
+    /// <param name="contents"> text contents of the file </param>
+    let writeFile (fileName : string, directory : string, contents : string) =
+        let unsafe (): unit =
+            let path =
+                match directory with
+                | null | "" -> "." // Project folder as default for now
+                | _ -> directory
+            let filePath = Path.Combine(path, fileName + ".diorite")
+            use fileWriter = new StreamWriter(filePath, false) // false = overwrite, true = append
+            fileWriter.WriteLine(contents)
+        
+        test <| unsafe
+                
