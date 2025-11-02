@@ -6,9 +6,9 @@
 //
 // ------------------------------------------------------------------------------------------------------------------
 // File:    IO.fs
-// Summary: Module consisting of functions that may have side effects and ways of handling side effects
+// Summary: Namespace consisting of IO functions that may have side effects
 // Author:  Arsngrobg, Borngle
-// Version: v1.8
+// Version: v1.9
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
