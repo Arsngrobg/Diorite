@@ -59,6 +59,54 @@ module Evaluator =
     // this works fine when running from the REPL - since the syntax checks occur before this function is called
     // that is why it can return a SystemError and not SyntaxError but might change this
     let rec evalTree (root: Parser.AST): Parser.AST =
+        let add (left: Parser.AST) (right: Parser.AST): Parser.AST =
+            match left, right with
+             | Parser.Infinity, _ | _, Parser.Infinity -> Parser.Infinity
+             | _, Parser.Undefined | Parser.Undefined, _ -> Parser.Undefined
+             | Parser.Number left, Parser.Number right -> Parser.Number (left + right)
+
+        let subtract (left: Parser.AST) (right: Parser.AST): Parser.AST =
+            match left, right with
+             | Parser.Infinity, _ | _, Parser.Infinity
+             | _, Parser.Undefined | Parser.Undefined, _ -> Parser.Undefined
+             | Parser.Number left, Parser.Number right -> Parser.Number (left - right)
+
+        let multiply (left: Parser.AST) (right: Parser.AST): Parser.AST =
+            match left, right with
+             | Parser.Infinity, _ | _, Parser.Infinity -> Parser.Infinity
+             | _, Parser.Undefined | Parser.Undefined, _ -> Parser.Undefined
+             | Parser.Number left, Parser.Number right -> Parser.Number (left * right)
+
+        let divide (left: Parser.AST) (right: Parser.AST): Parser.AST =
+            match left, right with
+             | Parser.Infinity, _ | _, Parser.Infinity
+             | _, Parser.Undefined | Parser.Undefined, _ -> Parser.Undefined
+             | Parser.Number left, Parser.Number right -> Parser.Number (left / right)
+
+        let modulo (left: Parser.AST) (right: Parser.AST): Parser.AST =
+            match left, right with
+             | Parser.Infinity, _ | _, Parser.Infinity
+             | _, Parser.Undefined | Parser.Undefined, _ -> Parser.Undefined
+             | Parser.Number left, Parser.Number right -> Parser.Number (left % right)
+
+        let positive (operand: Parser.AST): Parser.AST =
+            match operand with
+             | Parser.Infinity -> Parser.Infinity
+             | Parser.Undefined -> Parser.Undefined
+             | Parser.Number value -> Parser.Number value
+
+        let negative (operand: Parser.AST): Parser.AST =
+            match operand with
+             | Parser.Infinity -> Parser.Infinity
+             | Parser.Undefined -> Parser.Undefined
+             | Parser.Number value -> Parser.Number -value
+
+        let rec factorial (operand: Parser.AST): Parser.AST =
+            match operand with
+             | Parser.Infinity -> Parser.Infinity
+             | Parser.Undefined -> Parser.Undefined
+             | Parser.Number value -> Parser.Undefined // for now
+
         // for AST.Begin
         let rec evalNodes (nodes: Parser.AST list): Parser.AST list =
             match nodes with
@@ -91,24 +139,24 @@ module Evaluator =
                             Memory.set ch 0 right
                             Parser.BinaryOperation (left, operator, right)
                     //| node -> SystemError $"Unexpected type for set operation - got {node}"
-              | Parser.Addition       -> Parser.Undefined //left + rifght
-              | Parser.Subtraction    -> Parser.Undefined //left - right
-              | Parser.Multiplication -> Parser.Undefined //left * right
-              | Parser.Division       -> Parser.Undefined //left / right
-              | Parser.Modulo         -> Parser.Undefined //left % right
+              | Parser.Addition       -> (evalTree left) |> add      <| right
+              | Parser.Subtraction    -> (evalTree left) |> subtract <| right
+              | Parser.Multiplication -> (evalTree left) |> multiply <| right
+              | Parser.Division       -> (evalTree left) |> divide   <| right
+              | Parser.Modulo         -> (evalTree left) |> modulo   <| right
               //| node                  -> SystemError $"Unexpected binary operator - got {node} instead"
          | Parser.UnaryOperation(operand, operator) ->
              let operand: Parser.AST = evalTree operand
              match operator with
-              | Parser.Positive        -> Parser.Undefined //+(operand)
-              | Parser.Negative        -> Parser.Undefined //-(operand)
+              | Parser.Positive        -> positive operand
+              | Parser.Negative        -> negative operand
               | Parser.Factorial       -> Parser.Undefined //factorial operand
               | Parser.Integration     -> Parser.Undefined //integrate operand
               | Parser.Differentiation -> Parser.Undefined //differentiate operand
               //| node                  -> SystemError $"Unexpected unary operator - got {node} instead"
          | Parser.FunctionDef (data, body) ->
              match data.identifier with
-              | character, Some subscriptNumber ->Memory.set character (subscriptNumber + 1) (Parser.FunctionDef (data, body))
+              | character, Some subscriptNumber -> Memory.set character (subscriptNumber + 1) (Parser.FunctionDef (data, body))
               | character, None                 -> Memory.set character 0 (Parser.FunctionDef (data, body))
              Parser.FunctionDef (data, body)
          | Parser.FunctionCall (name, args) -> Parser.Undefined //evalTree - maybe being able to pass in memory map?
