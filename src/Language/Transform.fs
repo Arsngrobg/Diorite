@@ -139,9 +139,9 @@ module Lexer =
     /// <param name='tokens'> the <c>Lexer.Token</c> stream </param>
     let rec tokens2str (tokens: TokenStream): string =
         match tokens with
-         | []                   -> ""
+         | [] | [SemiColon]  -> ""
          | SemiColon :: tail -> $"\n{tokens2str tail}"
-         | t :: tail            -> $"({t}) {tokens2str tail}"
+         | t :: tail         -> $"({t}) {tokens2str tail}"
 
     /// <summary>
     ///     Reads the current statement from the head of this <c>TokenStream</c> to see if it contains the supplied
@@ -733,7 +733,6 @@ module Parser =
     )
     // <functiondef> ::= <functionmeta> <identifier> "(" <functionparams> ")" <functionreturn>
     and functiondef: Parser<FunctionAttributes> = (fun tokens ->
-        printf $"{tokens}\n"
         ifOk (functionmeta tokens) (fun (maybeMeta, functionTail) ->
             let functionMeta = match maybeMeta with
                                | None      -> defaultMetadata
