@@ -388,11 +388,10 @@ module Parser =
         | Identifiable of id: char * subscript: int option
 
     /// <summary>
-    ///     The <c>ASTNode</c> type is a discriminated union which describes the structure of the AST of the <b>Diorite</b>
+    ///     The <c>AST</c> type is a discriminated union which describes the structure of the AST of the <b>Diorite</b>
     ///     language.
     /// </summary>
-    [<AutoOpen>]
-    type ASTNode =
+    type AST =
         // values
         | Number          of float
         | Identifier      of id: char * subscript: int option
@@ -427,13 +426,13 @@ module Parser =
         | LessThanOrEqual
 
         // structure
-        | Begin            of ASTNode list
-        | BinaryOperation  of left:       ASTNode            * operator:    ASTNode      * right: ASTNode
-        | UnaryOperation   of operand:    ASTNode            * operator:    ASTNode
-        | Comparison       of ifTrue: ASTNode * left: ASTNode * operator: ASTNode * right: ASTNode
-        | Conditions       of cases:      ASTNode list       * defaultCase: ASTNode
-        | FunctionDef      of data:       FunctionAttributes * body:        ASTNode
-        | FunctionCall     of name:       FunctionName       * arguments:   ASTNode list
+        | Begin            of AST list
+        | BinaryOperation  of left:    AST                * operator:    AST      * right:    AST
+        | UnaryOperation   of operand: AST                * operator:    AST
+        | FunctionDef      of data:    FunctionAttributes * body:        AST
+        | FunctionCall     of name:    FunctionName       * arguments:   AST list
+        | Conditions       of cases:   AST list           * defaultCase: AST
+        | Comparison       of ifTrue:  AST                * left:        AST      * operator: AST * right: AST
 
     // the parser uses the idea of parser combinators for the parsing strategy
     // each stage of the parser is a parser within itself
@@ -466,7 +465,7 @@ module Parser =
 
     // <program> ::= <equation>
     //            |  <equation> <program>
-    let rec program: Parser<ASTNode list> = (fun tokens ->
+    let rec program: Parser<AST list> = (fun tokens ->
         ifOk (equation tokens) (fun (root, remaining) ->
             match remaining with
              // <program> ::= <equation> ";"
@@ -481,7 +480,7 @@ module Parser =
     // <equation> ::= <functiondef> "=" <functionbody>
     //             |  <identifier>  "=" <expression> ";"
     //             |  <expression> ";"
-    and equation: Parser<ASTNode> = (fun tokens ->
+    and equation: Parser<AST> = (fun tokens ->
         // lookahead to check for '=' token
         match Lexer.statementContainsToken tokens Lexer.Equals with
          // <equation> ::= <expression> ";"
@@ -516,7 +515,7 @@ module Parser =
     // <expression> ::= <term>
     //               |  <term> "+" <expression>
     //               |  <term> "-" <expression>
-    and expression: Parser<ASTNode> = (fun tokens ->
+    and expression: Parser<AST> = (fun tokens ->
         ifOk (term tokens) (fun (termNode, remaining) ->
             match remaining with
              // <expression> ::= <term> "+" <expression>
@@ -537,7 +536,7 @@ module Parser =
     //         |  <factor> "*" <term>
     //         |  <factor> "/" <term>
     //         |  <factor> "%" <term>
-    and term: Parser<ASTNode> = (fun tokens ->
+    and term: Parser<AST> = (fun tokens ->
         ifOk (factor tokens) (fun (factorNode, remaining) ->
             match remaining with
              // <term> ::= <factor> "*" <term>
@@ -561,7 +560,7 @@ module Parser =
     )
     // <factor> ::= <signed>
     //           |  <signed> "^" <signed>
-    and factor: Parser<ASTNode> = (fun tokens ->
+    and factor: Parser<AST> = (fun tokens ->
         ifOk (signed tokens) (fun (exponentNode, remaining) ->
             match remaining with
              // <factor> ::= <exponent> "^" <subexpression>
@@ -576,7 +575,7 @@ module Parser =
     // <signed> ::= <exponent>
     //           |  "+" <signed>
     //           |  "-" <signed>
-    and signed: Parser<ASTNode> = (fun tokens ->
+    and signed: Parser<AST> = (fun tokens ->
         match tokens with
          | Lexer.Plus :: signedTail ->
              ifOk (signed signedTail) (fun (exponentNode, remaining) ->
@@ -589,7 +588,7 @@ module Parser =
          | signedTail -> exponent signedTail
     )
     // <exponent> ::= <integral> <exponent'>
-    and exponent: Parser<ASTNode> = (fun tokens ->
+    and exponent: Parser<AST> = (fun tokens ->
         ifOk (integral tokens) (fun (integralNode, exponentTail) ->
             ifOk (exponent' exponentTail) (fun state ->
                 match state with
@@ -603,7 +602,7 @@ module Parser =
     )
     // <exponent'> ::= ε
     //              |  "!" <exponent'>
-    and exponent': Parser<ASTNode option> = (fun tokens ->
+    and exponent': Parser<AST option> = (fun tokens ->
         match tokens with
          // <exponent'> ::= "!" <exponent'>
          | Lexer.Exclamation :: exponent'Tail ->
@@ -618,7 +617,7 @@ module Parser =
     )
     // <integral> ::= <subexpression> <integral'>
     //             |  "'" <integral>
-    and integral: Parser<ASTNode> = (fun tokens ->
+    and integral: Parser<AST> = (fun tokens ->
         match tokens with
          // <integral> ::= "'" <integral>
          | Lexer.Tick :: integralTail ->
@@ -640,7 +639,7 @@ module Parser =
     )
     // <integral'> ::= ε
     //              |  "'" <integral'>
-    and integral': Parser<ASTNode option> = (fun tokens ->
+    and integral': Parser<AST option> = (fun tokens ->
         match tokens with
          // <integral'> ::= "'" <integral'>
          | Lexer.Tick :: integral'Tail ->
@@ -660,7 +659,7 @@ module Parser =
     //                  |  "|" <expression> "|"
     //                  |  <identifier> "(" <args> ")"
     //                  |  <letters>    "(" <args> ")"
-    and subexpression: Parser<ASTNode> = (fun tokens ->
+    and subexpression: Parser<AST> = (fun tokens ->
         match tokens with
          // <subexpression> ::= "|" <expression> "|"
          | Lexer.LeftParenthesis :: subexpressionTail ->
@@ -701,7 +700,7 @@ module Parser =
     )
     // <args> ::= <expression>
     //         |  <expression> "," <args>
-    and args: Parser<ASTNode list> = (fun tokens ->
+    and args: Parser<AST list> = (fun tokens ->
         ifOk (expression tokens) (fun (expressionNode, argsTail) ->
             match argsTail with
              // <args> ::= <expression> "," <args>
@@ -720,7 +719,7 @@ module Parser =
     //          |  "euler"
     //          |  <letters> <digit>
     //          |  <number>
-    and value: Parser<ASTNode> = (fun tokens ->
+    and value: Parser<AST> = (fun tokens ->
         match tokens with
          | Lexer.Undefined           :: remaining -> Ok (Undefined,           remaining)
          | Lexer.Infinity            :: remaining -> Ok (Infinity,            remaining)
@@ -865,13 +864,13 @@ module Parser =
         match tokens with
          | Lexer.Arrow :: Lexer.Identifier (maybeSet, _) :: returnTail ->
              match getNumberSet maybeSet with
-              | None     -> SyntaxError "Illegal number set for return set"
+              | None     -> SyntaxError "Illegal number set for function range"
               | Some set -> Ok (Some set, returnTail)
          | tokens -> Ok (None, tokens)
     )
     // <functionbody> ::= <expression> ";"
     //                 |  "{" <conditions> "}"
-    and functionbody: Parser<ASTNode> = (fun tokens ->
+    and functionbody: Parser<AST> = (fun tokens ->
         match tokens with
          // <functionbody> ::= "{" <conditions> "}"
          | Lexer.LeftBrace :: bodyTail                       ->
@@ -891,7 +890,7 @@ module Parser =
     )
     // <conditions> ::= <ifcond> ";" <conditions>
     //               |  <ifcond> ";" <otherwisecond> ";"
-    and conditions: Parser<ASTNode> = (fun tokens ->
+    and conditions: Parser<AST> = (fun tokens ->
         ifOk (ifcond tokens) (fun (ifCondition, conditionsTail) ->
             match conditionsTail with
              | Lexer.SemiColon :: conditionsTail ->
@@ -916,7 +915,7 @@ module Parser =
         )
     )
     // <ifcond> ::= <expression> "if" <expression> <comparison> <expression>
-    and ifcond: Parser<ASTNode> = (fun tokens ->
+    and ifcond: Parser<AST> = (fun tokens ->
         ifOk (expression tokens) (fun (ifTrue, ifTail) ->
             match ifTail with
              | Lexer.If :: ifTail ->
@@ -931,7 +930,7 @@ module Parser =
         )
     )
     // <otherwisecond> ::= <expression> "otherwise"
-    and otherwisecond: Parser<ASTNode> = (fun tokens ->
+    and otherwisecond: Parser<AST> = (fun tokens ->
         ifOk (expression tokens) (fun (defaultCase, otherwiseTail) ->
             match otherwiseTail with
              | Lexer.Otherwise :: remaining ->
@@ -945,7 +944,7 @@ module Parser =
     //               |  "<="
     //               |  ">"
     //               |  ">="
-    and comparison: Parser<ASTNode> = (fun tokens ->
+    and comparison: Parser<AST> = (fun tokens ->
         match tokens with
          | Lexer.Equals             :: remaining -> Ok (Equals,             remaining)
          | Lexer.NotEqual           :: remaining -> Ok (NotEqual,           remaining)
@@ -963,8 +962,8 @@ module Parser =
     ///     whenever parsing.
     /// </summary>
     /// <param name='tokens'> the <c>TokenStream</c> to be parsed </param>
-    /// <returns> the root <c>ASTNode</c> that is ready to be evaluated </returns>
-    let parse (tokens: Lexer.TokenStream): ASTNode Result =
+    /// <returns> the root <c>AST</c> that is ready to be evaluated </returns>
+    let parse (tokens: Lexer.TokenStream): AST Result =
         match program tokens with
          | Error err                -> Error err
          | Ok    (nodes, [])        -> (Begin >> Ok) nodes
