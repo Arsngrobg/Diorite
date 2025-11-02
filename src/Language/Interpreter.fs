@@ -57,6 +57,7 @@ module Memory =
 module Evaluator =
     // TODO: implement evaluations
     // this works fine when running from the REPL - since the syntax checks occur before this function is called
+    // that is why it can return a SystemError and not SyntaxError but might change this
     let rec evalTree (root: Parser.AST): Parser.AST =
         // for AST.Begin
         let rec evalNodes (nodes: Parser.AST list): Parser.AST list =
@@ -70,17 +71,27 @@ module Evaluator =
          | Parser.Number value -> Parser.Number value
          | Parser.Identifier (character, maybeSubscript) ->
              match maybeSubscript with
-              | Some subscriptNumber -> Parser.Undefined //Memory.get character (subscriptNumber + 1)
-              | None                 -> Parser.Undefined //Memory.get character 0
+              | Some subscriptNumber -> Memory.get character (subscriptNumber + 1)
+              | None                 -> Memory.get character 0
          // reserved words
          | Parser.Infinity  -> Parser.Infinity
          | Parser.Undefined -> Parser.Undefined
          // binary operations
          | Parser.BinaryOperation (left, operator, right) ->
-             let left:  Parser.AST = evalTree left
              let right: Parser.AST = evalTree right
              match operator with
-              | Parser.Addition       -> Parser.Undefined //left + right
+              | Parser.Equals ->
+                  match left with
+                   | Parser.Identifier (ch, maybeSubscript) ->
+                       match maybeSubscript with
+                        | Some subscriptNumber ->
+                            Memory.set ch (subscriptNumber + 1) right
+                            Parser.BinaryOperation (left, operator, right)
+                        | None ->
+                            Memory.set ch 0 right
+                            Parser.BinaryOperation (left, operator, right)
+                    //| node -> SystemError $"Unexpected type for set operation - got {node}"
+              | Parser.Addition       -> Parser.Undefined //left + rifght
               | Parser.Subtraction    -> Parser.Undefined //left - right
               | Parser.Multiplication -> Parser.Undefined //left * right
               | Parser.Division       -> Parser.Undefined //left / right
@@ -89,11 +100,17 @@ module Evaluator =
          | Parser.UnaryOperation(operand, operator) ->
              let operand: Parser.AST = evalTree operand
              match operator with
-              | Parser.Positive  -> Parser.Undefined //+(operand)
-              | Parser.Negative  -> Parser.Undefined //-(operand)
-              | Parser.Factorial -> Parser.Undefined //factorial operand
-              //| node             -> SystemError $"Unexpected unary operator - got {node} instead"
-         | Parser.FunctionDef (data, body) -> Parser.FunctionDef (data, body)
+              | Parser.Positive        -> Parser.Undefined //+(operand)
+              | Parser.Negative        -> Parser.Undefined //-(operand)
+              | Parser.Factorial       -> Parser.Undefined //factorial operand
+              | Parser.Integration     -> Parser.Undefined //integrate operand
+              | Parser.Differentiation -> Parser.Undefined //differentiate operand
+              //| node                  -> SystemError $"Unexpected unary operator - got {node} instead"
+         | Parser.FunctionDef (data, body) ->
+             match data.identifier with
+              | character, Some subscriptNumber ->Memory.set character (subscriptNumber + 1) (Parser.FunctionDef (data, body))
+              | character, None                 -> Memory.set character 0 (Parser.FunctionDef (data, body))
+             Parser.FunctionDef (data, body)
          | Parser.FunctionCall (name, args) -> Parser.Undefined //evalTree - maybe being able to pass in memory map?
          | Parser.Conditions (cases, defaultCase) -> Parser.Undefined //evalConditions
          | Parser.Comparison(ifTrue, left, operator, right) ->
