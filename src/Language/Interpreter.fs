@@ -52,7 +52,26 @@ module Memory =
     let set (character : char) (rowIndex : int) (value : float) =
         let colIndex = findColIndex character
         table[rowIndex, colIndex] <- Some value
-        
+
+module Evaluator =
+    // TODO: implement evaluations
+    let rec evalTree (root: Parser.AST): Parser.AST =
+        match root with
+         // values
+         | Parser.Number value -> Parser.Number value
+         | Parser.Identifier (character, maybeSubscript) ->
+             match maybeSubscript with
+              | Some subscriptNumber -> Parser.Undefined //Memory.get character (subscriptNumber + 1)
+              | None                 -> Parser.Undefined //Memory.get character 0
+         // reserved words
+         | Parser.Infinity  -> Parser.Infinity
+         | Parser.Undefined -> Parser.Undefined
+         // operations
+         | Parser.BinaryOperation (left, op, right) ->
+             let left:  Parser.AST = evalTree left
+             let right: Parser.AST = evalTree right
+             Parser.Undefined
+
 /// <summary>
 ///     The <c>REPL</c> module is the functionality related to the live interpreter environment in the terminal.
 ///     It provides a neat and simple environment for writing <b>Diorite</b> mathematics code.
@@ -108,6 +127,9 @@ module REPL =
                   match tokens with
                    | [] -> Ok () // do nothing
                    | _  ->
+                       let tokens = match Lexer.streamContainsToken tokens Lexer.SemiColon with
+                                     | false -> tokens @ [Lexer.SemiColon]
+                                     | true  -> tokens
                        match Parser.parse tokens with
                         | Error err -> IO.compose [
                             System.ConsoleColor.Red   |> IO.setConsoleForegroundColor |> generalized;
