@@ -53,10 +53,21 @@ module Memory =
         let colIndex = findColIndex character
         table[rowIndex, colIndex] <- Some value
 
+/// <summary>
+///     The <c>Evaluator</c> module includes bindings related to evaluating a <b>Diorite</b> Abstract Syntax Tree.
+/// </summary>
 module Evaluator =
     // TODO: implement evaluations
+    // this works fine when running from the REPL - since the syntax checks occur before this function is called
     let rec evalTree (root: Parser.AST): Parser.AST =
+        // for AST.Begin
+        let rec evalNodes (nodes: Parser.AST list): Parser.AST list =
+            match nodes with
+             | [] -> []
+             | head :: tail -> evalTree head :: evalNodes tail
+
         match root with
+         | Parser.Begin nodes -> (evalNodes >> Parser.Begin) nodes
          // values
          | Parser.Number value -> Parser.Number value
          | Parser.Identifier (character, maybeSubscript) ->
@@ -66,11 +77,39 @@ module Evaluator =
          // reserved words
          | Parser.Infinity  -> Parser.Infinity
          | Parser.Undefined -> Parser.Undefined
-         // operations
-         | Parser.BinaryOperation (left, op, right) ->
+         // binary operations
+         | Parser.BinaryOperation (left, operator, right) ->
              let left:  Parser.AST = evalTree left
              let right: Parser.AST = evalTree right
-             Parser.Undefined
+             match operator with
+              | Parser.Addition       -> Parser.Undefined //left + right
+              | Parser.Subtraction    -> Parser.Undefined //left - right
+              | Parser.Multiplication -> Parser.Undefined //left * right
+              | Parser.Division       -> Parser.Undefined //left / right
+              | Parser.Modulo         -> Parser.Undefined //left % right
+              //| node                  -> SystemError $"Unexpected binary operator - got {node} instead"
+         | Parser.UnaryOperation(operand, operator) ->
+             let operand: Parser.AST = evalTree operand
+             match operator with
+              | Parser.Positive  -> Parser.Undefined //+(operand)
+              | Parser.Negative  -> Parser.Undefined //-(operand)
+              | Parser.Factorial -> Parser.Undefined //factorial operand
+              //| node             -> SystemError $"Unexpected unary operator - got {node} instead"
+         | Parser.FunctionDef (data, body) -> Parser.FunctionDef (data, body)
+         | Parser.FunctionCall (name, args) -> Parser.Undefined //evalTree - maybe being able to pass in memory map?
+         | Parser.Conditions (cases, defaultCase) -> Parser.Undefined //evalConditions
+         | Parser.Comparison(ifTrue, left, operator, right) ->
+             let left:  Parser.AST = evalTree left
+             let right: Parser.AST = evalTree right
+             match operator with
+              | Parser.Equals             -> Parser.Undefined //left = right
+              | Parser.NotEqual           -> Parser.Undefined //left <> right
+              | Parser.GreaterThan        -> Parser.Undefined //left > right
+              | Parser.LessThan           -> Parser.Undefined //left < right
+              | Parser.GreaterThanOrEqual -> Parser.Undefined //left >= right
+              | Parser.LessThanOrEqual    -> Parser.Undefined //left <= right
+              //| node             -> SystemError $"Unexpected comparison operator - got {node} instead"
+         //| node -> SystemError $"Unexpected AST node - got {node} instead"
 
 /// <summary>
 ///     The <c>REPL</c> module is the functionality related to the live interpreter environment in the terminal.
@@ -138,8 +177,9 @@ module REPL =
                          ]
                         | Ok root -> IO.compose [
                             System.ConsoleColor.DarkGray |> IO.setConsoleForegroundColor |> generalized
-                            IO.output $" ¦  {Lexer.tokens2str tokens}\n"
-                            IO.output $" ¦  {root}\n"
+                            //IO.output $" ¦  {Lexer.tokens2str tokens}\n"
+                            //IO.output $" ¦  {root}\n"
+                            IO.output $" ¦  {Evaluator.evalTree root}\n"
                          ]
 
         // partial for moving the cursor up or down by n units
