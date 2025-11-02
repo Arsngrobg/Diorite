@@ -57,16 +57,28 @@ namespace IME {
                     e.Handled = true;
                     var input = inputBox.Text;
                     try {
-                        var tokens = Lexer.tokenize(input);
-                        var value = Parser.parse(tokens); // Needs to evaluate
-                        string result = value.ResultValue.ToString();
-                        Output.Text = result;
+                        ProcessInput(input);
                     }
                     catch (Exception exception) {
                         Output.Text = exception.Message;
                     }
                     inputBox.Text = "";
                 }
+            }
+        }
+
+        /// <summary>
+        /// Handles lexing and parsing of <c>input</c> and updates output text
+        /// </summary>
+        /// <param name="input"> input string </param>
+        private void ProcessInput(string input) {
+            var tokens = Lexer.tokenize(input);
+            var result = Parser.parse(tokens);
+            if (result.IsError) {
+                Output.Text = result.ErrorValue.ToString();
+            }
+            else {
+                Output.Text = result.ResultValue.ToString();   
             }
         }
 

@@ -23,7 +23,7 @@ namespace Diorite.Lang
 module Memory =
     let letters = ['a'..'z'] @ ['A'..'Z']
     // Using option as all variables initially empty
-    let table : Parser.AST option[,] = Array2D.create 11 letters.Length None; // 11 rows (subscripts), and 52 columns (characters)
+    let table : Parser.AST[,] = Array2D.create 11 letters.Length Parser.AST.Undefined; // 11 rows (subscripts), and 52 columns (characters)
     
     /// <summary>
     /// Simple helper function to find the column index where a character is.
@@ -39,9 +39,7 @@ module Memory =
     /// <param name="rowIndex"> the row in the table where the character is, indicating the subscript </param>
     let get (character : char) (rowIndex : int) =
         let colIndex = findColIndex character
-        match table[rowIndex, colIndex] with
-        | None -> Error "Variable not initialised (null)"
-        | Some value -> Ok value
+        table[rowIndex, colIndex]
         
     /// <summary>
     /// Sets the value of a given variable in the table.
@@ -51,7 +49,7 @@ module Memory =
     /// <param name="value"> the value being assigned </param>
     let set (character : char) (rowIndex : int) (value : Parser.AST) =
         let colIndex = findColIndex character
-        table[rowIndex, colIndex] <- Some value
+        table[rowIndex, colIndex] <- value
 
 /// <summary>
 ///     The <c>Evaluator</c> module includes bindings related to evaluating a <b>Diorite</b> Abstract Syntax Tree.
