@@ -22,7 +22,7 @@ namespace Diorite.Lang
 ///
 ///     It also encompasses the main entry point for <b>Diorite</b>.
 /// </summary>
-module CLI =
+module private CLI =
     /// <summary>
     ///     An enum consisting of exit codes that may be returned by the <c>CLI::executeArgs (Argument list)</c>
     ///     function.
