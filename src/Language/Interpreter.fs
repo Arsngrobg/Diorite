@@ -23,7 +23,7 @@ namespace Diorite.Lang
 module Memory =
     let letters = ['a'..'z'] @ ['A'..'Z']
     // Using option as all variables initially empty
-    let table : float option[,] = Array2D.create 11 letters.Length None; // 11 rows (subscripts), and 52 columns (characters)
+    let table : Parser.AST option[,] = Array2D.create 11 letters.Length None; // 11 rows (subscripts), and 52 columns (characters)
     
     /// <summary>
     /// Simple helper function to find the column index where a character is.
@@ -49,7 +49,7 @@ module Memory =
     /// <param name="character"> the alphabetical character of the variable </param>
     /// <param name="rowIndex"> the row in the table where the character is, indicating the subscript </param>
     /// <param name="value"> the value being assigned </param>
-    let set (character : char) (rowIndex : int) (value : float) =
+    let set (character : char) (rowIndex : int) (value : Parser.AST) =
         let colIndex = findColIndex character
         table[rowIndex, colIndex] <- Some value
 
