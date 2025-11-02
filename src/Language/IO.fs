@@ -7,15 +7,13 @@
 // ------------------------------------------------------------------------------------------------------------------
 // File:    IO.fs
 // Summary: Module consisting of functions that may have side effects and ways of handling side effects
-// Author:  Arsngrobg
+// Author:  Arsngrobg, Borngle
 // Version: v1.8
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
 
 namespace Diorite.Lang
-
-open System.IO
 
 /// <summary>
 /// 	The <c>IO</c> module consists of functions that may have side effects and are deemed <i>unsafe</i>.
@@ -48,7 +46,7 @@ open System.IO
 /// </summary>
 [<RequireQualifiedAccess>]
 module IO =
-    // private helper for easily extracting errors from side-effecting interop code
+    // private helper for easily extracting errors from side-effecting operations
     // it receives an 'unsafe' function that wraps an executable block of code that returns a generic value
     // it returns a custom Result discriminated union type depending on Ok or Error
     let inline private test<'a> (unsafe: unit -> 'a): 'a Result =
@@ -263,19 +261,20 @@ module IO =
         test <| unsafe
 
     /// <summary>
-    /// Writes input string to a ".diorite" file
+    ///     Writes the <c>contents</c> to the desired <c>directory</c> with the <c>fileName</c>.
     /// </summary>
-    /// <param name="fileName"> name of file to be written to </param>
-    /// <param name="directory"> location the file is written to </param>
-    /// <param name="contents"> text contents of the file </param>
-    let writeFile (fileName : string, directory : string, contents : string) =
+    /// <param name='fileName'> name of the <c>.diorite</c> file to be written </param>
+    /// <param name='directory'> location the <c>.diorite</c> file is written to </param>
+    /// <param name='contents'> text contents of the file </param>
+    /// <returns> an empty <c>Result</c> which indicates if the write operation was a success or failure </returns>
+    let writeFile (fileName: string, directory: string, contents: string): unit Result =
         let unsafe (): unit =
             let path =
                 match directory with
                 | null | "" -> "." // Project folder as default for now
                 | _ -> directory
-            let filePath = Path.Combine(path, fileName + ".diorite")
-            use fileWriter = new StreamWriter(filePath, false) // false = overwrite, true = append
+            let filePath = System.IO.Path.Combine(path, fileName + Identity.fileExtension)
+            use fileWriter = new System.IO.StreamWriter(filePath, false) // false = overwrite, true = append
             fileWriter.WriteLine(contents)
         
         test <| unsafe
