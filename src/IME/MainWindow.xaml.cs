@@ -30,12 +30,12 @@ namespace IME {
 
         private void PlotLoaded(object sender, RoutedEventArgs e) {
             // Generate data
-            double[] xValues = Enumerable.Range(-100, 201).Select(i => i / 10.0).ToArray(); // Range of x values for function to be applied to
+            double[] xValues = Enumerable.Range(-10, 21).Select(i => i * 1.0).ToArray(); // Range of x values for function to be applied to
             double[] yValues = xValues.Select(x => (2 * x) + 1).ToArray(); // Parse and calculate for each x and result is yValues
             var scatter = plot.Plot.Add.Scatter(xValues, yValues);
             scatter.Label = ""; // Statement entered
             scatter.LineWidth = 2;
-            scatter.Color = ScottPlot.Colors.Blue.WithAlpha(0.8);
+            scatter.Color = ScottPlot.Colors.Green.WithAlpha(0.8);
             plot.Plot.Axes.Title.Label.Text = scatter.Label;
             plot.Plot.Axes.Bottom.Label.Text = "x";
             plot.Plot.Axes.Left.Label.Text = "y";
