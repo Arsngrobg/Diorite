@@ -113,6 +113,12 @@ module Evaluator =
              | Parser.Undefined -> Parser.Undefined
              | Parser.Number value -> Parser.Undefined // for now
 
+        let rec applyArgs (parameters: Parser.FunctionParameter list) (args: Parser.AST list): unit =
+            for arg, param in List.zip args parameters do
+                match param with
+                 | (ch, Some subscript), _ -> Memory.set ch (subscript + 1) arg
+                 | (ch, None), _ -> Memory.set ch 0 arg
+
         // for AST.Begin
         let rec evalNodes (nodes: Parser.AST list): Parser.AST list =
             match nodes with
@@ -155,9 +161,9 @@ module Evaluator =
          | Parser.UnaryOperation(operand, operator) ->
              let operand: Parser.AST = evalTree operand
              match operator with
-              | Parser.Positive        -> positive operand
-              | Parser.Negative        -> negative operand
-              | Parser.Factorial       -> Parser.Undefined //factorial operand
+              | Parser.Positive        -> positive  operand
+              | Parser.Negative        -> negative  operand
+              | Parser.Factorial       -> factorial operand
               | Parser.Integration     -> Parser.Undefined //integrate operand
               | Parser.Differentiation -> Parser.Undefined //differentiate operand
               //| node                  -> SystemError $"Unexpected unary operator - got {node} instead"
@@ -166,7 +172,15 @@ module Evaluator =
               | character, Some subscriptNumber -> Memory.set character (subscriptNumber + 1) (Parser.FunctionDef (data, body))
               | character, None                 -> Memory.set character 0 (Parser.FunctionDef (data, body))
              Parser.FunctionDef (data, body)
-         | Parser.FunctionCall (name, args) -> Parser.Undefined //evalTree - maybe being able to pass in memory map?
+         | Parser.FunctionCall (name, args) ->
+             match name with
+              | Parser.Symbolic symbolicName -> Parser.Undefined
+              | Parser.Identifiable (ch, sb) ->
+                  let fn = match sb with Some snum -> Memory.get ch (snum + 1) | None -> Memory.get ch 0
+                  match fn with
+                   | Parser.FunctionDef (attributes, body) ->
+                       applyArgs attributes.parameters args
+                       evalTree body
          | Parser.Conditions (cases, defaultCase) -> Parser.Undefined //evalConditions
          | Parser.Comparison(ifTrue, left, operator, right) ->
              let left:  Parser.AST = evalTree left
@@ -180,6 +194,19 @@ module Evaluator =
               | Parser.LessThanOrEqual    -> Parser.Undefined //left <= right
               //| node             -> SystemError $"Unexpected comparison operator - got {node} instead"
          //| node -> SystemError $"Unexpected AST node - got {node} instead"
+
+    let rec eval (src: string): Parser.AST Result =
+        let tokens: Lexer.TokenStream = Lexer.tokenize src
+        let error: DioriteError option = Lexer.getError tokens
+        match error with
+         | Some err -> Error err
+         | None ->
+               let tokens = match Lexer.streamContainsToken tokens Lexer.SemiColon with
+                             | false -> tokens @ [Lexer.SemiColon]
+                             | true  -> tokens
+               match Parser.parse tokens with
+                | Error err -> Error err
+                | Ok root -> (evalTree >> Ok) root
 
 /// <summary>
 ///     The <c>REPL</c> module is the functionality related to the live interpreter environment in the terminal.
@@ -220,37 +247,18 @@ module REPL =
 
     // processes the provided input from the user
     let private processInput (input: string): bool =
-        // tokenize the input
-        let tokens: Lexer.TokenStream = Lexer.tokenize input
-
         // defines what is output depending on the lexer result
         let noOutputIfNoTokens (): unit Result =
-            let error: DioriteError option = Lexer.getError tokens
-            match error with
-             | Some err -> IO.compose [
+            match Evaluator.eval input with
+             | Error err -> IO.compose [
                  System.ConsoleColor.Red   |> IO.setConsoleForegroundColor |> generalized;
                  IO.output $" X  {err}\n"
                  System.ConsoleColor.White |> IO.setConsoleForegroundColor |> generalized;
                ]
-             | None ->
-                  match tokens with
-                   | [] -> Ok () // do nothing
-                   | _  ->
-                       let tokens = match Lexer.streamContainsToken tokens Lexer.SemiColon with
-                                     | false -> tokens @ [Lexer.SemiColon]
-                                     | true  -> tokens
-                       match Parser.parse tokens with
-                        | Error err -> IO.compose [
-                            System.ConsoleColor.Red   |> IO.setConsoleForegroundColor |> generalized;
-                            IO.output $" X  {err}\n"
-                            System.ConsoleColor.White |> IO.setConsoleForegroundColor |> generalized;
-                         ]
-                        | Ok root -> IO.compose [
-                            System.ConsoleColor.DarkGray |> IO.setConsoleForegroundColor |> generalized
-                            //IO.output $" ¦  {Lexer.tokens2str tokens}\n"
-                            //IO.output $" ¦  {root}\n"
-                            IO.output $" ¦  {Evaluator.evalTree root}\n"
-                         ]
+             | Ok result -> IO.compose [
+                 System.ConsoleColor.DarkGray |> IO.setConsoleForegroundColor |> generalized
+                 IO.output $" ¦  {result}\n"
+               ]
 
         // partial for moving the cursor up or down by n units
         let moveCursorY: int -> (int * int) Result = IO.moveCursorRelative 0
