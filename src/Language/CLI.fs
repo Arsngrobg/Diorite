@@ -8,7 +8,7 @@
 // File:    CLI.fs
 // Summary: Command-Line Interface utils and the entry point for the Diorite language utility
 // Author:  Arsngrobg
-// Version: v1.11
+// Version: v1.14
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
@@ -36,12 +36,12 @@ module private CLI =
     ///     </code>
     /// </summary>
     type ExitCode =
-        | NoError       = 0  // no error was caused
-        | REPLFailure   = 1  // any failed state caused by the REPL
-        | FileNotFound  = 2  // the file specified was not found
-        | IllegalArgs   = 4  // illegal sequence of arguments
-        | IllegalToken  = 8  // illegal token found
-        | IllegalTokens = 16 // illegal token sequence
+        | NoError       = 0b00000 // no error was caused
+        | REPLFailure   = 0b00001 // any failed state caused by the REPL
+        | FileNotFound  = 0b00010 // the file specified was not found
+        | IllegalArgs   = 0b00100 // illegal sequence of arguments
+        | IllegalToken  = 0b01000 // illegal token found
+        | IllegalTokens = 0b10000 // illegal token sequence
 
     /// <summary>
     ///     A binding that returns the string used by the CL utility when no args are provided or the
@@ -87,7 +87,7 @@ module private CLI =
         match args with
          // display this version of diorite
          | [ Version ] ->
-             IO.output $"{Version.languageVersion}" |> ignore
+             IO.output $"{Identity.name} v{Version.languageVersion}" |> ignore
              ExitCode.NoError
 
          // display help if the ARG_HELP or no args are given
@@ -134,21 +134,18 @@ module private CLI =
     /// </summary>
     /// <param name='argv'> the variadic list of raw string arguments </param>
     /// <returns> a list of typed <c>Argument</c> union type </returns>
-    let collectArgs (argv: string list): Argument list =
-        let rec read (argv: string list): Argument list =
-            match argv with
-             | []                                 -> []
-             | ( "-h" | "--help"        ) :: tail -> Help         :: read tail
-             | ( "-u" | "--upgrade"     ) :: tail -> Upgrade      :: read tail
-             | ( "-v" | "--version"     ) :: tail -> Version      :: read tail
-             | ( "-i" | "--interpreter" ) :: tail -> Interpreter  :: read tail
-             | ( "-c" | "--compile"     ) :: tail -> Compile      :: read tail
-             | head :: tail                       -> Literal head :: read tail
-
-        read argv
+    let rec parseArgs (argv: string list): Argument list =
+        match argv with
+         | []                                 -> []
+         | ( "-h" | "--help"        ) :: tail -> Help         :: parseArgs tail
+         | ( "-u" | "--upgrade"     ) :: tail -> Upgrade      :: parseArgs tail
+         | ( "-v" | "--version"     ) :: tail -> Version      :: parseArgs tail
+         | ( "-i" | "--interpreter" ) :: tail -> Interpreter  :: parseArgs tail
+         | ( "-c" | "--compile"     ) :: tail -> Compile      :: parseArgs tail
+         | head :: tail                       -> Literal head :: parseArgs tail
 
     [<EntryPoint>]
     let main (argv: string array): int =
-        let args: Argument list = collectArgs ( Array.toList argv )
+        let args: Argument list = (Array.toList >> parseArgs) argv
         let exitCode: ExitCode = executeArgs args
         int <| exitCode

@@ -89,6 +89,12 @@ module Evaluator =
              | _, Parser.Undefined | Parser.Undefined, _ -> Parser.Undefined
              | Parser.Number left, Parser.Number right -> Parser.Number (left % right)
 
+        let pow (left: Parser.AST) (right: Parser.AST): Parser.AST =
+            match left, right with
+             | Parser.Infinity, _ | _, Parser.Infinity
+             | _, Parser.Undefined | Parser.Undefined, _ -> Parser.Undefined
+             | Parser.Number left, Parser.Number right -> Parser.Number (left ** right)
+
         let positive (operand: Parser.AST): Parser.AST =
             match operand with
              | Parser.Infinity -> Parser.Infinity
@@ -144,6 +150,7 @@ module Evaluator =
               | Parser.Multiplication -> (evalTree left) |> multiply <| right
               | Parser.Division       -> (evalTree left) |> divide   <| right
               | Parser.Modulo         -> (evalTree left) |> modulo   <| right
+              | Parser.Exponentiation -> (evalTree left) |> pow      <| right
               //| node                  -> SystemError $"Unexpected binary operator - got {node} instead"
          | Parser.UnaryOperation(operand, operator) ->
              let operand: Parser.AST = evalTree operand
