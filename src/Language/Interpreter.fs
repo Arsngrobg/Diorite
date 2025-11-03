@@ -15,7 +15,6 @@
 
 namespace Diorite.Lang
 
-
 /// <summary>
 /// The <c>Memory</c> module contains functionality for variable storage, retrieval, and
 /// modification.
@@ -249,6 +248,9 @@ module REPL =
     let private processInput (input: string): bool =
         // defines what is output depending on the lexer result
         let noOutputIfNoTokens (): unit Result =
+            if System.String.IsNullOrEmpty input then
+                Ok ()
+            else
             match Evaluator.eval input with
              | Error err -> IO.compose [
                  System.ConsoleColor.Red   |> IO.setConsoleForegroundColor |> generalized;
