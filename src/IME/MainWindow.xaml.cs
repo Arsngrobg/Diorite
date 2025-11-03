@@ -68,17 +68,18 @@ namespace IME {
         }
 
         /// <summary>
-        /// Handles lexing and parsing of <c>input</c> and updates output text
+        /// Handles evaluation of <c>input</c> and updates output text
         /// </summary>
         /// <param name="input"> input string </param>
-        private void ProcessInput(string input) {
-            var tokens = Lexer.tokenize(input);
-            var result = Parser.parse(tokens);
+        private void ProcessInput(string input)
+        {
+            var result = Evaluator.eval(input);
             if (result.IsError) {
                 Output.Text = result.ErrorValue.ToString();
             }
-            else {
-                Output.Text = Evaluator.evalTree(result.ResultValue).ToString();
+            else
+            {
+                Output.Text = result.ResultValue.ToString();
             }
         }
 
