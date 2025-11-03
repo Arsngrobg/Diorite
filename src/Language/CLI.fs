@@ -8,7 +8,7 @@
 // File:    CLI.fs
 // Summary: Command-Line Interface utils and the entry point for the Diorite language utility
 // Author:  Arsngrobg
-// Version: v1.11
+// Version: v1.12
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
@@ -36,12 +36,12 @@ module private CLI =
     ///     </code>
     /// </summary>
     type ExitCode =
-        | NoError       = 0  // no error was caused
-        | REPLFailure   = 1  // any failed state caused by the REPL
-        | FileNotFound  = 2  // the file specified was not found
-        | IllegalArgs   = 4  // illegal sequence of arguments
-        | IllegalToken  = 8  // illegal token found
-        | IllegalTokens = 16 // illegal token sequence
+        | NoError       = 0b00000 // no error was caused
+        | REPLFailure   = 0b00001 // any failed state caused by the REPL
+        | FileNotFound  = 0b00010 // the file specified was not found
+        | IllegalArgs   = 0b00100 // illegal sequence of arguments
+        | IllegalToken  = 0b01000 // illegal token found
+        | IllegalTokens = 0b10000 // illegal token sequence
 
     /// <summary>
     ///     A binding that returns the string used by the CL utility when no args are provided or the
