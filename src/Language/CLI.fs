@@ -134,21 +134,18 @@ module private CLI =
     /// </summary>
     /// <param name='argv'> the variadic list of raw string arguments </param>
     /// <returns> a list of typed <c>Argument</c> union type </returns>
-    let collectArgs (argv: string list): Argument list =
-        let rec read (argv: string list): Argument list =
-            match argv with
-             | []                                 -> []
-             | ( "-h" | "--help"        ) :: tail -> Help         :: read tail
-             | ( "-u" | "--upgrade"     ) :: tail -> Upgrade      :: read tail
-             | ( "-v" | "--version"     ) :: tail -> Version      :: read tail
-             | ( "-i" | "--interpreter" ) :: tail -> Interpreter  :: read tail
-             | ( "-c" | "--compile"     ) :: tail -> Compile      :: read tail
-             | head :: tail                       -> Literal head :: read tail
-
-        read argv
+    let rec parseArgs (argv: string list): Argument list =
+        match argv with
+         | []                                 -> []
+         | ( "-h" | "--help"        ) :: tail -> Help         :: parseArgs tail
+         | ( "-u" | "--upgrade"     ) :: tail -> Upgrade      :: parseArgs tail
+         | ( "-v" | "--version"     ) :: tail -> Version      :: parseArgs tail
+         | ( "-i" | "--interpreter" ) :: tail -> Interpreter  :: parseArgs tail
+         | ( "-c" | "--compile"     ) :: tail -> Compile      :: parseArgs tail
+         | head :: tail                       -> Literal head :: parseArgs tail
 
     [<EntryPoint>]
     let main (argv: string array): int =
-        let args: Argument list = collectArgs ( Array.toList argv )
+        let args: Argument list = (Array.toList >> parseArgs) argv
         let exitCode: ExitCode = executeArgs args
         int <| exitCode
