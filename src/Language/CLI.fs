@@ -8,7 +8,7 @@
 // File:    CLI.fs
 // Summary: Command-Line Interface utils and the entry point for the Diorite language utility
 // Author:  Arsngrobg
-// Version: v1.13
+// Version: v1.14
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
@@ -87,7 +87,7 @@ module private CLI =
         match args with
          // display this version of diorite
          | [ Version ] ->
-             IO.output $"{Version.languageVersion}" |> ignore
+             IO.output $"{Identity.name} v{Version.languageVersion}" |> ignore
              ExitCode.NoError
 
          // display help if the ARG_HELP or no args are given
