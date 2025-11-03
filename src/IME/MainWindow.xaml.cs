@@ -78,7 +78,7 @@ namespace IME {
                 Output.Text = result.ErrorValue.ToString();
             }
             else {
-                Output.Text = result.ResultValue.ToString();   
+                Output.Text = Evaluator.evalTree(result.ResultValue).ToString();
             }
         }
 
