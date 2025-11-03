@@ -114,9 +114,10 @@ module Evaluator =
 
         let rec applyArgs (parameters: Parser.FunctionParameter list) (args: Parser.AST list): unit =
             for arg, param in List.zip args parameters do
+                printf $"{arg}\n"
                 match param with
-                 | (ch, Some subscript), _ -> Memory.set ch (subscript + 1) arg
-                 | (ch, None), _ -> Memory.set ch 0 arg
+                 | (ch, Some subscript), _ -> Memory.set ch (subscript + 1) (evalTree arg)
+                 | (ch, None), _ -> Memory.set ch 0 (evalTree arg)
 
         // for AST.Begin
         let rec evalNodes (nodes: Parser.AST list): Parser.AST list =
