@@ -8,7 +8,7 @@
 // File:    CLI.fs
 // Summary: Command-Line Interface utils and the entry point for the Diorite language utility
 // Author:  Arsngrobg
-// Version: v1.12
+// Version: v1.13
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
