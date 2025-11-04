@@ -8,7 +8,7 @@
 // File:    Meta.fs
 // Summary: metadata for the Diorite project
 // Author:  Arsngrobg
-// Version: v1.1
+// Version: v1.2
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
@@ -65,8 +65,8 @@ module Version =
     /// <summary>
     ///     A type that wraps a tuple, grouping the <b>major</b> and <b>minor</b> version components together.
     /// </summary>
-    /// <param name="major"> the <b>major</b> version component </param>
-    /// <param name="minor"> the <b>minor</b> version component </param>
+    /// <param name='major'> the <b>major</b> version component </param>
+    /// <param name='minor'> the <b>minor</b> version component </param>
     [<Struct>]
     type Version =
         {
@@ -80,8 +80,7 @@ module Version =
             $"{this.major}.{this.minor}"
 
     /// <summary>
-    ///     A binding that returns the current language version, composing the <c>majorVersion</c> and
-    ///     <c>minorVersion</c> bindings.
+    ///     The current version of the <b>Diorite</b> language.
     /// </summary>
     let languageVersion: Version = {
         major = majorVersion;

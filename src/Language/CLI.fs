@@ -32,7 +32,7 @@ module private REPL =
     ///     A binding that defines the title of the REPL when in use.
     /// </summary>
     /// <returns> the title of the REPL </returns>
-    let title: string = $"{Identity.name} REPL (v{Version.languageVersion.ToString()})"
+    let title: string = $"{Properties.name} REPL (v{Version.languageVersion.ToString()})"
 
     // helper function to test a string to see if it is a blank line
     let isBlankLine (line: string): bool =
@@ -139,23 +139,23 @@ module private CLI =
     ///     <c>-h</c>/<c>--help</c> flag is provided to the <c>Diorite</c> CL utility.
     /// </summary>
     /// <returns> the help string of the CL utility </returns>
-    let helpString: string = $"{Identity.name} v{Version.languageVersion}
-    Usage: {Identity.programName} [-h | --help]
-           (to display usage)
-        or
-           {Identity.programName} [-u | --upgrade]
-           (to upgrade the current version of {Identity.name})
-        or
-           {Identity.programName} [-v | --version]
-           (to display the current version of {Identity.name})
-        or
-           {Identity.programName} [-i | --interpreter] <file>?
-           (to run the interpreter, either through the REPL or execution of a {Identity.fileExtension} file)
-        or
-           {Identity.programName} [-c | --compile] <file>
-           (To compile a given {Identity.fileExtension} file)
+    let helpString: string = $"{Properties.name} v{Version.languageVersion}
+Usage: {Properties.programName} [-h | --help]
+       (to display usage)
+    or
+       {Properties.programName} [-u | --upgrade]
+       (to upgrade the current version of {Properties.name})
+    or
+       {Properties.programName} [-v | --version]
+       (to display the current version of {Properties.name})
+    or
+       {Properties.programName} [-i | --interpreter] <file>?
+       (to run the interpreter, either through the REPL or execution of a {Properties.fileExtension} file)
+    or
+       {Properties.programName} [-c | --compile] <file>
+       (To compile a given {Properties.fileExtension} file)
 
-        <file> ::= a file name, suffixed with the {Identity.fileExtension} extension
+    <file> ::= a file name, suffixed with the {Properties.fileExtension} extension
     "
 
     /// <summary>
@@ -172,13 +172,13 @@ module private CLI =
     /// <summary>
     ///     A binding that executes the typed <c>Argument</c>, depending on the sequence of tokens provided to it.
     /// </summary>
-    /// <param name="args"> the list of <c>Argument</c>s to process </param>
+    /// <param name='args'> the list of <c>Argument</c>s to process </param>
     /// <returns> the error code, or <c>0</c> if no error occured </returns>
     let executeArgs (args: Argument list): ExitCode =
         match args with
          // display this version of diorite
          | [ Version ] ->
-             IO.output $"{Identity.name} v{Version.languageVersion}" |> ignore
+             IO.output $"{Properties.name} v{Version.languageVersion}" |> ignore
              ExitCode.NoError
 
          // display help if the ARG_HELP or no args are given
