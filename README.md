@@ -27,11 +27,11 @@ and write pure mathematical functions.
 ```fsharp
  |
  |  f(x) = {
- |      undefined           if x < 0
- |      x                   if x < 2
- |      f(x - 2) + f(x - 1) otherwise
+ |      undefined           if x < 0;
+ |      x                   if x < 2;
+ |      f(x - 2) + f(x - 1) otherwise;
  |  }
- >  f(20)
+ >  f(20);
  =  6765
 >>> ▮
 ```
