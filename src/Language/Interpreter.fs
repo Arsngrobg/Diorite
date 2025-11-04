@@ -155,6 +155,7 @@ module Evaluator =
               | Parser.Subtraction    -> (evalTree left) |> subtract <| right
               | Parser.Multiplication -> (evalTree left) |> multiply <| right
               | Parser.Division       -> (evalTree left) |> divide   <| right
+              | Parser.FloorDivision  -> Parser.Undefined
               | Parser.Modulo         -> (evalTree left) |> modulo   <| right
               | Parser.Exponentiation -> (evalTree left) |> pow      <| right
               //| node                  -> SystemError $"Unexpected binary operator - got {node} instead"

@@ -8,7 +8,7 @@
 // File:    Transform.fs
 // Summary: The bindings for transforming a stream of characters to a TokenStream or Abstract Syntax Tree (AST)
 // Author:  Arsngrobg, Borngle
-// Version: v1.11
+// Version: v1.12
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
@@ -107,6 +107,7 @@ module Lexer =
         | Exclamation
         | Asterisk
         | ForwardSlash
+        | DoubleForwardSlash
         | Percentage
         | Plus
         | Hyphen
@@ -272,6 +273,7 @@ module Lexer =
              | '^'        :: tail -> Hat                :: scan tail
              | '!'        :: tail -> Exclamation        :: scan tail
              | '*'        :: tail -> Asterisk           :: scan tail
+             | '/' :: '/' :: tail -> DoubleForwardSlash :: scan tail
              | '/'        :: tail -> ForwardSlash       :: scan tail
              | '%'        :: tail -> Percentage         :: scan tail
              | '+'        :: tail -> Plus               :: scan tail
@@ -413,6 +415,7 @@ module Parser =
         | Exponentiation
         | Multiplication
         | Division
+        | FloorDivision
         | Modulo
         | Addition
         | Subtraction
@@ -533,9 +536,10 @@ module Parser =
         )
     )
     // <term> ::= <factor>
-    //         |  <factor> "*" <term>
-    //         |  <factor> "/" <term>
-    //         |  <factor> "%" <term>
+    //         |  <factor> "*"  <term>
+    //         |  <factor> "/"  <term>
+    //         |  <factor> "//" <term>
+    //         |  <factor> "%"  <term>
     and term: Parser<AST> = (fun tokens ->
         ifOk (factor tokens) (fun (factorNode, remaining) ->
             match remaining with
@@ -548,6 +552,11 @@ module Parser =
              | Lexer.ForwardSlash :: termTail ->
                  ifOk (term termTail) (fun (termNode, remaining) ->
                      Ok (BinaryOperation (factorNode, Division, termNode), remaining)
+                 )
+             // <term> ::= <factor> "//" <term>
+             | Lexer.DoubleForwardSlash :: termTail ->
+                 ifOk (term termTail) (fun (termNode, remaining) ->
+                     Ok (BinaryOperation (factorNode, FloorDivision, termNode), remaining)
                  )
              // <term> ::= <factor> "%" <term>
              | Lexer.Percentage :: termTail ->

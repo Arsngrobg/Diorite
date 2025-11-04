@@ -80,9 +80,7 @@ module Error =
     /// </summary>
     /// <param name='result'> the <c>Result</c> to be unwrapped </param>
     /// <param name='alternative'> the alternative value to be returned if it was an <c>Error</c> </param>
-    /// <returns>
-    ///     either the value wrapped by the <c>Result</c> or the <c>alternative</c> value instead
-    /// </returns>
+    /// <returns> either the value wrapped by the <c>Result</c> or the <c>alternative</c> value instead </returns>
     let inline getOrElse<'a> (result: 'a Result) (alternative: 'a): 'a =
         match result with
          | Ok    value -> value

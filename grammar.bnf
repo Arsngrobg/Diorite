@@ -41,9 +41,10 @@
                   |  <term> "-" <expression>
 
 <term>           ::= <factor>
-                  |  <factor> "*" <term>
-                  |  <factor> "/" <term>
-                  |  <factor> "%" <term>
+                  |  <factor> "*"  <term>
+                  |  <factor> "/"  <term>
+                  |  <factor> "//" <term>
+                  |  <factor> "%"  <term>
 
 <factor>         ::= <signed>
                   |  <signed> "^" <signed>
