@@ -16,37 +16,34 @@
 namespace Diorite.Lang
 
 /// <summary>
-/// The <c>Memory</c> module contains functionality for variable storage, retrieval, and
-/// modification.
+///     The <c>Memory</c> module contains functionality for variable storage, retrieval, and modification.
 /// </summary>
 module Memory =
-    let letters = ['a'..'z'] @ ['A'..'Z']
-    // Using option as all variables initially empty
-    let table : Parser.AST[,] = Array2D.create 11 letters.Length Parser.AST.Undefined; // 11 rows (subscripts), and 52 columns (characters)
-    
-    /// <summary>
-    /// Simple helper function to find the column index where a character is.
-    /// </summary>
-    /// <param name="character"> an alphabetical character </param>
-    let findColIndex (character : char) =
+    // 11 rows (subscripts), and 52 columns (characters)
+    let letters: char list = ['a'..'z'] @ ['A'..'Z']
+    let table: Parser.AST[,] = Array2D.create 11 letters.Length Parser.AST.Undefined
+
+    /// Simple helper function to find the column index where a character is
+    let private findColIndex (character : char) =
         letters |> List.findIndex ((=) character)
     
     /// <summary>
-    /// Gets the value of a given variable in the table.
+    ///     Gets the value of a given variable in the table.
     /// </summary>
-    /// <param name="character"> the alphabetical character of the variable </param>
-    /// <param name="rowIndex"> the row in the table where the character is, indicating the subscript </param>
+    /// <param name='character'> the alphabetical character of the variable </param>
+    /// <param name='rowIndex'> the row in the table where the character is, indicating the subscript </param>
+    /// <returns> the value stored in the table at the location </returns>
     let get (character : char) (rowIndex : int) =
         let colIndex = findColIndex character
         table[rowIndex, colIndex]
         
     /// <summary>
-    /// Sets the value of a given variable in the table.
+    ///     Sets the value of a given variable in the table.
     /// </summary>
-    /// <param name="character"> the alphabetical character of the variable </param>
-    /// <param name="rowIndex"> the row in the table where the character is, indicating the subscript </param>
-    /// <param name="value"> the value being assigned </param>
-    let set (character : char) (rowIndex : int) (value : Parser.AST) =
+    /// <param name='character'> the alphabetical character of the variable </param>
+    /// <param name='rowIndex'> the row in the table where the character is, indicating the subscript </param>
+    /// <param name='value'> the value being assigned </param>
+    let set (character: char) (rowIndex: int) (value: Parser.AST): unit =
         let colIndex = findColIndex character
         table[rowIndex, colIndex] <- value
 
@@ -207,4 +204,6 @@ module Evaluator =
                              | true  -> tokens
                match Parser.parse tokens with
                 | Error err -> Error err
-                | Ok root -> (evalTree >> Ok) root
+                | Ok root ->
+                    IO.output $"{root}\n"
+                    (evalTree >> Ok) root
