@@ -139,7 +139,7 @@ module private CLI =
     ///     <c>-h</c>/<c>--help</c> flag is provided to the <c>Diorite</c> CL utility.
     /// </summary>
     /// <returns> the help string of the CL utility </returns>
-    let helpString: string = $"{Identity.name} {Version.languageVersion}
+    let helpString: string = $"{Identity.name} v{Version.languageVersion}
     Usage: {Identity.programName} [-h | --help]
            (to display usage)
         or

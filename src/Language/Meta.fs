@@ -16,16 +16,16 @@
 namespace Diorite.Lang
 
 /// <summary>
-///     The <c>Identity</c> module groups up bindings that represent the <c>Diorite</c> language.
+///     The <c>Properties</c> module contains metadata for the <c>Diorite</c> language.
 ///     <code>
-///         let langName = Identity.name
-///         let progName = Identity.programName
-///         let fileExt  = Identity.fileExtension
+///         let langName: string = Properties.name
+///         let progName: string = Properties.programName
+///         let fileExt:  string = Properties.fileExtension
 ///         printf $"{langName}, {progName}, {fileExt}" // output: "Diorite, diorite, .diorite"
 ///     </code>
 /// </summary>
 [<RequireQualifiedAccess>]
-module Identity =
+module Properties =
     /// <summary>
     ///     A binding that returns the name of the language.
     /// </summary>
