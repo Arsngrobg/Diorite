@@ -16,7 +16,7 @@
 namespace Diorite.Lang
 
 /// <summary>
-/// 	The <c>IO</c> module consists of functions that may have side effects and are deemed <i>unsafe</i>.
+/// 	The <c>IO</c> module consists of functions that may have side effects and are deemed <i>tryResult</i>.
 ///     For example, <c>System.Console.ReadLine</c> is a method that has side effects (it may not allow for input all
 ///     the time). It allows for explicit handling of success and failure cases:
 ///     <code>
@@ -49,13 +49,13 @@ module IO =
     // private helper for easily extracting errors from side-effecting operations
     // it receives an 'unsafe' function that wraps an executable block of code that returns a generic value
     // it returns a custom Result discriminated union type depending on Ok or Error
-    let inline private test<'a> (unsafe: unit -> 'a): 'a Result =
+    let inline private tryAsResult<'a> (unsafe: unit -> 'a): 'a Result =
         try Ok (unsafe ())
         with ex -> SystemError $"{ex.GetType.ToString()}: {ex.Message}"
 
     /// <summary>
     ///     Computes the chain of actions from left to right.
-    ///     Upon each the execution of each function, it checks whether the unsafe function produced an <c>Error</c>
+    ///     Upon each the execution of each function, it checks whether the tryResult function produced an <c>Error</c>
     ///     result. If so, the <c>Error</c> is returned. A <c>Ok</c> is returned when all <c>actions</c> have returned
     ///     successful results. This allows for the chain of operations to be tested as if it were a single atomic
     ///     operation that produces a singular <c>Result</c>.
@@ -97,7 +97,7 @@ module IO =
         let unsafe (): unit =
             System.Console.Write str
 
-        test <| unsafe
+        tryAsResult <| unsafe
 
     /// <summary>
     ///     Reads the characters entered by the user in the console until a carriage return (<c>'\r'</c>), newline
@@ -118,7 +118,7 @@ module IO =
          | Some(p) -> output p  |> ignore
          | None    -> output "" |> ignore
 
-        test <| System.Console.ReadLine
+        tryAsResult <| System.Console.ReadLine
 
     /// <summary>
     ///     Shifts the cursor position in the console by the <c>dx</c> and <c>dy</c> values and returns the new position
@@ -128,8 +128,8 @@ module IO =
     ///         // assume cursor starts at (0, 0)
     ///         let newPos: (int * int) Result = IO.moveCursorRelative 1 1
     ///         match newPos with
-    ///          | OK   (x, y) -> IO.output $"({x}, {y})"                      |> ignore // output: "(1, 1)"
-    ///          | Error _      -> IO.output "Could not get console position." |> ignore
+    ///          | OK   (x, y) -> IO.output $"({x}, {y})"                     |> ignore // output: "(1, 1)"
+    ///          | Error _     -> IO.output "Could not get console position." |> ignore
     ///     </code>
     /// </summary>
     /// <param name='dx'> the amount to move along the x-axis </param>
@@ -144,7 +144,7 @@ module IO =
              System.Console.SetCursorPosition(nx, ny)
              (nx, ny)
 
-         test <| getAndSet
+         tryAsResult <| getAndSet
 
     /// <summary>
     ///     Sets the background color of the console.
@@ -163,7 +163,7 @@ module IO =
             System.Console.BackgroundColor <- color
             System.Console.BackgroundColor
 
-        test <| unsafe
+        tryAsResult <| unsafe
 
     /// <summary>
     ///     Sets the foreground color of the console.
@@ -182,7 +182,7 @@ module IO =
             System.Console.ForegroundColor <- color
             System.Console.ForegroundColor
 
-        test <| unsafe
+        tryAsResult <| unsafe
 
     /// <summary>
     ///     Sets the title of the console.
@@ -201,7 +201,7 @@ module IO =
             System.Console.Title <- title
             System.Console.Title
 
-        test <| unsafe
+        tryAsResult <| unsafe
 
     /// <summary>
     ///     Clears the console with the optional <c>color</c> value.
@@ -220,10 +220,10 @@ module IO =
         let unsafe (): System.ConsoleColor =
             // read the current background color
             let unsafeGrabBGColor (): System.ConsoleColor =
-                System.Console.BackgroundColor // implicitly calls a getter that is unsafe
+                System.Console.BackgroundColor // implicitly calls a getter that is tryResult
 
             let currentColor: System.ConsoleColor =
-                (test <| unsafeGrabBGColor) |> getOrElse <| System.ConsoleColor.Black
+                (tryAsResult <| unsafeGrabBGColor) |> getOrElse <| System.ConsoleColor.Black
 
             let newColor: System.ConsoleColor =
                 match color with
@@ -235,7 +235,7 @@ module IO =
             System.Console.BackgroundColor <- currentColor
             newColor
 
-        test <| unsafe
+        tryAsResult <| unsafe
 
     /// <summary>
     ///     Eagerly reads the contents of the supplied file derived from the <c>path</c> argument.
@@ -258,7 +258,7 @@ module IO =
             fileReader.Close()
             content
 
-        test <| unsafe
+        tryAsResult <| unsafe
 
     /// <summary>
     ///     Writes the <c>contents</c> to the desired <c>directory</c> with the <c>fileName</c>.
@@ -273,9 +273,9 @@ module IO =
                 match directory with
                 | null | "" -> "." // Project folder as default for now
                 | _ -> directory
-            let filePath = System.IO.Path.Combine(path, fileName + Identity.fileExtension)
+            let filePath = System.IO.Path.Combine(path, fileName + Properties.fileExtension)
             use fileWriter = new System.IO.StreamWriter(filePath, false) // false = overwrite, true = append
             fileWriter.WriteLine(contents)
         
-        test <| unsafe
+        tryAsResult <| unsafe
                 
