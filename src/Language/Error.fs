@@ -6,7 +6,7 @@
 //
 // ------------------------------------------------------------------------------------------------------------------
 // File:    Error.fs
-// Summary: a module for containing the bindings and type declaration for within the error system in Diorite
+// Summary: A module for containing the bindings and type declaration for within the error system in Diorite
 // Author:  Arsngrobg
 // Version: v1.4
 // ------------------------------------------------------------------------------------------------------------------
@@ -26,7 +26,7 @@ module Error =
     /// </summary>
     type DioriteError =
         | MathError   of string // caused by division by zero for example
-        | SyntaxError of string // caused by illegal syntax
+        | SyntaxError of string // caused by illegal tokens or illegal token pattern
         | SystemError of string // illegal state caused by external interop code
 
     /// <summary>
@@ -75,7 +75,7 @@ module Error =
     ///     <c>Success</c> case, or the <c>alternative</c> value provided to this function.
     ///     <code>
     ///         let result: string = getOrElse (IO.input(Some "Enter something: ")) "hi"
-    ///         IO.output result
+    ///         IO.output result // either the user input or the string "hi"
     ///     </code>
     /// </summary>
     /// <param name='result'> the <c>Result</c> to be unwrapped </param>
@@ -107,7 +107,7 @@ module Error =
     ///     </b>
     /// </summary>
     /// <param name='result'> the <c>Result</c> to unwrap </param>
-    /// <returns> the value stored within the <c>Result</c> if it was a <c>Ok</c> </returns>
+    /// <returns> the value stored within the <c>Result</c> if it was <c>Ok</c> </returns>
     /// <exception cref='System.Exception'> if the <c>Result</c> is an <c>Error</c> </exception>
     [<System.Obsolete("Do not use this - use getOrElse instead!")>]
     let forceUnwrap<'a> (result: 'a Result): 'a =
