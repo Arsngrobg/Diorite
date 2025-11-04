@@ -118,21 +118,19 @@ module private CLI =
     ///     An enum consisting of exit codes that may be returned by the <c>CLI::executeArgs (Argument list)</c>
     ///     function.
     ///     <code>
-    ///         IO.output $"{ExitCode.NoError}"       |> ignore // output: "0"
-    ///         IO.output $"{ExitCode.REPLFailure}"   |> ignore // output: "1"
-    ///         IO.output $"{ExitCode.FileNotFound}"  |> ignore // output: "2"
-    ///         IO.output $"{ExitCode.IllegalArgs}"   |> ignore // output: "4"
-    ///         IO.output $"{ExitCode.IllegalToken}"  |> ignore // output: "8"
-    ///         IO.output $"{ExitCode.IllegalTokens}" |> ignore // output: "16"
+    ///         IO.output $"{ExitCode.NoError}\n"      |> ignore // output: "0"
+    ///         IO.output $"{ExitCode.REPLFailure}\n"  |> ignore // output: "1"
+    ///         IO.output $"{ExitCode.FileNotFound}\n" |> ignore // output: "2"
+    ///         IO.output $"{ExitCode.IllegalArgs}\n"  |> ignore // output: "4"
+    ///         IO.output $"{ExitCode.SyntaxError}\n"  |> ignore // output: "8"
     ///     </code>
     /// </summary>
     type ExitCode =
-        | NoError       = 0b00000 // no error was caused
+        | NoError       = 0b00000 // no error was encountered
         | REPLFailure   = 0b00001 // any failed state caused by the REPL
         | FileNotFound  = 0b00010 // the file specified was not found
         | IllegalArgs   = 0b00100 // illegal sequence of arguments
-        | IllegalToken  = 0b01000 // illegal token found
-        | IllegalTokens = 0b10000 // illegal token sequence
+        | SyntaxError   = 0b01000 // compile source file
 
     /// <summary>
     ///     A binding that returns the string used by the CL utility when no args are provided or the
@@ -191,9 +189,9 @@ Usage: {Properties.programName} [-h | --help]
 
          // launches the REPL environment in the user's terminal (IT DOES NOT WORK IN IDE INTEGRATED TERMINALS)
          | [ Interpreter ] ->
-             match REPL.launch() with
-              | true  -> ExitCode.NoError
-              | false -> ExitCode.REPLFailure
+             let success = REPL.launch()
+             if success then ExitCode.NoError
+             else            ExitCode.REPLFailure
 
          // attempt to load the file into the REPL environment
          | [ Interpreter; Literal filename ] ->
