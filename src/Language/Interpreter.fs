@@ -16,88 +16,94 @@
 namespace Diorite.Lang
 
 /// <summary>
-///     The <c>Memory</c> module contains functionality for variable storage, retrieval, and modification.
+///     The interpreter module
 /// </summary>
-module Memory =
-    // 11 rows (subscripts), and 52 columns (characters)
-    let letters: char list = ['a'..'z'] @ ['A'..'Z']
-    let table: Parser.AST[,] = Array2D.create 11 letters.Length Parser.AST.Undefined
-
-    /// Simple helper function to find the column index where a character is
-    let private findColIndex (character : char) =
-        letters |> List.findIndex ((=) character)
-    
+module Interpreter =
     /// <summary>
-    ///     Gets the value of a given variable in the table.
+    ///     The <c>Memory</c> module contains functionality for variable storage, retrieval, and modification.
     /// </summary>
-    /// <param name='character'> the alphabetical character of the variable </param>
-    /// <param name='rowIndex'> the row in the table where the character is, indicating the subscript </param>
-    /// <returns> the value stored in the table at the location </returns>
-    let get (character : char) (rowIndex : int) =
-        let colIndex = findColIndex character
-        table[rowIndex, colIndex]
-        
-    /// <summary>
-    ///     Sets the value of a given variable in the table.
-    /// </summary>
-    /// <param name='character'> the alphabetical character of the variable </param>
-    /// <param name='rowIndex'> the row in the table where the character is, indicating the subscript </param>
-    /// <param name='value'> the value being assigned </param>
-    let set (character: char) (rowIndex: int) (value: Parser.AST): unit =
-        let colIndex = findColIndex character
-        table[rowIndex, colIndex] <- value
+    module Memory =
+        // 11 rows (subscripts), and 52 columns (characters)
+        let letters: char list = ['a'..'z'] @ ['A'..'Z']
+        let table: Parser.AST[,] = Array2D.create 11 letters.Length Parser.AST.Undefined
 
-/// <summary>
-///     The <c>Evaluator</c> module includes bindings related to evaluating a <b>Diorite</b> Abstract Syntax Tree.
-/// </summary>
-module Evaluator =
+        /// Simple helper function to find the column index where a character is
+        let private findColIndex (character: char): int =
+            letters |> List.findIndex ((=) character)
+
+        /// <summary>
+        ///     Gets the value of a given variable in the table.
+        /// </summary>
+        /// <param name='character'> the alphabetical character of the variable </param>
+        /// <param name='rowIndex'> the row in the table where the character is, indicating the subscript </param>
+        /// <returns> the value stored in the table at the location </returns>
+        let get (character: char) (rowIndex: int): Parser.AST =
+            let colIndex = findColIndex character
+            table[rowIndex, colIndex]
+
+        /// <summary>
+        ///     Sets the value of a given variable in the table.
+        /// </summary>
+        /// <param name='character'> the alphabetical character of the variable </param>
+        /// <param name='rowIndex'> the row in the table where the character is, indicating the subscript </param>
+        /// <param name='value'> the value being assigned </param>
+        let set (character: char) (rowIndex: int) (value: Parser.AST): unit =
+            let colIndex = findColIndex character
+            table[rowIndex, colIndex] <- value
+
     // TODO: implement evaluations
     // this works fine when running from the REPL - since the syntax checks occur before this function is called
     // that is why it can return a SystemError and not SyntaxError but might change this
     let rec evalTree (root: Parser.AST): Parser.AST =
-        let add (left: Parser.AST) (right: Parser.AST): Parser.AST =
+        let (|+|) (left: Parser.AST) (right: Parser.AST): Parser.AST =
             match left, right with
              | Parser.Infinity, _ | _, Parser.Infinity -> Parser.Infinity
              | _, Parser.Undefined | Parser.Undefined, _ -> Parser.Undefined
              | Parser.Number left, Parser.Number right -> Parser.Number (left + right)
 
-        let subtract (left: Parser.AST) (right: Parser.AST): Parser.AST =
+        let (|-|) (left: Parser.AST) (right: Parser.AST): Parser.AST =
             match left, right with
              | Parser.Infinity, _ | _, Parser.Infinity
              | _, Parser.Undefined | Parser.Undefined, _ -> Parser.Undefined
              | Parser.Number left, Parser.Number right -> Parser.Number (left - right)
 
-        let multiply (left: Parser.AST) (right: Parser.AST): Parser.AST =
+        let (|*|) (left: Parser.AST) (right: Parser.AST): Parser.AST =
             match left, right with
              | Parser.Infinity, _ | _, Parser.Infinity -> Parser.Infinity
              | _, Parser.Undefined | Parser.Undefined, _ -> Parser.Undefined
              | Parser.Number left, Parser.Number right -> Parser.Number (left * right)
 
-        let divide (left: Parser.AST) (right: Parser.AST): Parser.AST =
+        let (|/|) (left: Parser.AST) (right: Parser.AST): Parser.AST =
             match left, right with
              | Parser.Infinity, _ | _, Parser.Infinity
              | _, Parser.Undefined | Parser.Undefined, _ -> Parser.Undefined
              | Parser.Number left, Parser.Number right -> Parser.Number (left / right)
 
-        let modulo (left: Parser.AST) (right: Parser.AST): Parser.AST =
+        let (|//|) (left: Parser.AST) (right: Parser.AST): Parser.AST =
+            match left, right with
+             | Parser.Infinity, _ | _, Parser.Infinity
+             | _, Parser.Undefined | Parser.Undefined, _ -> Parser.Undefined
+             | Parser.Number left, Parser.Number right -> Parser.Number (Library.floor(left / right))
+
+        let (|%|) (left: Parser.AST) (right: Parser.AST): Parser.AST =
             match left, right with
              | Parser.Infinity, _ | _, Parser.Infinity
              | _, Parser.Undefined | Parser.Undefined, _ -> Parser.Undefined
              | Parser.Number left, Parser.Number right -> Parser.Number (left % right)
 
-        let pow (left: Parser.AST) (right: Parser.AST): Parser.AST =
+        let (|^|) (left: Parser.AST) (right: Parser.AST): Parser.AST =
             match left, right with
              | Parser.Infinity, _ | _, Parser.Infinity
              | _, Parser.Undefined | Parser.Undefined, _ -> Parser.Undefined
              | Parser.Number left, Parser.Number right -> Parser.Number (left ** right)
 
-        let positive (operand: Parser.AST): Parser.AST =
+        let (~+) (operand: Parser.AST): Parser.AST =
             match operand with
              | Parser.Infinity -> Parser.Infinity
              | Parser.Undefined -> Parser.Undefined
              | Parser.Number value -> Parser.Number value
 
-        let negative (operand: Parser.AST): Parser.AST =
+        let (~-) (operand: Parser.AST): Parser.AST =
             match operand with
              | Parser.Infinity -> Parser.Infinity
              | Parser.Undefined -> Parser.Undefined
@@ -148,19 +154,19 @@ module Evaluator =
                             Memory.set ch 0 right
                             Parser.BinaryOperation (left, operator, right)
                     //| node -> SystemError $"Unexpected type for set operation - got {node}"
-              | Parser.Addition       -> (evalTree left) |> add      <| right
-              | Parser.Subtraction    -> (evalTree left) |> subtract <| right
-              | Parser.Multiplication -> (evalTree left) |> multiply <| right
-              | Parser.Division       -> (evalTree left) |> divide   <| right
-              | Parser.FloorDivision  -> Parser.Undefined
-              | Parser.Modulo         -> (evalTree left) |> modulo   <| right
-              | Parser.Exponentiation -> (evalTree left) |> pow      <| right
+              | Parser.Addition       -> (evalTree left) |+|  right
+              | Parser.Subtraction    -> (evalTree left) |-|  right
+              | Parser.Multiplication -> (evalTree left) |*|  right
+              | Parser.Division       -> (evalTree left) |/|  right
+              | Parser.FloorDivision  -> (evalTree left) |//| right
+              | Parser.Modulo         -> (evalTree left) |%|  right
+              | Parser.Exponentiation -> (evalTree left) |^|  right
               //| node                  -> SystemError $"Unexpected binary operator - got {node} instead"
          | Parser.UnaryOperation(operand, operator) ->
              let operand: Parser.AST = evalTree operand
              match operator with
-              | Parser.Positive        -> positive  operand
-              | Parser.Negative        -> negative  operand
+              | Parser.Positive        -> +operand
+              | Parser.Negative        -> -operand
               | Parser.Factorial       -> factorial operand
               | Parser.Integration     -> Parser.Undefined //integrate operand
               | Parser.Differentiation -> Parser.Undefined //differentiate operand
@@ -179,17 +185,17 @@ module Evaluator =
                    | Parser.FunctionDef (attributes, body) ->
                        applyArgs attributes.parameters args
                        evalTree body
-         | Parser.Conditions (cases, defaultCase) -> Parser.Undefined //evalConditions
+         | Parser.Conditions (cases, defaultCase) -> Parser.Undefined // evalConditions
          | Parser.Comparison(ifTrue, left, operator, right) ->
              let left:  Parser.AST = evalTree left
              let right: Parser.AST = evalTree right
              match operator with
-              | Parser.Equals             -> Parser.Undefined //left = right
-              | Parser.NotEqual           -> Parser.Undefined //left <> right
-              | Parser.GreaterThan        -> Parser.Undefined //left > right
-              | Parser.LessThan           -> Parser.Undefined //left < right
-              | Parser.GreaterThanOrEqual -> Parser.Undefined //left >= right
-              | Parser.LessThanOrEqual    -> Parser.Undefined //left <= right
+              | Parser.Equals             -> if left =  right then ifTrue else Parser.Undefined
+              | Parser.NotEqual           -> if left <> right then ifTrue else Parser.Undefined
+              | Parser.GreaterThan        -> if left >  right then ifTrue else Parser.Undefined
+              | Parser.LessThan           -> if left <  right then ifTrue else Parser.Undefined
+              | Parser.GreaterThanOrEqual -> if left >= right then ifTrue else Parser.Undefined
+              | Parser.LessThanOrEqual    -> if left <= right then ifTrue else Parser.Undefined
               //| node             -> SystemError $"Unexpected comparison operator - got {node} instead"
          //| node -> SystemError $"Unexpected AST node - got {node} instead"
 
