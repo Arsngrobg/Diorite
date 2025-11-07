@@ -16,8 +16,10 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Text.RegularExpressions;
 
 using Diorite.Lang;
+using ScottPlot;
 
 namespace IME {
     public partial class MainWindow : Window {
@@ -29,18 +31,21 @@ namespace IME {
         }
 
         private void PlotLoaded(object sender, RoutedEventArgs e) {
-            // Generate data
-            double[] xValues = Enumerable.Range(-10, 21).Select(i => i * 1.0).ToArray(); // Range of x values for function to be applied to
-            double[] yValues = xValues.Select(x => (2 * x) + 1).ToArray(); // Parse and calculate for each x and result is yValues
-            var scatter = plot.Plot.Add.Scatter(xValues, yValues);
-            scatter.Label = ""; // Statement entered
-            scatter.LineWidth = 2;
-            scatter.Color = ScottPlot.Colors.Green.WithAlpha(0.8);
-            plot.Plot.Axes.Title.Label.Text = scatter.Label;
             plot.Plot.Axes.Bottom.Label.Text = "x";
             plot.Plot.Axes.Left.Label.Text = "y";
             plot.Plot.Legend.IsVisible = false;
-            plot.Plot.Legend.Alignment = ScottPlot.Alignment.UpperLeft;
+            plot.Plot.Legend.Alignment = Alignment.UpperLeft;
+            plot.Plot.Axes.AutoScale();
+            plot.Refresh();
+        }
+
+        private void UpdatePlot(double[] xValues, double[] yValues, string expression) {
+            plot.Plot.Clear();
+            var scatter = plot.Plot.Add.Scatter(xValues, yValues);
+            scatter.LegendText = expression;
+            plot.Plot.Axes.Title.Label.Text = scatter.LegendText;
+            scatter.LineWidth = 2;
+            scatter.Color = Colors.Green.WithAlpha(0.8);
             plot.Plot.Axes.AutoScale();
             plot.Refresh();
         }

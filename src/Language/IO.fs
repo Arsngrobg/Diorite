@@ -267,7 +267,7 @@ module IO =
     /// <param name='directory'> location the <c>.diorite</c> file is written to </param>
     /// <param name='contents'> text contents of the file </param>
     /// <returns> an empty <c>Result</c> which indicates if the write operation was a success or failure </returns>
-    let writeFile (fileName: string, directory: string, contents: string): unit Result =
+    let writeFile (fileName: string) (directory: string) (contents: string): unit Result =
         let unsafe (): unit =
             let path =
                 match directory with

@@ -15,6 +15,8 @@
 
 namespace Diorite.Lang
 
+open System
+
 /// <summary>
 ///     The <c>REPL</c> module is the functionality related to the live interpreter environment in the terminal.
 ///     It provides a neat and simple environment for writing <b>Diorite</b> mathematics code.
@@ -32,7 +34,10 @@ module private REPL =
     ///     A binding that defines the title of the REPL when in use.
     /// </summary>
     /// <returns> the title of the REPL </returns>
+
     let title: string = $"{Properties.name} (v{Version.languageVersion}) REPL"
+    
+    let mutable history: string list = [] // all statements input in the REPL
 
     // helper function to test a string to see if it is a blank line
     let isBlankLine (line: string): bool =
@@ -92,14 +97,36 @@ module private REPL =
     /// <returns> <c>true</c> if the REPL exited without error; <c>false</c> if a fatal error occurred </returns>
     let rec launch (): bool =
         let rec env (): bool =
+            System.Console.ForegroundColor <- System.ConsoleColor.White
+            System.Console.BackgroundColor <- System.ConsoleColor.Black
             match IO.input(Some ">>> ") with
              | Error _     -> false
              | Ok input ->
                  match input with
                   | "@quit" -> true
-                  | _       ->
-                      if processInput input then env()
-                      else                       false
+                  | save when save.StartsWith("@save") ->
+                        let parts = save.Split([|' '|], StringSplitOptions.RemoveEmptyEntries)
+                        match parts with
+                        | [|"@save"; fileName; directory|] ->
+                            IO.writeFile fileName directory (String.concat "\n" history) |> ignore
+                            System.ConsoleColor.Green |> IO.setConsoleForegroundColor |> generalized |> ignore;
+                            IO.output $"    Saved REPL history to %s{directory}\%s{fileName}.diorite\n" |> ignore
+                            System.ConsoleColor.White |> IO.setConsoleForegroundColor |> generalized;
+                        | _ ->
+                            System.ConsoleColor.Yellow |> IO.setConsoleForegroundColor |> generalized |> ignore;
+                            IO.output "    Usage: @save <filename> [directory]\n"
+                        |> ignore;
+                        env()
+                  | _ ->
+                      if processInput input then
+                          match Evaluator.eval input with
+                          | Ok _ ->
+                              history <- history @ [input]
+                          | Error _ ->
+                              () // Error generating code not added to REPL history
+                          env()
+                      else
+                        false
 
         // exit if initialisation failed
         if initialiseConsole() then env()
