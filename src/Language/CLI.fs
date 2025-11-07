@@ -90,7 +90,22 @@ module private REPL =
             System.ConsoleColor.White    |> IO.setConsoleForegroundColor |> generalized
         ]
         resultAsBool result
-
+        
+    let save (saveInput : string) =
+        let parts = saveInput.Split([|' '|], StringSplitOptions.RemoveEmptyEntries)
+        match parts with
+        | [|"@save"; fileName; directory|] ->
+            IO.writeFile fileName directory (String.concat "\n" history) |> ignore
+            System.ConsoleColor.Green |> IO.setConsoleForegroundColor |> generalized |> ignore;
+            IO.output $"    Saved REPL history to %s{directory}\%s{fileName}.diorite\n" |> ignore
+            System.ConsoleColor.White |> IO.setConsoleForegroundColor |> generalized;
+        | _ ->
+            System.ConsoleColor.Yellow |> IO.setConsoleForegroundColor |> generalized |> ignore;
+            IO.output "    Usage: @save <filename> [directory]\n" |> ignore
+            System.ConsoleColor.White |> IO.setConsoleForegroundColor |> generalized;
+        |> ignore
+        ()
+        
     /// <summary>
     ///     Launches the REPL environment in the user's terminal.
     /// </summary>
@@ -104,18 +119,8 @@ module private REPL =
              | Ok input ->
                  match input with
                   | "@quit" -> true
-                  | save when save.StartsWith("@save") ->
-                        let parts = save.Split([|' '|], StringSplitOptions.RemoveEmptyEntries)
-                        match parts with
-                        | [|"@save"; fileName; directory|] ->
-                            IO.writeFile fileName directory (String.concat "\n" history) |> ignore
-                            System.ConsoleColor.Green |> IO.setConsoleForegroundColor |> generalized |> ignore;
-                            IO.output $"    Saved REPL history to %s{directory}\%s{fileName}.diorite\n" |> ignore
-                            System.ConsoleColor.White |> IO.setConsoleForegroundColor |> generalized;
-                        | _ ->
-                            System.ConsoleColor.Yellow |> IO.setConsoleForegroundColor |> generalized |> ignore;
-                            IO.output "    Usage: @save <filename> [directory]\n"
-                        |> ignore;
+                  | saveInput when saveInput.StartsWith("@save") ->
+                        save saveInput
                         env()
                   | _ ->
                       if processInput input then
