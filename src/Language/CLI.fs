@@ -91,6 +91,10 @@ module private REPL =
         ]
         resultAsBool result
         
+    /// <summary>
+    /// Saves REPL history to a <c>.diorite</c> file.
+    /// </summary>
+    /// <param name="saveInput"> the <c>@save</c> command arguments </param>
     let save (saveInput : string) =
         let parts = saveInput.Split([|' '|], StringSplitOptions.RemoveEmptyEntries)
         match parts with
