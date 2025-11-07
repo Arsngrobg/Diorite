@@ -371,6 +371,18 @@ module Parser =
     type FunctionParameter = (char * int option) * NumberSet
 
     /// <summary>
+    ///     The default <c>FunctionParameter</c> type.
+    ///     The function parameter domain that is inferred to be as <c>Real</c> if none is provided.
+    /// </summary>
+    let defaultFunctionDomain: NumberSet = Real
+
+    /// <summary>
+    ///     The default function range.
+    ///     The function range that is inferred to be as <c>Real</c> if none is provided.
+    /// </summary>
+    let defaultFunctionRange: NumberSet = Real
+
+    /// <summary>
     ///     The attributes of a function.
     ///     If no <c>NumberSet</c> is provided to a parameter or the return type - it defaults to <c>Real</c>.
     /// </summary>
@@ -396,7 +408,7 @@ module Parser =
     type AST =
         // values
         | Number          of float
-        | Identifier      of id: char * subscript: int option
+        | Variable      of id: char * subscript: int option
 
         // reserved words
         | Undefined
@@ -443,142 +455,157 @@ module Parser =
     // https://tgdwyer.github.io/parsercombinators
 
     /// <summary>
-    ///     The <c>ParseState</c> is the return type of successful <c>Parser</c> invocation.
-    ///     It contains the <c>'a</c> which indicates a successful parse of an arbitrary sequence of tokens; and the
-    ///     remaining tokens to parse as a result of the current call to a <c>Parser</c>.
+    ///     The successful parse of a particular <c>Parser</c>.
+    ///     It contains the value of type <c>'a</c> and the remaining tokens to parse.
     /// </summary>
     type ParseState<'a> = 'a * Lexer.TokenStream
 
     /// <summary>
-    ///     The <c>Parser</c> is a function that accepts a <c>TokenStream</c> and returns a <c>ParseState</c>.
+    ///     The <c>Parser</c> is a function that accepts a <c>TokenStream</c> and returns a <c>Result</c> that may
+    ///     contain the resulting <c>'a</c> value and the remaining tokens.
     /// </summary>
     type Parser<'a> = Lexer.TokenStream -> ParseState<'a> Result
 
-    /// <summary>
-    ///     The function signature for a function which accepts a raw <c>ParseState</c> and uplifts it to a
-    ///     <c>Result</c>.
-    /// </summary>
-    type ResultLifter<'a, 'b> = ParseState<'a> -> ParseState<'b> Result
+    // the function signature of a bind function for the parser combinators
+    type private BindFunction<'a, 'b> = ParseState<'a> -> ParseState<'b> Result
 
-    // helper function for subsequent execution upon an accepted parse state - handles error propagation automatically
-    let private ifOk<'a, 'b> (prev: ParseState<'a> Result) (callback: ResultLifter<'a, 'b>): ParseState<'b> Result =
-        match prev with
-         | Error err   -> Error err
-         | Ok    value -> callback value
+    // here is the sort-of DSL for chaining parsers - better than the ifOk function (essentially the bind operation)
+    let private (>>=) (state: ParseState<'a> Result) (fn: BindFunction<'a, 'b>): ParseState<'b> Result =
+        match state with
+         | Error err             -> Error err
+         | Ok (value, remaining) -> fn (value, remaining)
 
-    // <program> ::= <equation>
-    //            |  <equation> <program>
+    // <program> ::= ε
+    //            |  <statement> <program>
     let rec program: Parser<AST list> = (fun tokens ->
-        ifOk (equation tokens) (fun (root, remaining) ->
-            match remaining with
-             // <program> ::= <equation> ";"
-             | [] -> Ok ([root], remaining)
-             // <program> ::= <equation> ";" <program>
-             | programTail ->
-                 ifOk (program programTail) (fun (roots, remaining) ->
-                      Ok (root :: roots, remaining)
+        match tokens with
+         // <program> ::= ε
+         | [] -> Ok([], [])
+         // <program> ::= <statement> <program>
+         | _  ->
+             statement tokens >>= (fun (maybeNode, programTail) ->
+                 program programTail >>= (fun (nodes, remaining) ->
+                     match maybeNode with
+                      | None      -> Ok (nodes, remaining)
+                      | Some node -> Ok (node :: nodes, remaining)
                  )
-        )
-    )
-    // <equation> ::= <functiondef> "=" <functionbody>
-    //             |  <identifier>  "=" <expression> ";"
-    //             |  <expression> ";"
-    and equation: Parser<AST> = (fun tokens ->
-        // lookahead to check for '=' token
-        match Lexer.statementContainsToken tokens Lexer.Equals with
-         // <equation> ::= <expression> ";"
-         | false ->
-             ifOk (expression tokens) (fun (node, remaining) ->
-                 match remaining with
-                  | Lexer.SemiColon :: remaining ->
-                      Ok (node, remaining)
-                  | _ -> SyntaxError "Missing semicolon for expression"
              )
-         // <equation> ::= <functiondef> "=" <functionbody>
-         //             |  <identifier>  "=" <expression> ";"
-         | true ->
-             match tokens with
-              | Lexer.Identifier (ch, sb) :: Lexer.Equals :: equationTail ->
-                  ifOk (expression equationTail) (fun (expression, remaining) ->
-                      match remaining with
-                       | Lexer.SemiColon :: remaining ->
-                           Ok (BinaryOperation (Identifier (ch, sb), Equals, expression), remaining)
-                       | _ -> SyntaxError "Missing semicolon for assignment"
-                  )
-              | _ ->
-                 ifOk (functiondef tokens) (fun (functionAttributes, equationTail) ->
-                     match equationTail with
-                      | Lexer.Equals :: equationTail ->
-                           ifOk (functionbody equationTail) (fun (functionBody, remaining) ->
-                              Ok (FunctionDef (functionAttributes, functionBody), remaining)
-                           )
-                      | _ -> SyntaxError "Expected Equals token for function definition"
+    )
+    // <statement> ::= ";"
+    //              |  <expression> ";"
+    //              |  <identifier>  "=" <expression> ";"
+    //              |  <functiondef> "=" <functionbody>
+    and statement: Parser<AST option> = (fun tokens ->
+        if (Lexer.statementContainsToken tokens) Lexer.Equals then
+            match tokens with
+             | Lexer.Identifier (ch, sb) :: Lexer.Equals :: statementTail ->
+                 expression statementTail >>= (fun (expression, statementTail) ->
+                     match statementTail with
+                      | Lexer.SemiColon :: remaining ->
+                          Ok ((BinaryOperation >> Some) (Variable (ch, sb), Equals, expression), remaining)
+                      | head         :: _            -> SyntaxError $"Expected semicolon - got {head}"
+                      | []                           -> SyntaxError  "Expected semicolon"
+                 )
+             | _ ->
+                 functionDef tokens >>= (fun (functionAttributes, statementTail) ->
+                     match statementTail with
+                      | Lexer.Equals :: statementTail ->
+                          functionBody statementTail >>= (fun (body, remaining) ->
+                              Ok ((FunctionDef >> Some) (functionAttributes, body), remaining)
+                          )
+                      | head         :: _             -> SyntaxError $"Expected closing parenthesis - got {head}"
+                      | []                            -> SyntaxError  "Expected closing parenthesis"
+                 )
+        else
+            // <statement> ::= ";"
+            //              |  <expression> ";"
+            match tokens with
+             // <statement> ::= ";"
+             | Lexer.SemiColon :: remaining -> Ok (None, remaining)
+             // <statement> ::= <expression> ";"
+             | _ ->
+                 expression tokens >>= (fun (node, statementTail) ->
+                     match statementTail with
+                      | Lexer.SemiColon :: remaining -> Ok (Some node, remaining)
+                      | _ -> SyntaxError "Missing semicolon after expression"
                  )
     )
-    // <expression> ::= <term>
-    //               |  <term> "+" <expression>
-    //               |  <term> "-" <expression>
+    // <expression> ::= <term> <expression'>
     and expression: Parser<AST> = (fun tokens ->
-        ifOk (term tokens) (fun (termNode, remaining) ->
-            match remaining with
-             // <expression> ::= <term> "+" <expression>
+        // <expression'> ::= ε
+        //                |  "+" <term> <expression'>
+        //                |  "-" <term> <expression'>
+        let rec expression' (accumulated: AST): Parser<AST> = (fun tokens ->
+            match tokens with
+             // <expression'> ::= "+" <term> <expression'>
              | Lexer.Plus :: expressionTail ->
-                 ifOk (expression expressionTail) (fun (expNode, remaining) ->
-                     Ok (BinaryOperation (termNode, Addition, expNode), remaining)
+                 term expressionTail >>= (fun (termNode, expressionTail) ->
+                     (expression' (BinaryOperation (accumulated, Addition, termNode))) expressionTail
                  )
-             // <expression> ::= <term> "-" <expression>
+             // <expression'> ::= "-" <term> <expression'>
              | Lexer.Hyphen :: expressionTail ->
-                 ifOk (expression expressionTail) (fun (expNode, remaining) ->
-                     Ok (BinaryOperation (termNode, Subtraction, expNode), remaining)
+                 term expressionTail >>= (fun (termNode, expressionTail) ->
+                     expression' (BinaryOperation (accumulated, Subtraction, termNode)) expressionTail
                  )
-             // <expression> ::= <term>
-             | remaining -> Ok (termNode, remaining)
+             // <expression'> ::= ε
+             | remaining -> Ok (accumulated, remaining)
+        )
+
+        // will return either the leftNode or the recursively parsed addition/subtraction operations
+        term tokens >>= (fun (leftNode, expressionTail) ->
+            (expression' leftNode) expressionTail
         )
     )
-    // <term> ::= <factor>
-    //         |  <factor> "*"  <term>
-    //         |  <factor> "/"  <term>
-    //         |  <factor> "//" <term>
-    //         |  <factor> "%"  <term>
+    // <term> ::= <factor> <term'>
     and term: Parser<AST> = (fun tokens ->
-        ifOk (factor tokens) (fun (factorNode, remaining) ->
-            match remaining with
-             // <term> ::= <factor> "*" <term>
+        // <term'> ::= ε
+        //          |  "*"  <factor> <term'>
+        //          |  "/"  <factor> <term'>
+        //          |  "//" <factor> <term'>
+        //          |  "%"  <factor> <term'>
+        let rec term' (accumulated: AST): Parser<AST> = (fun tokens ->
+            match tokens with
+             // <term'> ::= "*" <factor> <term'>
              | Lexer.Asterisk :: termTail ->
-                 ifOk (term termTail) (fun (termNode, remaining) ->
-                     Ok (BinaryOperation (factorNode, Multiplication, termNode), remaining)
+                 factor termTail >>= (fun (factorNode, termTail) ->
+                     (term' (BinaryOperation (accumulated, Multiplication, factorNode))) termTail
                  )
-             // <term> ::= <factor> "/" <term>
+             // <term'> ::= "/" <factor> <term'>
              | Lexer.ForwardSlash :: termTail ->
-                 ifOk (term termTail) (fun (termNode, remaining) ->
-                     Ok (BinaryOperation (factorNode, Division, termNode), remaining)
+                 factor termTail >>= (fun (factorNode, termTail) ->
+                     (term' (BinaryOperation (accumulated, Division, factorNode))) termTail
                  )
-             // <term> ::= <factor> "//" <term>
+             // <term'> ::= "//" <factor> <term'>
              | Lexer.DoubleForwardSlash :: termTail ->
-                 ifOk (term termTail) (fun (termNode, remaining) ->
-                     Ok (BinaryOperation (factorNode, FloorDivision, termNode), remaining)
+                 factor termTail >>= (fun (factorNode, termTail) ->
+                     (term' (BinaryOperation (accumulated, FloorDivision, factorNode))) termTail
                  )
-             // <term> ::= <factor> "%" <term>
+             // <term'> ::= "%" <factor> <term'>
              | Lexer.Percentage :: termTail ->
-                 ifOk (term termTail) (fun (termNode, remaining) ->
-                     Ok (BinaryOperation (factorNode, Modulo, termNode), remaining)
+                 factor termTail >>= (fun (factorNode, termTail) ->
+                     (term' (BinaryOperation (accumulated, Modulo, factorNode))) termTail
                  )
-             // <term> ::= <factor>
-             | remaining -> Ok (factorNode, remaining)
+             // <term'> ::= ε
+             | remaining -> Ok (accumulated, remaining)
+        )
+
+        // will return either the leftNode or the recursively parsed multiplication/division operations
+        factor tokens >>= (fun (leftNode, termTail) ->
+            (term' leftNode) termTail
         )
     )
     // <factor> ::= <signed>
     //           |  <signed> "^" <signed>
     and factor: Parser<AST> = (fun tokens ->
-        ifOk (signed tokens) (fun (exponentNode, remaining) ->
+        signed tokens >>= (fun (leftNode, remaining) ->
             match remaining with
-             // <factor> ::= <exponent> "^" <subexpression>
+             // <factor> ::= <signed> "^" <signed>
              | Lexer.Hat :: factorTail ->
-                 ifOk (signed factorTail) (fun (subExpNode, remaining) ->
-                     Ok (BinaryOperation (exponentNode, Exponentiation, subExpNode), remaining)
+                 signed factorTail >>= (fun (rightNode, remaining) ->
+                     Ok (BinaryOperation (leftNode, Exponentiation, rightNode), remaining)
                  )
-             // <factor> ::= <exponent>
-             | remaining -> Ok (exponentNode, remaining)
+             // <factor> ::= <signed>
+             | _ -> Ok (leftNode, remaining)
         )
     )
     // <signed> ::= <exponent>
@@ -586,139 +613,132 @@ module Parser =
     //           |  "-" <signed>
     and signed: Parser<AST> = (fun tokens ->
         match tokens with
+         // <signed> ::= "+" <exponent>
          | Lexer.Plus :: signedTail ->
-             ifOk (signed signedTail) (fun (exponentNode, remaining) ->
-                 Ok (UnaryOperation (exponentNode, Positive), remaining)
+             signed signedTail >>= (fun (node, remaining) ->
+                 Ok (UnaryOperation (node, Positive), remaining)
              )
+         // <signed> ::= "-" <exponent>
          | Lexer.Hyphen :: signedTail ->
-             ifOk (signed signedTail) (fun (exponentNode, remaining) ->
-                 Ok (UnaryOperation (exponentNode, Negative), remaining)
+             signed signedTail >>= (fun (node, remaining) ->
+                 Ok (UnaryOperation (node, Negative), remaining)
              )
-         | signedTail -> exponent signedTail
+         // <signed> ::= <exponent>
+         | _ -> exponent tokens
     )
     // <exponent> ::= <integral> <exponent'>
     and exponent: Parser<AST> = (fun tokens ->
-        ifOk (integral tokens) (fun (integralNode, exponentTail) ->
-            ifOk (exponent' exponentTail) (fun state ->
-                match state with
-                 // <exponent> ::= <integral> <exponent'>
-                 | Some factorialNode, remaining ->
-                     Ok (UnaryOperation (integralNode, factorialNode), remaining)
-                 // <exponent> ::= <integral>
-                 | None, remaining -> Ok (integralNode, remaining)
+        // <exponent'> ::= ε
+        //              |  "!" <exponent'>
+        let rec exponent': Parser<AST option> = (fun tokens ->
+            match tokens with
+             // <exponent'> ::= "!" <exponent'>
+             | Lexer.Exclamation :: exponentTail ->
+                 exponent' exponentTail >>= (fun (maybeNode, remaining) ->
+                     match maybeNode with
+                      | Some node -> Ok ((UnaryOperation >> Some) (node, Factorial), remaining)
+                      | None      -> Ok (Some Factorial, remaining)
+                 )
+             // <exponent'> ::= ε
+             | remaining -> Ok (None, remaining)
+        )
+
+        integral tokens >>= (fun (node, exponentTail) ->
+            exponent' exponentTail >>= (fun (maybeFactorial, remaining) ->
+                match maybeFactorial with
+                 | Some factorialNode -> Ok (UnaryOperation (node, factorialNode), remaining)
+                 | None               -> Ok (node, exponentTail)
             )
         )
-    )
-    // <exponent'> ::= ε
-    //              |  "!" <exponent'>
-    and exponent': Parser<AST option> = (fun tokens ->
-        match tokens with
-         // <exponent'> ::= "!" <exponent'>
-         | Lexer.Exclamation :: exponent'Tail ->
-             ifOk (exponent' exponent'Tail) (fun state ->
-                 match state with
-                  | Some factorialNode, remaining ->
-                      Ok ((UnaryOperation >> Some) (factorialNode, Factorial), remaining)
-                  | None, remaining -> Ok (Some Factorial, remaining)
-             )
-         // <exponent'> ::= ε
-         | exponent'Tail -> Ok (None, exponent'Tail)
     )
     // <integral> ::= <subexpression> <integral'>
     //             |  "'" <integral>
     and integral: Parser<AST> = (fun tokens ->
+        // <integral'> ::= ε
+        //              |  "'" <integral'>
+        let rec integral': Parser<AST option> = (fun tokens ->
+            match tokens with
+             // <integral'> ::= "'" <integral'>
+             | Lexer.Tick :: integralTail ->
+                 integral' integralTail >>= (fun (maybeIntegral, remaining) ->
+                     match maybeIntegral with
+                      | Some node -> Ok ((UnaryOperation >> Some) (node, Differentiation), remaining)
+                      | None      -> Ok (Some Differentiation, remaining)
+                 )
+             // <integral'> ::= ε
+             | remaining -> Ok (None, remaining)
+        )
+
         match tokens with
          // <integral> ::= "'" <integral>
          | Lexer.Tick :: integralTail ->
-             ifOk (integral integralTail) (fun (integralNode, remaining) ->
-                 Ok (UnaryOperation (integralNode, Integration), remaining)
+             integral integralTail >>= (fun (node, remaining) ->
+                 Ok (UnaryOperation (node, Integration), remaining)
              )
          // <integral> ::= <subexpression> <integral'>
-         | integralTail ->
-             ifOk (subexpression integralTail) (fun (subExpNode, integralTail) ->
-                 ifOk (integral' integralTail) (fun state ->
-                     match state with
-                      // <integral> ::= <subexpression> <integral'>
-                      | Some differentialNode, remaining ->
-                          Ok (UnaryOperation (subExpNode, differentialNode), remaining)
-                      // <integral> ::= <subexpression>
-                      | None, remaining -> Ok (subExpNode, remaining)
+         | _ ->
+             subExpression tokens >>= (fun (node, integralTail) ->
+                 integral' integralTail >>= (fun (maybeDifferential, remaining) ->
+                     match maybeDifferential with
+                      | Some differentialNode -> Ok (UnaryOperation (node, differentialNode), remaining)
+                      | None                  -> Ok (node, remaining)
                  )
              )
     )
-    // <integral'> ::= ε
-    //              |  "'" <integral'>
-    and integral': Parser<AST option> = (fun tokens ->
+    // <subexpression>  ::= <value>
+    //                   |  "(" <expression> ")"
+    //                   |  "|" <expression> "|"
+    //                   |  <identifier> "(" <args> ")"
+    //                   |  <letters>    "(" <args> ")"
+    and subExpression: Parser<AST> = (fun tokens ->
         match tokens with
-         // <integral'> ::= "'" <integral'>
-         | Lexer.Tick :: integral'Tail ->
-             ifOk (integral' integral'Tail) (fun state ->
-                 match state with
-                  // <integral'> ::= "'" <integral'>
-                  | Some differentialNode, remaining ->
-                      Ok ((UnaryOperation >> Some) (differentialNode, Differentiation), remaining)
-                  // <integral'> ::= "'"
-                  | None, remaining -> Ok (Some Differentiation, remaining)
-             )
-         // <exponent'> ::= ε
-         | integral'Tail -> Ok (None, integral'Tail)
-    )
-    // <subexpression> ::= <value>
-    //                  |  "(" <expression> ")"
-    //                  |  "|" <expression> "|"
-    //                  |  <identifier> "(" <args> ")"
-    //                  |  <letters>    "(" <args> ")"
-    and subexpression: Parser<AST> = (fun tokens ->
-        match tokens with
-         // <subexpression> ::= "|" <expression> "|"
-         | Lexer.LeftParenthesis :: subexpressionTail ->
-             ifOk (expression subexpressionTail) (fun (expressionNode, remaining) ->
-                 match remaining with
-                  | Lexer.RightParenthesis :: remaining ->
-                      Ok (expressionNode, remaining)
-                  | _ ->
-                      SyntaxError "Missing closing parenthesis for expression"
-             )
          // <subexpression> ::= "(" <expression> ")"
-         | Lexer.Bar :: subexpressionTail ->
-             ifOk (expression subexpressionTail) (fun (expressionNode, remaining) ->
-                 match remaining with
-                  | Lexer.Bar :: remaining ->
-                      Ok (UnaryOperation (expressionNode, Absolution), remaining)
-                  | _ ->
-                      SyntaxError "Missing closing bar for absolute expression"
+         | Lexer.LeftParenthesis :: subExpressionTail ->
+             expression subExpressionTail >>= (fun (node, subExpressionTail) ->
+                 match subExpressionTail with
+                  | Lexer.RightParenthesis :: remaining -> Ok (node, remaining)
+                  | head                   :: _         -> SyntaxError $"Expected closing parenthesis - got {head}"
+                  | []                                  -> SyntaxError  "Expected closing parenthesis"
+             )
+         // <subexpression> ::= "|" <expression> "|"
+         | Lexer.Bar :: subExpressionTail ->
+             expression subExpressionTail >>= (fun (node, subExpressionTail) ->
+                 match subExpressionTail with
+                  | Lexer.Bar :: remaining -> Ok (UnaryOperation (node, Absolution), remaining)
+                  | head      :: _         -> SyntaxError $"Expected closing bar - got {head}"
+                  | []                     -> SyntaxError  "Expected closing bar"
              )
          // <subexpression> ::= <identifier> "(" <args> ")"
-         | Lexer.Identifier (ch, sb) :: Lexer.LeftParenthesis :: subexpressionTail ->
-             ifOk (args subexpressionTail) (fun (argList, remaining) ->
-                 match remaining with
-                  | Lexer.RightParenthesis :: remaining ->
-                      Ok (FunctionCall (Identifiable (ch, sb), argList), remaining)
-                  | _ -> SyntaxError "Missing closing parenthesis for application"
+         | Lexer.Identifier (ch, sb) :: Lexer.LeftParenthesis :: subExpressionTail ->
+             args subExpressionTail >>= (fun (args, subExpressionTail) ->
+                 match subExpressionTail with
+                  | Lexer.RightParenthesis :: remaining -> Ok (FunctionCall (Identifiable (ch, sb), args), remaining)
+                  | head                   :: _         -> SyntaxError $"Expected closing parenthesis - got {head}"
+                  | []                                  -> SyntaxError  "Expected closing parenthesis"
              )
          // <subexpression> ::= <letters> "(" <args> ")"
-         | Lexer.Symbol symbolicName :: Lexer.LeftParenthesis :: subexpressionTail ->
-             ifOk (args subexpressionTail) (fun (argList, remaining) ->
-                 match remaining with
-                  | Lexer.RightParenthesis :: remaining ->
-                      Ok (FunctionCall (Symbolic symbolicName, argList), remaining)
-                  | _ -> SyntaxError "Missing closing parenthesis for symbolic function"
+         | Lexer.Symbol name :: Lexer.LeftParenthesis :: subExpressionTail ->
+             args subExpressionTail >>= (fun (args, subExpressionTail) ->
+                 match subExpressionTail with
+                  | Lexer.RightParenthesis :: remaining -> Ok (FunctionCall (Symbolic name, args), remaining)
+                  | head                   :: _         -> SyntaxError $"Expected closing parenthesis - got {head}"
+                  | []                                  -> SyntaxError  "Expected closing parenthesis"
              )
          // <subexpression> ::= <value>
-         | subexpressionTail -> value subexpressionTail
+         | _ -> value tokens
     )
     // <args> ::= <expression>
     //         |  <expression> "," <args>
     and args: Parser<AST list> = (fun tokens ->
-        ifOk (expression tokens) (fun (expressionNode, argsTail) ->
+        expression tokens >>= (fun (node, argsTail) ->
             match argsTail with
              // <args> ::= <expression> "," <args>
              | Lexer.Comma :: argsTail ->
-                 ifOk (args argsTail) (fun (argsList, remaining) ->
-                     Ok (expressionNode :: argsList, remaining)
+                 args argsTail >>= (fun (nodes, remaining) ->
+                     Ok (node :: nodes, remaining)
                  )
              // <args> ::= <expression>
-             | remaining -> Ok ([expressionNode], remaining)
+             | remaining -> Ok ([node], remaining)
         )
     )
     // <value> ::= "undefined"
@@ -730,29 +750,30 @@ module Parser =
     //          |  <number>
     and value: Parser<AST> = (fun tokens ->
         match tokens with
-         | Lexer.Undefined           :: remaining -> Ok (Undefined,           remaining)
-         | Lexer.Infinity            :: remaining -> Ok (Infinity,            remaining)
-         | Lexer.Pi                  :: remaining -> Ok (Number 3.1415926,    remaining)
-         | Lexer.Tau                 :: remaining -> Ok (Number 6.2831853,    remaining)
-         | Lexer.Euler               :: remaining -> Ok (Number 2.7182818,    remaining)
-         | Lexer.Identifier (ch, sb) :: remaining -> Ok (Identifier (ch, sb), remaining)
-         | Lexer.Number      number  :: remaining -> Ok (Number number,       remaining)
+         | Lexer.Undefined           :: remaining -> Ok (Undefined,         remaining)
+         | Lexer.Infinity            :: remaining -> Ok (Infinity,          remaining)
+         | Lexer.Pi                  :: remaining -> Ok (Number 3.1415926,  remaining)
+         | Lexer.Tau                 :: remaining -> Ok (Number 6.2831853,  remaining)
+         | Lexer.Euler               :: remaining -> Ok (Number 2.7182818,  remaining)
+         | Lexer.Identifier (ch, sb) :: remaining -> Ok (Variable (ch, sb), remaining)
+         | Lexer.Number      number  :: remaining ->
+             // if the number is too big it can be Double.Infinity - so map it to an Infinity node for consistent ops
+             if number |> System.Double.IsInfinity then Ok (Infinity,      remaining)
+             else                                       Ok (Number number, remaining)
          | head                      :: _         -> SyntaxError $"Expected value - got {head} instead"
          | []                                     -> SyntaxError "Expected value when TokenStream empty"
     )
     // <functiondef> ::= <functionmeta> <identifier> "(" <functionparams> ")" <functionreturn>
-    and functiondef: Parser<FunctionAttributes> = (fun tokens ->
-        ifOk (functionmeta tokens) (fun (maybeMeta, functionTail) ->
-            let functionMeta = match maybeMeta with
-                               | None      -> defaultMetadata
-                               | Some meta -> meta
+    and functionDef: Parser<FunctionAttributes> = (fun tokens ->
+        functionMeta tokens >>= (fun (maybeMeta, functionTail) ->
+            let functionMeta = match maybeMeta with Some meta -> meta | None -> defaultMetadata
             match functionTail with
              // <functiondef> ::= <functionmeta> <identifier> "(" <functionparams> ")" <functionreturn>
              | Lexer.Identifier (ch, sb) :: Lexer.LeftParenthesis :: functionTail ->
-                 ifOk (functionparams functionTail) (fun (parameters, remaining) ->
+                 functionParams functionTail >>= (fun (parameters, remaining) ->
                      match remaining with
                       | Lexer.RightParenthesis :: functionTail ->
-                          ifOk (functionreturn functionTail) (fun (parsedReturn, remaining) ->
+                          functionReturn functionTail >>= (fun (parsedReturn, remaining) ->
                               Ok ({
                                   identifier = (ch, sb)
                                   parameters = parameters
@@ -769,73 +790,52 @@ module Parser =
     //                 |  "[" "inlined"  "]"             <functionmeta>
     //                 |  "[" "memoized" "]"             <functionmeta>
     //                 |  "[" "symbol" ":" <letters> "]" <functionmeta>
-    and functionmeta: Parser<FunctionMetadata option> = (fun tokens ->
+    and functionMeta: Parser<FunctionMetadata option> = (fun tokens ->
         match tokens with
-         | Lexer.LeftBracket :: metaTail ->
-             match metaTail with
-              // <functionmeta> ::= "[" "inlined" "]" <functionmeta>
-              | Lexer.Symbol "inlined" :: Lexer.RightBracket :: metaTail ->
-                  ifOk (functionmeta metaTail) (fun (maybeMeta, remaining) ->
-                      match maybeMeta with
-                       | None -> Ok (Some {
-                           inlined  = true
-                           memoized = defaultMetadata.memoized
-                           symbol   = defaultMetadata.symbol
-                         }, remaining)
-                       | Some functionMeta ->
-                           Ok (Some {
-                               inlined  = true
-                               memoized = functionMeta.memoized
-                               symbol   = functionMeta.symbol
-                           }, remaining)
-                  )
-              // <functionmeta> ::= "[" "memoized" "]" <functionmeta>
-              | Lexer.Symbol "memoized" :: Lexer.RightBracket :: metaTail ->
-                  ifOk (functionmeta metaTail) (fun (maybeMeta, remaining) ->
-                      match maybeMeta with
-                       | None -> Ok (Some {
-                           inlined  = defaultMetadata.inlined
-                           memoized = true
-                           symbol   = defaultMetadata.symbol
-                         }, remaining)
-                       | Some functionMeta ->
-                           Ok (Some {
-                               inlined  = functionMeta.inlined
-                               memoized = true
-                               symbol   = functionMeta.symbol
-                           }, remaining)
-                  )
-              // <functionmeta> ::= "[" "symbol" ":" <letters> "]" <functionmeta>
-              | Lexer.Symbol "symbol" :: Lexer.Colon :: Lexer.Symbol symbolicName :: Lexer.RightBracket :: metaTail ->
-                  ifOk (functionmeta metaTail) (fun (maybeMeta, remaining) ->
-                      match maybeMeta with
-                       | None -> Ok (Some {
-                           inlined  = defaultMetadata.inlined
-                           memoized = defaultMetadata.memoized
-                           symbol   = Some symbolicName
-                         }, remaining)
-                       | Some functionMeta ->
-                           Ok (Some {
-                               inlined  = functionMeta.inlined
-                               memoized = functionMeta.memoized
-                               symbol   = Some symbolicName
-                           }, remaining)
-                  )
-              | _ -> SyntaxError "Illegal meta attribute for function"
+         | Lexer.LeftBracket :: Lexer.Symbol "inlined" :: Lexer.RightBracket :: functionMetaTail ->
+             functionMeta functionMetaTail >>= (fun (maybeMetadata, remaining) ->
+                 match maybeMetadata with
+                  | None -> Ok (Some {
+                      inlined=true; memoized=defaultMetadata.memoized; symbol=defaultMetadata.symbol
+                  }, remaining)
+                  | Some functionMetadata -> Ok (Some {
+                      inlined=true; memoized=functionMetadata.memoized; symbol=functionMetadata.symbol
+                  }, remaining)
+             )
+         | Lexer.LeftBracket :: Lexer.Symbol "memoized" :: Lexer.RightBracket :: functionMetaTail ->
+             functionMeta functionMetaTail >>= (fun (maybeMetadata, remaining) ->
+                 match maybeMetadata with
+                  | None -> Ok (Some {
+                      inlined=defaultMetadata.inlined; memoized=true; symbol=defaultMetadata.symbol
+                  }, remaining)
+                  | Some functionMetadata -> Ok (Some {
+                      inlined=functionMetadata.inlined; memoized=true; symbol=functionMetadata.symbol
+                  }, remaining)
+             )
+         | Lexer.LeftBracket :: Lexer.Symbol "symbol" :: Lexer.Colon :: Lexer.Symbol name :: Lexer.RightBracket :: functionMetaTail ->
+             functionMeta functionMetaTail >>= (fun (maybeMetadata, remaining) ->
+                 match maybeMetadata with
+                  | None -> Ok (Some {
+                      inlined=defaultMetadata.inlined; memoized=defaultMetadata.memoized; symbol=(Some name)
+                  }, remaining)
+                  | Some functionMetadata -> Ok (Some {
+                      inlined=functionMetadata.inlined; memoized=functionMetadata.memoized; symbol=(Some name)
+                  }, remaining)
+             )
          | remaining -> Ok (None, remaining)
     )
     // <functionparams> ::= <functionparam>
     //                   |  <functionparam> "," <functionparams>
-    and functionparams: Parser<FunctionParameter list> = (fun tokens ->
-        ifOk (functionparam tokens) (fun (paramsHead, remaining) ->
-            match remaining with
+    and functionParams: Parser<FunctionParameter list> = (fun tokens ->
+        functionParam tokens >>= (fun (parameter, functionParamsTail) ->
+            match functionParamsTail with
              // <functionparams> ::= <functionparam> "," <functionparams>
-             | Lexer.Comma :: tail ->
-                 ifOk (functionparams tail) (fun (paramsTail, remaining) ->
-                     Ok (paramsHead :: paramsTail, remaining)
+             | Lexer.Comma :: functionParamsTail ->
+                 functionParams functionParamsTail >>= (fun (parameters, remaining) ->
+                     Ok (parameter :: parameters, remaining)
                  )
              // <functionparams> ::= <functionparam>
-             | remaining -> Ok ([paramsHead], remaining)
+             | remaining -> Ok ([parameter], remaining)
         )
     )
     // <functionparam> ::= <identifier>
@@ -845,21 +845,30 @@ module Parser =
     //                  |  <identifier> ":" "Q"
     //                  |  <identifier> ":" "I"
     //                  |  <identifier> ":" "C"
-    and functionparam: Parser<FunctionParameter> = (fun tokens ->
+    and functionParam: Parser<FunctionParameter> = (fun tokens ->
         match tokens with
-         | Lexer.Identifier (ch, sb) :: Lexer.Colon :: Lexer.Identifier (maybeSet, _) :: paramTail ->
-             match getNumberSet maybeSet with
-              | None -> SyntaxError $"Expected valid number set - got {maybeSet} instead"
-              // <functionparam> ::= <identifier> ":" "N"
-              //                  |  <identifier> ":" "Z"
-              //                  |  <identifier> ":" "R"
-              //                  |  <identifier> ":" "Q"
-              //                  |  <identifier> ":" "I"
-              //                  |  <identifier> ":" "C"
-              | Some set -> Ok (((ch, sb), set), paramTail)
-         | Lexer.Identifier (ch, sb) :: paramTail -> Ok (((ch, sb), Real), paramTail)
-         // <functionparam> ::= <identifier>
-         | _ -> SyntaxError "Expected identifier"
+         | Lexer.Identifier (ch, sb) :: functionParamTail ->
+             match functionParamTail with
+            // <functionparam> ::= <identifier> ":" "N"
+            //                  |  <identifier> ":" "Z"
+            //                  |  <identifier> ":" "R"
+            //                  |  <identifier> ":" "Q"
+            //                  |  <identifier> ":" "I"
+            //                  |  <identifier> ":" "C"
+              | Lexer.Colon :: functionParamTail ->
+                  match functionParamTail with
+                   | Lexer.Identifier (ch, None) :: remaining ->
+                       match getNumberSet ch with
+                        | Some numberSet -> Ok (FunctionParameter ((ch, sb), numberSet), remaining)
+                        | None           -> SyntaxError $"Expected NumberSet for function parameter - got {ch}"
+                   | Lexer.Identifier (ch, Some sb) :: _ ->
+                        SyntaxError $"Expected NumberSet for function parameter - got {ch}{sb}"
+                   | head :: _ -> SyntaxError $"Expected NumberSet for function parameter - got {head}"
+                   | []        -> SyntaxError  "Expected NumberSet for function parameter"
+              // <functionparam> ::= <identifier>
+              | _ -> Ok (FunctionParameter ((ch, sb), defaultFunctionDomain), functionParamTail)
+         | head :: _ -> SyntaxError $"Expected identifier for function parameter - got {head}"
+         | []        -> SyntaxError  "Expected identifier for function parameter"
     )
     // <functionreturn> ::= ε
     //                   |  "->" "N"
@@ -868,44 +877,57 @@ module Parser =
     //                   |  "->" "Q"
     //                   |  "->" "I"
     //                   |  "->" "C"
-    and functionreturn: Parser<NumberSet option> = (fun tokens ->
+    and functionReturn: Parser<NumberSet option> = (fun tokens ->
         match tokens with
-         | Lexer.Arrow :: Lexer.Identifier (maybeSet, _) :: returnTail ->
-             match getNumberSet maybeSet with
-              | None     -> SyntaxError "Illegal number set for function range"
-              | Some set -> Ok (Some set, returnTail)
-         | tokens -> Ok (None, tokens)
+        // <functionreturn> ::= "->" "N"
+        //                   |  "->" "Z"
+        //                   |  "->" "R"
+        //                   |  "->" "Q"
+        //                   |  "->" "I"
+        //                   |  "->" "C"
+         | Lexer.Arrow :: functionReturnTail ->
+              match functionReturnTail with
+               | Lexer.Identifier (ch, None) :: remaining ->
+                   match getNumberSet ch with
+                    | Some numberSet -> Ok (Some numberSet, remaining)
+                    | None           -> SyntaxError $"Expected NumberSet for function return - got {ch}"
+               | Lexer.Identifier (ch, Some sb) :: _ ->
+                    SyntaxError $"Expected NumberSet for function return - got {ch}{sb}"
+               | head :: _ -> SyntaxError $"Expected NumberSet for function return - got {head}"
+               | []        -> SyntaxError  "Expected NumberSet for function return"
+         // <functionreturn> ::= ε
+         | remaining -> Ok (None, remaining)
     )
     // <functionbody> ::= <expression> ";"
     //                 |  "{" <conditions> "}"
-    and functionbody: Parser<AST> = (fun tokens ->
+    and functionBody: Parser<AST> = (fun tokens ->
         match tokens with
-         // <functionbody> ::= "{" <conditions> "}"
-         | Lexer.LeftBrace :: bodyTail                       ->
-             ifOk (conditions bodyTail) (fun (functionBody, bodyTail) ->
+         | Lexer.LeftBrace :: functionBodyTail ->
+             conditions functionBodyTail >>= (fun (functionBody, bodyTail) ->
                  match bodyTail with
                   | Lexer.RightBrace :: remaining ->
                       Ok (functionBody, remaining)
                   | _ -> SyntaxError "Missing closing brace from function body"
              )
          // <functionbody> ::= <expression> ";"
-         | tokens ->
-             ifOk (expression tokens) (fun (node, remaining) ->
-                 match remaining with
+         | _ ->
+             expression tokens >>= (fun (node, functionBodyTail) ->
+                 match functionBodyTail with
                   | Lexer.SemiColon :: remaining -> Ok (node, remaining)
-                  | _ -> SyntaxError "Missing semicolon for expression"
+                  | head :: _ -> SyntaxError $"Expected semicolon for function expression - got {head}"
+                  | []        -> SyntaxError  "Expected semicolon for function expression"
              )
     )
     // <conditions> ::= <ifcond> ";" <conditions>
     //               |  <ifcond> ";" <otherwisecond> ";"
     and conditions: Parser<AST> = (fun tokens ->
-        ifOk (ifcond tokens) (fun (ifCondition, conditionsTail) ->
+        ifcond tokens >>= (fun (ifCondition, conditionsTail) ->
             match conditionsTail with
              | Lexer.SemiColon :: conditionsTail ->
                  match Lexer.statementContainsToken conditionsTail Lexer.If with
                   // <conditions> ::= <ifcond> ";" <conditions>
                   | true ->
-                      ifOk (conditions conditionsTail) (fun (conditions, remaining) ->
+                      conditions conditionsTail >>= (fun (conditions, remaining) ->
                           match conditions with
                            | Conditions (cases, defaultCase) ->
                                Ok (Conditions (ifCondition :: cases, defaultCase), remaining)
@@ -913,7 +935,7 @@ module Parser =
                       )
                   | false ->
                       // <ifcond> ";" <otherwisecond> ";"
-                      ifOk (otherwisecond conditionsTail) (fun (defaultCase, remaining) ->
+                      otherwisecond conditionsTail >>= (fun (defaultCase, remaining) ->
                           match remaining with
                            | Lexer.SemiColon :: remaining ->
                                Ok (Conditions ([ifCondition], defaultCase), remaining)
@@ -924,12 +946,12 @@ module Parser =
     )
     // <ifcond> ::= <expression> "if" <expression> <comparison> <expression>
     and ifcond: Parser<AST> = (fun tokens ->
-        ifOk (expression tokens) (fun (ifTrue, ifTail) ->
+        expression tokens >>= (fun (ifTrue, ifTail) ->
             match ifTail with
              | Lexer.If :: ifTail ->
-                 ifOk (expression ifTail) (fun (lhs, ifTail) ->
-                     ifOk (comparison ifTail) (fun (cmpOp, ifTail) ->
-                         ifOk (expression ifTail) (fun (rhs, remaining) ->
+                 expression ifTail >>= (fun (lhs, ifTail) ->
+                     comparison ifTail >>= (fun (cmpOp, ifTail) ->
+                         expression ifTail >>= (fun (rhs, remaining) ->
                              Ok (Comparison (ifTrue, lhs, cmpOp, rhs), remaining)
                          )
                      )
@@ -939,7 +961,7 @@ module Parser =
     )
     // <otherwisecond> ::= <expression> "otherwise"
     and otherwisecond: Parser<AST> = (fun tokens ->
-        ifOk (expression tokens) (fun (defaultCase, otherwiseTail) ->
+        expression tokens >>= (fun (defaultCase, otherwiseTail) ->
             match otherwiseTail with
              | Lexer.Otherwise :: remaining ->
                  Ok (defaultCase, remaining)
@@ -960,8 +982,8 @@ module Parser =
          | Lexer.LessThanOrEqual    :: remaining -> Ok (LessThanOrEqual,    remaining)
          | Lexer.GreaterThan        :: remaining -> Ok (GreaterThan,        remaining)
          | Lexer.GreaterThanOrEqual :: remaining -> Ok (GreaterThanOrEqual, remaining)
-         | head                      :: _        -> SyntaxError $"Expected comparison - got {head} instead"
-         | []                                    -> SyntaxError "Expected value when TokenStream empty"
+         | head                      :: _        -> SyntaxError $"Expected comparison - got {head}"
+         | []                                    -> SyntaxError  "Expected comparison"
     )
 
     /// <summary>
@@ -975,4 +997,4 @@ module Parser =
         match program tokens with
          | Error err                -> Error err
          | Ok    (nodes, [])        -> (Begin >> Ok) nodes
-         | Ok    (_,     head :: _) -> SyntaxError $"Unexpected trailing token: {head}"
+         | Ok    (_,     head :: _) -> SyntaxError $"Unexpected trailing token {head}"

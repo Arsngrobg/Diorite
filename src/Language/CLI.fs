@@ -32,7 +32,7 @@ module private REPL =
     ///     A binding that defines the title of the REPL when in use.
     /// </summary>
     /// <returns> the title of the REPL </returns>
-    let title: string = $"{Properties.name} REPL (v{Version.languageVersion.ToString()})"
+    let title: string = $"{Properties.name} (v{Version.languageVersion}) REPL"
 
     // helper function to test a string to see if it is a blank line
     let isBlankLine (line: string): bool =
@@ -50,6 +50,7 @@ module private REPL =
             System.ConsoleColor.White    |> IO.setConsoleForegroundColor |> generalized
             System.ConsoleColor.Black    |> IO.setConsoleBackgroundColor |> generalized
         ]
+
         resultAsBool result
 
     // processes the provided input from the user
@@ -97,14 +98,12 @@ module private REPL =
                  match input with
                   | "@quit" -> true
                   | _       ->
-                      match processInput input with
-                       | true  -> env()
-                       | false -> false
+                      if processInput input then env()
+                      else                       false
 
         // exit if initialisation failed
-        match initialiseConsole() with
-         | true  -> env()
-         | false -> false
+        if initialiseConsole() then env()
+        else                        false
 
 /// <summary>
 ///     The <c>CLI</c> module relates to the Command Line Interface utilities that face the user when compiling or

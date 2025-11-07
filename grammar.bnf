@@ -27,31 +27,40 @@
 <identifier>    ::= <letter>
                  |  <letter> <digit>
 
-/* program */
-<program>       ::= <equation>
-                 |  <equation> <program>
+<eoi>           ::= ";"
+                 |  ";" <eoi>
+
+/* new */
+<program>       ::= ε
+                 |  <statement> <program>
+
+/* statement */
+<statement>     ::= ";"
+                 |  <expression> ";"
+                 |  <identifier>  "=" <expression> ";"
+                 |  <functiondef> "=" <functionbody>
 
 /* expressions */
-<equation>       ::= <functiondef> "=" <functionbody>
-                  |  <identifier>  "=" <expression> ";"
-                  |  <expression> ";"
+<expression>     ::= <term> <expression'>
 
-<expression>     ::= <term>
-                  |  <term> "+" <expression>
-                  |  <term> "-" <expression>
+<expression'>    ::= ε
+                  |  "+" <term> <expression'>
+                  |  "-" <term> <expression'>
 
-<term>           ::= <factor>
-                  |  <factor> "*"  <term>
-                  |  <factor> "/"  <term>
-                  |  <factor> "//" <term>
-                  |  <factor> "%"  <term>
+<term>           ::= <factor> <term'>
+
+<term'>          ::= ε
+                  |  "*"  <factor> <term'>
+                  |  "/"  <factor> <term'>
+                  |  "//" <factor> <term'>
+                  |  "%"  <factor> <term'>
 
 <factor>         ::= <signed>
                   |  <signed> "^" <signed>
 
 <signed>         ::= <exponent>
-                  |  "+" <exponent>
-                  |  "-" <exponent>
+                  |  "+" <signed>
+                  |  "-" <signed>
 
 <exponent>       ::= <integral> <exponent'>
 

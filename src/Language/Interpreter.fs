@@ -126,7 +126,7 @@ module Evaluator =
          | Parser.Begin nodes -> (evalNodes >> Parser.Begin) nodes
          // values
          | Parser.Number value -> Parser.Number value
-         | Parser.Identifier (character, maybeSubscript) ->
+         | Parser.Variable (character, maybeSubscript) ->
              match maybeSubscript with
               | Some subscriptNumber -> Memory.get character (subscriptNumber + 1)
               | None                 -> Memory.get character 0
@@ -139,7 +139,7 @@ module Evaluator =
              match operator with
               | Parser.Equals ->
                   match left with
-                   | Parser.Identifier (ch, maybeSubscript) ->
+                   | Parser.Variable (ch, maybeSubscript) ->
                        match maybeSubscript with
                         | Some subscriptNumber ->
                             Memory.set ch (subscriptNumber + 1) right
@@ -205,5 +205,4 @@ module Evaluator =
                match Parser.parse tokens with
                 | Error err -> Error err
                 | Ok root ->
-                    IO.output $"{root}\n"
                     (evalTree >> Ok) root
