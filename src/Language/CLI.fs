@@ -65,7 +65,7 @@ module private REPL =
             if System.String.IsNullOrEmpty input then
                 Ok ()
             else
-            match Evaluator.eval input with
+            match Interpreter.eval input with
              | Error err -> IO.compose [
                  System.ConsoleColor.Red   |> IO.setConsoleForegroundColor |> generalized;
                  IO.output $" X  {err}\n"
