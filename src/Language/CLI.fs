@@ -102,11 +102,9 @@ module private REPL =
             IO.writeFile fileName directory (String.concat "\n" history) |> ignore
             System.ConsoleColor.Green |> IO.setConsoleForegroundColor |> generalized |> ignore;
             IO.output $"    Saved REPL history to %s{directory}\%s{fileName}.diorite\n" |> ignore
-            System.ConsoleColor.White |> IO.setConsoleForegroundColor |> generalized;
         | _ ->
             System.ConsoleColor.Yellow |> IO.setConsoleForegroundColor |> generalized |> ignore;
             IO.output "    Usage: @save <filename> [directory]\n" |> ignore
-            System.ConsoleColor.White |> IO.setConsoleForegroundColor |> generalized;
         |> ignore
         ()
         
