@@ -119,7 +119,7 @@ module private REPL =
                         env()
                   | _ ->
                       if processInput input then
-                          match Evaluator.eval input with
+                          match Interpreter.eval input with
                           | Ok _ ->
                               history <- history @ [input]
                           | Error _ ->

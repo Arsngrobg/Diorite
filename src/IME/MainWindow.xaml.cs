@@ -78,7 +78,7 @@ namespace IME {
         /// <param name="input"> input string </param>
         private void ProcessInput(string input)
         {
-            var result = Evaluator.eval(input);
+            var result = Interpreter.eval(input);
             if (result.IsError) {
                 Output.Text = result.ErrorValue.ToString();
             }
