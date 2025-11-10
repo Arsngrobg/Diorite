@@ -115,7 +115,7 @@ module Interpreter =
              | Parser.Undefined -> Parser.Undefined
              | Parser.Number value ->
                  if   value < 0.0 then Parser.Undefined
-                 elif value = 1.0 then Parser.Number 1.0
+                 elif value < 1.0 then Parser.Number 1.0
                  else (Parser.Number value) |*| (Parser.Number >> factorial) (value - 1.0)
 
         let rec applyArgs (parameters: Parser.FunctionParameter list) (args: Parser.AST list): unit =
