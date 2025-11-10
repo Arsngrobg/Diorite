@@ -113,7 +113,10 @@ module Interpreter =
             match operand with
              | Parser.Infinity -> Parser.Infinity
              | Parser.Undefined -> Parser.Undefined
-             | Parser.Number value -> Parser.Undefined // for now
+             | Parser.Number value ->
+                 if   value < 0.0 then Parser.Undefined
+                 elif value = 1.0 then Parser.Number 1.0
+                 else (Parser.Number value) |*| (Parser.Number >> factorial) (value - 1.0)
 
         let rec applyArgs (parameters: Parser.FunctionParameter list) (args: Parser.AST list): unit =
             for arg, param in List.zip args parameters do
