@@ -15,8 +15,6 @@
 
 namespace Diorite.Lang
 
-open System
-
 /// <summary>
 ///     The <c>REPL</c> module is the functionality related to the live interpreter environment in the terminal.
 ///     It provides a neat and simple environment for writing <b>Diorite</b> mathematics code.
@@ -36,8 +34,9 @@ module private REPL =
     /// <returns> the title of the REPL </returns>
 
     let title: string = $"{Properties.name} (v{Version.languageVersion}) REPL"
-    
-    let mutable history: string list = [] // all statements input in the REPL
+
+    // all statements input in the REPL
+    let mutable history: string list = []
 
     // helper function to test a string to see if it is a blank line
     let isBlankLine (line: string): bool =
@@ -92,11 +91,11 @@ module private REPL =
         resultAsBool result
         
     /// <summary>
-    /// Saves REPL history to a <c>.diorite</c> file.
+    ///     Saves REPL history to a <c>.diorite</c> file.
     /// </summary>
-    /// <param name="saveInput"> the <c>@save</c> command arguments </param>
-    let save (saveInput : string) =
-        let parts = saveInput.Split([|' '|], StringSplitOptions.RemoveEmptyEntries)
+    /// <param name='saveInput'> the <c>@save</c> command arguments </param>
+    let save (saveInput: string): unit =
+        let parts: string array = saveInput.Split(" ", System.StringSplitOptions.RemoveEmptyEntries)
         match parts with
         | [|"@save"; fileName; directory|] ->
             IO.writeFile fileName directory (String.concat "\n" history) |> ignore
