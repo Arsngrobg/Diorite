@@ -13,8 +13,9 @@
 x;           # variables
 x0;          # variables (+ subscript)
 undefined;   # undefined (null)
-infinity;    # infinity
+infinity;    # infinity (PositiveInfinity)
 inf;         # also infinity
+-infinity;   # represented as NegativeInfinity
 
 # assignment
 x = 5;

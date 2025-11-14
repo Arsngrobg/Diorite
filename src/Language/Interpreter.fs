@@ -94,7 +94,9 @@ module Interpreter =
          | AST.PositiveInfinity, _                    -> Ok AST.PositiveInfinity
          | AST.NegativeInfinity, _                    -> Ok AST.NegativeInfinity
 
-         | AST.Number left,      AST.Number right     -> (AST.Number >> Ok) (left / right)
+         | AST.Number left,      AST.Number right     ->
+                if right = 0 then MathError "Division by zero"
+                else              (AST.Number >> Ok) (left / right)
 
          | left,                 right                -> MathError $"Unsupported division between {left} & {right}"
     )
@@ -119,6 +121,41 @@ module Interpreter =
              | AST.Number result -> (AST.Number >> Ok) <| Library.floor(result)
              | other             -> SystemError $"Binary division rule should have returned a number - not {other}"
         )
+    )
+
+    // binary exponent rules
+    let rec private (|^|): BinaryOperationRule = (fun left -> fun right ->
+        // there may be a way to simplify this, but it works so fuck you
+        match left, right with
+         | AST.PositiveInfinity, AST.Number right    -> Ok (
+                if   right > 0 then AST.PositiveInfinity
+                elif right = 0 then AST.Number 1
+                else                AST.Number 0
+             )
+         | AST.Number left,      AST.PositiveInfinity -> Ok (
+                if   left > 1             then AST.PositiveInfinity
+                elif left > 0 && left < 1 then AST.Number 0
+                else                           AST.Number 1
+             )
+         | AST.NegativeInfinity, AST.Number right     -> Ok (
+                if right > 0 then
+                    if   right % 2.0 = 0 then AST.PositiveInfinity
+                    elif right % 2.0 = 1 then AST.NegativeInfinity
+                    else                      AST.Undefined // complex
+                else
+                    if   right % 1.0 = 0 then AST.Number 0
+                    else                      AST.Undefined // complex
+             )
+         | AST.PositiveInfinity, AST.NegativeInfinity ->
+             (AST.PositiveInfinity |^| AST.PositiveInfinity) >>= (fun result -> (AST.Number 1) |/| result)
+         | AST.PositiveInfinity, AST.PositiveInfinity -> Ok AST.PositiveInfinity
+         | AST.NegativeInfinity, _                    -> Ok AST.Undefined // complex
+
+         | AST.Number left,      AST.NegativeInfinity ->
+             (AST.Number left |^| AST.PositiveInfinity) >>= (fun result -> (AST.Number 1) |/| result)
+
+         | AST.Number left,      AST.Number right     -> (AST.Number >> Ok) (left ** right)
+         | left,                 right                -> MathError $"Unsupported exponent between {left} & {right}"
     )
 
     // unary positive rules
@@ -298,6 +335,7 @@ module Interpreter =
               | AST.Division       -> evalTree left >>= (fun l -> evalTree right >>= (fun r -> l |/|  r))
               | AST.Modulo         -> evalTree left >>= (fun l -> evalTree right >>= (fun r -> l |%|  r))
               | AST.FloorDivision  -> evalTree left >>= (fun l -> evalTree right >>= (fun r -> l |//| r))
+              | AST.Exponentiation -> evalTree left >>= (fun l -> evalTree right >>= (fun r -> l |^|  r))
               | other              -> MathError $"Unsupported binary operation {other}"
 
          // unary operations (TODO: integration & differentiation)
