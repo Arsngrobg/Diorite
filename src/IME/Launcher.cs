@@ -13,15 +13,11 @@
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
 
-using System.Windows;
-
 namespace IME {
-    public class Launcher {
+    public static class Launcher {
         [STAThread]
         public static void Main() {
-            var ime = new Application();
-            var mainWindow = new MainWindow();
-            ime.Run(mainWindow);
+            Console.WriteLine("Hello, World!");
         }
     }
 }

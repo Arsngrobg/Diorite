@@ -7,9 +7,6 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
     <ItemGroup>
-      <ProjectReference Include="..\Language\Language.fsproj" />
-    </ItemGroup>
-    <ItemGroup>
       <PackageReference Include="ScottPlot.WPF" Version="5.1.57" />
     </ItemGroup>
 </Project>
