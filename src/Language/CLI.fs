@@ -8,7 +8,7 @@
 // File:    CLI.fs
 // Summary: Command-Line Interface utils and the entry point for the Diorite language utility
 // Author:  Arsngrobg
-// Version: v1.15
+// Version: v1.16
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
@@ -18,7 +18,7 @@ namespace Diorite.Lang
 /// <summary>
 ///     The <c>REPL</c> module is the functionality related to the live interpreter environment in the terminal.
 ///     It provides a neat and simple environment for writing <b>Diorite</b> mathematics code.
-///     It exposes a singular function for initialisation.
+///     It exposes a singular function for initialization.
 ///     <code>
 ///         let stable: bool = REPL.launch()
 ///         match stable with
@@ -29,10 +29,8 @@ namespace Diorite.Lang
 [<RequireQualifiedAccess>]
 module private REPL =
     /// <summary>
-    ///     A binding that defines the title of the REPL when in use.
+    ///     The title of the REPL when in use.
     /// </summary>
-    /// <returns> the title of the REPL </returns>
-
     let title: string = $"{Properties.name} (v{Version.languageVersion}) REPL"
 
     // all statements input in the REPL
@@ -95,6 +93,9 @@ module private REPL =
     /// </summary>
     /// <param name='saveInput'> the <c>@save</c> command arguments </param>
     let save (saveInput: string): unit =
+        // TODO: this currently causes issues with the interpreter memory as eval is invoked twice, hence double the
+        //       unknowingly confusing memory operations on
+        //       e.g. x = 2; x = x + 2; x; ==> *2 so x would actually be equal to 4 but is 6
         let parts: string array = saveInput.Split(" ", System.StringSplitOptions.RemoveEmptyEntries)
         match parts with
         | [|"@save"; fileName; directory|] ->
@@ -134,7 +135,7 @@ module private REPL =
                       else
                         false
 
-        // exit if initialisation failed
+        // exit if initialization failed
         if initialiseConsole() then env()
         else                        false
 
@@ -189,7 +190,7 @@ Usage: {Properties.programName} [-h | --help]
     "
 
     /// <summary>
-    ///     The argument types recognised by the <c>Diorite</c> CL utility.
+    ///     The argument types recognized by the <c>Diorite</c> CL utility.
     /// </summary>
     type Argument =
         | Help                  // -h / --help

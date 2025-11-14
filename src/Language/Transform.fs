@@ -319,7 +319,7 @@ module Parser =
     ///     The number sets supported by the <c>SetHint</c> feature.
     /// </summary>
     type NumberSet =
-        | Natural    // N = {1, ..., ∞}
+        | Natural    // N = {0, ..., ∞}
         | Integer    // Z = {-∞, ..., 0, ..., ∞}
         | Real       // R = {Q & I}
         | Rational   // Q = {x where x = a/b & b != 0}
@@ -398,8 +398,8 @@ module Parser =
     ///     A function name is either a symbolic name or a <c>Identifier</c> name.
     /// </summary>
     type FunctionName =
-        | Symbolic     of string
-        | Identifiable of id: char * subscript: int option
+        | SymbolicName of string
+        | VariableName of id: char * subscript: int option
 
     /// <summary>
     ///     The <c>AST</c> type is a discriminated union which describes the structure of the AST of the <b>Diorite</b>
@@ -412,7 +412,8 @@ module Parser =
 
         // reserved words
         | Undefined
-        | Infinity
+        | PositiveInfinity
+        | NegativeInfinity
 
         // unary operations
         | Integration
@@ -630,26 +631,18 @@ module Parser =
     and exponent: Parser<AST> = (fun tokens ->
         // <exponent'> ::= ε
         //              |  "!" <exponent'>
-        let rec exponent': Parser<AST option> = (fun tokens ->
+        let rec exponent' (accumulated: AST): Parser<AST> = (fun tokens ->
             match tokens with
              // <exponent'> ::= "!" <exponent'>
              | Lexer.Exclamation :: exponentTail ->
-                 exponent' exponentTail >>= (fun (maybeNode, remaining) ->
-                     match maybeNode with
-                      | Some node -> Ok ((UnaryOperation >> Some) (node, Factorial), remaining)
-                      | None      -> Ok (Some Factorial, remaining)
+                 (exponent' accumulated) exponentTail >>= (fun (node, remaining) ->
+                    Ok (UnaryOperation (node, Factorial), remaining)
                  )
              // <exponent'> ::= ε
-             | remaining -> Ok (None, remaining)
+             | remaining -> Ok (accumulated, remaining)
         )
 
-        integral tokens >>= (fun (node, exponentTail) ->
-            exponent' exponentTail >>= (fun (maybeFactorial, remaining) ->
-                match maybeFactorial with
-                 | Some factorialNode -> Ok (UnaryOperation (node, factorialNode), remaining)
-                 | None               -> Ok (node, exponentTail)
-            )
-        )
+        integral tokens >>= (fun (node, exponentTail) -> (exponent' node) exponentTail)
     )
     // <integral> ::= <subexpression> <integral'>
     //             |  "'" <integral>
@@ -712,7 +705,7 @@ module Parser =
          | Lexer.Identifier (ch, sb) :: Lexer.LeftParenthesis :: subExpressionTail ->
              args subExpressionTail >>= (fun (args, subExpressionTail) ->
                  match subExpressionTail with
-                  | Lexer.RightParenthesis :: remaining -> Ok (FunctionCall (Identifiable (ch, sb), args), remaining)
+                  | Lexer.RightParenthesis :: remaining -> Ok (FunctionCall (VariableName (ch, sb), args), remaining)
                   | head                   :: _         -> SyntaxError $"Expected closing parenthesis - got {head}"
                   | []                                  -> SyntaxError  "Expected closing parenthesis"
              )
@@ -720,7 +713,7 @@ module Parser =
          | Lexer.Symbol name :: Lexer.LeftParenthesis :: subExpressionTail ->
              args subExpressionTail >>= (fun (args, subExpressionTail) ->
                  match subExpressionTail with
-                  | Lexer.RightParenthesis :: remaining -> Ok (FunctionCall (Symbolic name, args), remaining)
+                  | Lexer.RightParenthesis :: remaining -> Ok (FunctionCall (SymbolicName name, args), remaining)
                   | head                   :: _         -> SyntaxError $"Expected closing parenthesis - got {head}"
                   | []                                  -> SyntaxError  "Expected closing parenthesis"
              )
@@ -751,15 +744,15 @@ module Parser =
     and value: Parser<AST> = (fun tokens ->
         match tokens with
          | Lexer.Undefined           :: remaining -> Ok (Undefined,         remaining)
-         | Lexer.Infinity            :: remaining -> Ok (Infinity,          remaining)
+         | Lexer.Infinity            :: remaining -> Ok (PositiveInfinity,  remaining)
          | Lexer.Pi                  :: remaining -> Ok (Number 3.1415926,  remaining)
          | Lexer.Tau                 :: remaining -> Ok (Number 6.2831853,  remaining)
          | Lexer.Euler               :: remaining -> Ok (Number 2.7182818,  remaining)
          | Lexer.Identifier (ch, sb) :: remaining -> Ok (Variable (ch, sb), remaining)
          | Lexer.Number      number  :: remaining ->
              // if the number is too big it can be Double.Infinity - so map it to an Infinity node for consistent ops
-             if number |> System.Double.IsInfinity then Ok (Infinity,      remaining)
-             else                                       Ok (Number number, remaining)
+             if number |> System.Double.IsInfinity then Ok (PositiveInfinity, remaining)
+             else                                       Ok (Number number,    remaining)
          | head                      :: _         -> SyntaxError $"Expected value - got {head} instead"
          | []                                     -> SyntaxError "Expected value when TokenStream empty"
     )
@@ -849,16 +842,16 @@ module Parser =
         match tokens with
          | Lexer.Identifier (ch, sb) :: functionParamTail ->
              match functionParamTail with
-            // <functionparam> ::= <identifier> ":" "N"
-            //                  |  <identifier> ":" "Z"
-            //                  |  <identifier> ":" "R"
-            //                  |  <identifier> ":" "Q"
-            //                  |  <identifier> ":" "I"
-            //                  |  <identifier> ":" "C"
+             // <functionparam> ::= <identifier> ":" "N"
+             //                  |  <identifier> ":" "Z"
+             //                  |  <identifier> ":" "R"
+             //                  |  <identifier> ":" "Q"
+             //                  |  <identifier> ":" "I"
+             //                  |  <identifier> ":" "C"
               | Lexer.Colon :: functionParamTail ->
                   match functionParamTail with
-                   | Lexer.Identifier (ch, None) :: remaining ->
-                       match getNumberSet ch with
+                   | Lexer.Identifier (setCh, None) :: remaining ->
+                       match getNumberSet setCh with
                         | Some numberSet -> Ok (FunctionParameter ((ch, sb), numberSet), remaining)
                         | None           -> SyntaxError $"Expected NumberSet for function parameter - got {ch}"
                    | Lexer.Identifier (ch, Some sb) :: _ ->
