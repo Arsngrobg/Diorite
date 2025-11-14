@@ -84,7 +84,24 @@ namespace IME {
             }
             else
             {
-                Output.Text = result.ResultValue.ToString();
+                var a = result.ResultValue as Parser.AST.Begin;
+                var b = a.Item[0];
+                if (b.IsNumber)
+                {
+                    var num = ((Parser.AST.Number) b).Item;
+                    if (num == (long)num)
+                    {
+                        Output.Text = $"{(long) num}";
+                    }
+                    else
+                    {
+                        Output.Text = $"{num}";
+                    }
+                }
+                else
+                {
+                    Output.Text = b.ToString();
+                }
             }
         }
 

@@ -49,7 +49,7 @@ module IO =
     // private helper for easily extracting errors from side-effecting operations
     // it receives an 'unsafe' function that wraps an executable block of code that returns a generic value
     // it returns a custom Result discriminated union type depending on Ok or Error
-    let inline private tryAsResult<'a> (unsafe: unit -> 'a): 'a Result =
+    let inline private wrapTry<'a> (unsafe: unit -> 'a): 'a Result =
         try Ok (unsafe ())
         with ex -> SystemError $"{ex.GetType.ToString()}: {ex.Message}"
 
@@ -97,7 +97,7 @@ module IO =
         let unsafe (): unit =
             System.Console.Write str
 
-        tryAsResult <| unsafe
+        wrapTry <| unsafe
 
     /// <summary>
     ///     Reads the characters entered by the user in the console until a carriage return (<c>'\r'</c>), newline
@@ -118,7 +118,7 @@ module IO =
          | Some(p) -> output p  |> ignore
          | None    -> output "" |> ignore
 
-        tryAsResult <| System.Console.ReadLine
+        wrapTry <| System.Console.ReadLine
 
     /// <summary>
     ///     Shifts the cursor position in the console by the <c>dx</c> and <c>dy</c> values and returns the new position
@@ -144,7 +144,7 @@ module IO =
              System.Console.SetCursorPosition(nx, ny)
              (nx, ny)
 
-         tryAsResult <| getAndSet
+         wrapTry <| getAndSet
 
     /// <summary>
     ///     Sets the background color of the console.
@@ -163,7 +163,7 @@ module IO =
             System.Console.BackgroundColor <- color
             System.Console.BackgroundColor
 
-        tryAsResult <| unsafe
+        wrapTry <| unsafe
 
     /// <summary>
     ///     Sets the foreground color of the console.
@@ -182,7 +182,7 @@ module IO =
             System.Console.ForegroundColor <- color
             System.Console.ForegroundColor
 
-        tryAsResult <| unsafe
+        wrapTry <| unsafe
 
     /// <summary>
     ///     Sets the title of the console.
@@ -201,7 +201,7 @@ module IO =
             System.Console.Title <- title
             System.Console.Title
 
-        tryAsResult <| unsafe
+        wrapTry <| unsafe
 
     /// <summary>
     ///     Clears the console with the optional <c>color</c> value.
@@ -223,7 +223,7 @@ module IO =
                 System.Console.BackgroundColor // implicitly calls a getter that is tryResult
 
             let currentColor: System.ConsoleColor =
-                (tryAsResult <| unsafeGrabBGColor) |> getOrElse <| System.ConsoleColor.Black
+                (wrapTry <| unsafeGrabBGColor) |> getOrElse <| System.ConsoleColor.Black
 
             let newColor: System.ConsoleColor =
                 match color with
@@ -235,7 +235,7 @@ module IO =
             System.Console.BackgroundColor <- currentColor
             newColor
 
-        tryAsResult <| unsafe
+        wrapTry <| unsafe
 
     /// <summary>
     ///     Eagerly reads the contents of the supplied file derived from the <c>path</c> argument.
@@ -258,7 +258,7 @@ module IO =
             fileReader.Close()
             content
 
-        tryAsResult <| unsafe
+        wrapTry <| unsafe
 
     /// <summary>
     ///     Writes the <c>contents</c> to the desired <c>directory</c> with the <c>fileName</c>.
@@ -277,5 +277,5 @@ module IO =
             use fileWriter = new System.IO.StreamWriter(filePath, false) // false = overwrite, true = append
             fileWriter.WriteLine(contents)
         
-        tryAsResult <| unsafe
+        wrapTry <| unsafe
                 

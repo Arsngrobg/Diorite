@@ -28,20 +28,56 @@ namespace Diorite.Lang
 /// </summary>
 [<RequireQualifiedAccess>]
 module private REPL =
+    // shorthand typedefs
+    type AST = Parser.AST
+
+    /// <summary>
+    ///     The command types available.
+    /// </summary>
+    type CommandToken =
+        | Help
+        | Quit
+        | Clear
+        | Save
+        | Literal of string
+
     /// <summary>
     ///     The title of the REPL when in use.
     /// </summary>
     let title: string = $"{Properties.name} (v{Version.languageVersion}) REPL"
 
-    // all statements input in the REPL
-    let mutable history: string list = []
+    // shows the error in the REPL
+    let showError (err: DioriteError): unit Result =
+        IO.compose [
+            System.ConsoleColor.Red   |> IO.setConsoleForegroundColor |> generalized
+            IO.output $" X  {err}\n"
+            System.ConsoleColor.White |> IO.setConsoleForegroundColor |> generalized
+        ]
 
-    // helper function to test a string to see if it is a blank line
-    let isBlankLine (line: string): bool =
-        System.String.IsNullOrWhiteSpace line
+    // shows the successful result in the REPL
+    let rec showSuccess (root: AST): unit =
+        let rec getStrings (accumulator: string) (root: AST): string =
+            match root with
+             | AST.Begin (head :: tail) ->
+                 showSuccess head
+                 (AST.Begin >> getStrings accumulator) tail
+             | AST.Undefined        -> (accumulator + "; undefined")
+             | AST.Number value     -> (accumulator + $"; {value}")
+             | AST.PositiveInfinity -> (accumulator + "; ∞")
+             | AST.NegativeInfinity -> (accumulator + "; -∞")
+             | _                    -> ""
 
-    // initializes the console environment and hence the REPL environment.
-    let initialiseConsole (): bool =
+        let output: string = getStrings "" root
+        if output |> System.String.IsNullOrEmpty then
+            ()
+        else
+            IO.compose [
+                System.ConsoleColor.DarkGray |> IO.setConsoleForegroundColor |> generalized
+                IO.output $" ¦  {output}\n"
+            ] |> ignore
+
+    // initializes the console environment
+    let initialise (): bool =
         // execute batch operation
         let result: unit Result = IO.compose [
             title                        |> IO.setConsoleTitle           |> generalized
@@ -55,89 +91,90 @@ module private REPL =
 
         resultAsBool result
 
-    // processes the provided input from the user
-    let processInput (input: string): bool =
-        // defines what is output depending on the lexer result
-        let noOutputIfNoTokens (): unit Result =
-            if System.String.IsNullOrEmpty input then
-                Ok ()
-            else
-            match Interpreter.eval input with
-             | Error err -> IO.compose [
-                 System.ConsoleColor.Red   |> IO.setConsoleForegroundColor |> generalized;
-                 IO.output $" X  {err}\n"
-                 System.ConsoleColor.White |> IO.setConsoleForegroundColor |> generalized;
-               ]
-             | Ok result -> IO.compose [
-                 System.ConsoleColor.DarkGray |> IO.setConsoleForegroundColor |> generalized
-                 IO.output $" ¦  {result}\n"
-               ]
+    // parses raw strings into a typed system of command types
+    let parseCommand (input: string): CommandToken list =
+        let rec parse (tokens: string list): CommandToken list =
+            match tokens with
+             | [] -> []
+             | "@help"  :: tail -> Help            :: parse tail
+             | "@quit"  :: tail -> Quit            :: parse tail
+             | "@clear" :: tail -> Clear           :: parse tail
+             | "@save"  :: tail -> Save            :: parse tail
+             | literal  :: tail -> Literal literal :: parse tail
 
-        // partial for moving the cursor up or down by n units
-        let moveCursorY: int -> (int * int) Result = IO.moveCursorRelative 0
+        if not(input.StartsWith "@") then [ CommandToken.Literal input ]
+        else (input.Split (" ", System.StringSplitOptions.RemoveEmptyEntries)) |> (Array.toList >> parse)
 
-        // execute batch operation
-        let result: unit Result = IO.compose [
-            -1                           |> moveCursorY                  |> generalized
-            System.ConsoleColor.DarkGray |> IO.setConsoleForegroundColor |> generalized
-            " |"                         |> IO.output
-            System.ConsoleColor.White    |> IO.setConsoleForegroundColor |> generalized
-            $"  {input}\n"               |> IO.output;
-            ()                           |> noOutputIfNoTokens
-            System.ConsoleColor.White    |> IO.setConsoleForegroundColor |> generalized
-        ]
-        resultAsBool result
-        
-    /// <summary>
-    ///     Saves REPL history to a <c>.diorite</c> file.
-    /// </summary>
-    /// <param name='saveInput'> the <c>@save</c> command arguments </param>
-    let save (saveInput: string): unit =
-        // TODO: this currently causes issues with the interpreter memory as eval is invoked twice, hence double the
-        //       unknowingly confusing memory operations on
-        //       e.g. x = 2; x = x + 2; x; ==> *2 so x would actually be equal to 4 but is 6
-        let parts: string array = saveInput.Split(" ", System.StringSplitOptions.RemoveEmptyEntries)
-        match parts with
-        | [|"@save"; fileName; directory|] ->
-            IO.writeFile fileName directory (String.concat "\n" history) |> ignore
-            System.ConsoleColor.Green |> IO.setConsoleForegroundColor |> generalized |> ignore;
-            IO.output $"    Saved REPL history to %s{directory}\%s{fileName}.diorite\n" |> ignore
-        | _ ->
-            System.ConsoleColor.Yellow |> IO.setConsoleForegroundColor |> generalized |> ignore;
-            IO.output "    Usage: @save <filename> [directory]\n" |> ignore
-        |> ignore
-        ()
+    // executes the command sequence
+    let executeCommand (history: string list) (command: CommandToken list): (bool * string list) Result =
+        match command with
+         | []        -> Ok (true, history) // if no command - do nothing
+
+         | [ Help ]  -> Ok (true, history) // display help
+
+         | [ Quit ]  -> Ok (false, history) // quit
+
+         | [ Clear ] -> Ok (true, []) // clear the history
+
+         | [ Save; Literal filename; Literal directory ] ->
+             IO.compose [
+                IO.writeFile filename directory (String.concat "\n" history)                                      |> generalized
+                System.ConsoleColor.Green                                         |> IO.setConsoleForegroundColor |> generalized
+                $"    Saved REPL history to %s{directory}\%s{filename}.diorite\n" |> IO.output                    |> generalized
+                System.ConsoleColor.Black                                         |> IO.setConsoleForegroundColor |> generalized
+             ] |> ignore
+             Ok (true, history)
+         | Save :: _ ->
+             IO.compose [
+                 System.ConsoleColor.Yellow                  |> IO.setConsoleForegroundColor |> generalized
+                 "    Usage: @save <filename> [directory]\n" |> IO.output                    |> generalized
+                 System.ConsoleColor.Black                   |> IO.setConsoleForegroundColor |> generalized
+             ] |> ignore
+             Ok (true, history)
+
+         | [ Literal code ] ->
+             match Interpreter.eval code with
+              | Error err  ->
+                  (showError >> ignore) err
+                  Ok (true, history)
+              | Ok    root ->
+                  (showSuccess >> ignore) root
+                  Ok (true, history @ [code])
+
+         | _ -> SyntaxError "Unrecognised REPL command"
         
     /// <summary>
     ///     Launches the REPL environment in the user's terminal.
     /// </summary>
     /// <returns> <c>true</c> if the REPL exited without error; <c>false</c> if a fatal error occurred </returns>
     let rec launch (): bool =
-        let rec env (): bool =
-            System.Console.ForegroundColor <- System.ConsoleColor.White
-            System.Console.BackgroundColor <- System.ConsoleColor.Black
-            match IO.input(Some ">>> ") with
-             | Error _     -> false
-             | Ok input ->
-                 match input with
-                  | "@quit" -> true
-                  | saveInput when saveInput.StartsWith("@save") ->
-                        save saveInput
-                        env()
-                  | _ ->
-                      if processInput input then
-                          match Interpreter.eval input with
-                          | Ok _ ->
-                              history <- history @ [input]
-                          | Error _ ->
-                              () // Error generating code not added to REPL history
-                          env()
-                      else
-                        false
+        // partial for moving the cursor up or down by n units
+        let moveCursorY: int -> (int * int) Result = IO.moveCursorRelative 0
 
-        // exit if initialization failed
-        if initialiseConsole() then env()
-        else                        false
+        let rec env(history: string list): bool =
+            IO.setConsoleForegroundColor System.ConsoleColor.White |> ignore
+            IO.setConsoleBackgroundColor System.ConsoleColor.Black |> ignore
+
+            let code: string = (Some >> IO.input) ">>> " |> getOrElse <| ""
+            moveCursorY -1 |> ignore
+            IO.compose [
+                System.ConsoleColor.DarkGray |> IO.setConsoleForegroundColor |> generalized
+                " |"                         |> IO.output
+                System.ConsoleColor.White    |> IO.setConsoleForegroundColor |> generalized
+                $"  {code}\n"                |> IO.output
+                System.ConsoleColor.White    |> IO.setConsoleForegroundColor |> generalized
+            ] |> ignore
+            let result: (bool * string list) Result = code |> (parseCommand >> (executeCommand history))
+
+            match result with
+             | Error err ->
+                 showError err |> ignore
+                 true
+             | Ok (keepRunning, history) -> if keepRunning then history |> env else false
+
+        // if initialized, run the REPL
+        if initialise () then env []
+        else                  false
 
 /// <summary>
 ///     The <c>CLI</c> module relates to the Command Line Interface utilities that face the user when compiling or
@@ -208,26 +245,26 @@ Usage: {Properties.programName} [-h | --help]
     let executeArgs (args: Argument list): ExitCode =
         match args with
          // display this version of diorite
-         | [ Version ] ->
+         | [ Argument.Version ] ->
              IO.output $"{Properties.name} v{Version.languageVersion}" |> ignore
              ExitCode.NoError
 
          // display help if the ARG_HELP or no args are given
-         | [ Help ] | [] ->
+         | [ Argument.Help ] | [] ->
              IO.output $"{helpString}" |> ignore
              ExitCode.NoError
 
          // checks and upgrades this version of diorite to the latest version
-         | [ Upgrade ] -> failwith "[TODO] Offer some sort of update feature (use gh releases?)"
+         | [ Argument.Upgrade ] -> failwith "[TODO] Offer some sort of update feature (use gh releases?)"
 
          // launches the REPL environment in the user's terminal (IT DOES NOT WORK IN IDE INTEGRATED TERMINALS)
-         | [ Interpreter ] ->
+         | [ Argument.Interpreter ] ->
              let success = REPL.launch()
              if success then ExitCode.NoError
              else            ExitCode.REPLFailure
 
          // attempt to load the file into the REPL environment
-         | [ Interpreter; Literal filename ] ->
+         | [ Argument.Interpreter; Argument.Literal filename ] ->
              match IO.readFile filename with
               | Ok fileContents ->
                   let tokens = Lexer.tokenize(fileContents)
@@ -242,7 +279,7 @@ Usage: {Properties.programName} [-h | --help]
                   ExitCode.FileNotFound
 
          // compile the given .diorite file
-         | [ Compile; Literal _ ] -> failwith "[TODO] Compile that shit"
+         | [ Argument.Compile; Argument.Literal _ ] -> failwith "[TODO] Compile that shit"
 
          // illegal combination of arguments given to the CLI
          | _ -> ExitCode.IllegalArgs
@@ -259,15 +296,15 @@ Usage: {Properties.programName} [-h | --help]
     let rec parseArgs (argv: string list): Argument list =
         match argv with
          | []                                 -> []
-         | ( "-h" | "--help"        ) :: tail -> Help         :: parseArgs tail
-         | ( "-u" | "--upgrade"     ) :: tail -> Upgrade      :: parseArgs tail
-         | ( "-v" | "--version"     ) :: tail -> Version      :: parseArgs tail
-         | ( "-i" | "--interpreter" ) :: tail -> Interpreter  :: parseArgs tail
-         | ( "-c" | "--compile"     ) :: tail -> Compile      :: parseArgs tail
-         | head :: tail                       -> Literal head :: parseArgs tail
+         | ( "-h" | "--help"        ) :: tail -> Argument.Help         :: parseArgs tail
+         | ( "-u" | "--upgrade"     ) :: tail -> Argument.Upgrade      :: parseArgs tail
+         | ( "-v" | "--version"     ) :: tail -> Argument.Version      :: parseArgs tail
+         | ( "-i" | "--interpreter" ) :: tail -> Argument.Interpreter  :: parseArgs tail
+         | ( "-c" | "--compile"     ) :: tail -> Argument.Compile      :: parseArgs tail
+         | head :: tail                       -> Argument.Literal head :: parseArgs tail
 
     [<EntryPoint>]
     let main (argv: string array): int =
         let args: Argument list = (Array.toList >> parseArgs) argv
         let exitCode: ExitCode = executeArgs args
-        int <| exitCode
+        exitCode |> int

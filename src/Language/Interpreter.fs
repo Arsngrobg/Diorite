@@ -22,7 +22,7 @@ open Diorite.Lang
 /// </summary>
 module Interpreter =
     // shorthand typedefs
-    type private AST    = Parser.AST
+    type private AST = Parser.AST
 
     type BinaryOperationRule = AST -> AST -> AST Result
     type UnaryOperationRule  = AST -> AST Result
@@ -296,6 +296,11 @@ module Interpreter =
             let colIndex = findColIndex character
             table[rowIndex, colIndex] <- value
 
+    /// <summary>
+    ///     Evaluates the supplied <c>root</c> node.
+    /// </summary>
+    /// <param name='root'> the root node to evaluate </param>
+    /// <returns> a <c>Result</c> that may contain the evaluated tree </returns>
     let rec evalTree (root: AST): AST Result =
         match root with
          // begin nodes
@@ -413,9 +418,15 @@ module Interpreter =
 
          | other -> MathError $"Cannot evaluate lone {other} node"
 
-
+    /// <summary>
+    ///     Evaluates the raw string as a <b>Diorite</b> statement, or series of statements delimited by the <c>';'</c>
+    ///     character.
+    /// </summary>
+    /// <param name='src'> the raw string to evaluate </param>
+    /// <returns> a <c>Result</c> that may contain the root node of the evaluated string </returns>
     let rec eval (src: string): AST Result =
         let tokens: Lexer.TokenStream = Lexer.tokenize src
+        if tokens.Length = 0 then (AST.Begin >> Ok) [] else
         let error: DioriteError option = Lexer.getError tokens
         match error with
          | Some err -> Error err
