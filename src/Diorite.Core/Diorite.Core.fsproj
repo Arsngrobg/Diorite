@@ -1,14 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <OutputType>Exe</OutputType>
+        <OutputType>Library</OutputType>
         <TargetFramework>net9.0</TargetFramework>
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="BaseDef.fs"  />
-        <Compile Include="Errors.fs"   />
-        <Compile Include="Lexer.fs"    />
+        <Compile Include="Properties.fs" />
+        <Compile Include="Version.fs"    />
+        <Compile Include="BaseDef.fs"    />
+        <Compile Include="Errors.fs"     />
+        <Compile Include="Lexer.fs"      />
+        <Compile Include="Parser.fs"     />
     </ItemGroup>
 
 </Project>
