@@ -1,0 +1,46 @@
+﻿// ------------------------------------------------------------------------------------------------------------------
+//    _____  __              __ __
+//   |     \|__|.-----.----.|__|  |_.-----.
+//   |  --  |  ||  _  |   _||  |   _|  -__|
+//   |_____/|__||_____|__|  |__|____|_____|
+//
+// ------------------------------------------------------------------------------------------------------------------
+// File:    BaseTypes.fsi
+// Summary: Definitions for the core types in the Diorite mathematics language
+// Author:  Arsngrobg
+// Version: v1.0
+// ------------------------------------------------------------------------------------------------------------------
+// Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
+// ------------------------------------------------------------------------------------------------------------------
+
+namespace Diorite.Lang.Core
+
+/// <summary>
+///     <p>The <c>BaseTypes</c> module contains bindings for the common types and their public-facing API functions.</p>
+/// </summary>
+// marked as AutoOpen as used across the entire project
+[<AutoOpen>]
+module BaseTypes =
+    /// <summary>
+    ///     <p>The structured representation of a <c>Variable</c> in the <b>Diorite</b> mathematics language.</p>
+    ///     <p><b>1.</b> The first value (<c>char</c>) is the character which is the variable name (e.g. 'x').</p>
+    ///     <p><b>2.</b> The second value (<c>int</c>) is the encoded subscript of the variable - this value is
+    ///        optional, where a subscript of <c>0</c> internally represents the plain character (e.g. <c>'x'</c>) and
+    ///        <c>10</c> internally represents the subscript-ed variable <c>"x9"</c>, which is the maximum amount of
+    ///        subscript-ed permutations of the character.
+    ///     </p>
+    ///     <p>For all characters of the alphabet (including lowercase &amp; uppercase), each with 11 unique
+    ///        permutations, that means <b>Diorite</b> supports a total of <c>572</c> variables.
+    ///     </p>
+    /// </summary>
+    type VariableType = char * int
+
+    /// <summary>
+    ///     <p>Produces the <c>string</c> representation of the supplied <c>VariableType</c>.</p>
+    ///     <p>It returns the string representation of all valid variables with subscripts between <c>0</c> and
+    ///        <c>10</c>, where the <c>10</c>th subscript is the <c>9</c>th subscript-ed .
+    ///     </p>
+    /// </summary>
+    /// <typeparam name="VariableType"> the <c>Variable</c> to derive the <c>string</c> representation </typeparam>
+    /// <returns> the <c>string</c> representation of this <c>VariableType</c> </returns>
+    val strVariable: VariableType -> string

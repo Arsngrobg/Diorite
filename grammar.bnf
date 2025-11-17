@@ -62,16 +62,10 @@
                   |  "+" <signed>
                   |  "-" <signed>
 
-<exponent>       ::= <integral> <exponent'>
+<exponent>       ::= <subexpression> <exponent'>
 
 <exponent'>      ::= ε
                   |  "!" <exponent'>
-
-<integral>       ::= <subexpression> <integral'>
-                  |  "'" <integral>
-
-<integral'>      ::= ε
-                  |  "'" <integral'>
 
 <subexpression>  ::= <value>
                   |  "(" <expression> ")"
