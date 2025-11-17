@@ -8,7 +8,6 @@
     <ItemGroup>
         <Compile Include="BaseDef.fs"  />
         <Compile Include="Errors.fs"   />
-        <Compile Include="Lexer.fsi"   />
         <Compile Include="Lexer.fs"    />
     </ItemGroup>
 
