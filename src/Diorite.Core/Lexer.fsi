@@ -20,7 +20,10 @@ namespace Diorite.Lang.Core
 /// </summary>
 module Lexer =
     /// <summary>
-    ///     <p>The discriminated union type that describes the unique subtypes of the <c>Token</c> type.</p>
+    ///     <p>The discriminated union type that identifies the <c>Token</c> in a <c>TokenStream</c>.</p>
+    ///     <p>Some <c>TokenType</c>s may store some metadata about it like <c>TokenType.Number</c>, which stores the
+    ///        numerical representation of the token consisting of a numbered string.
+    ///     </p>
     /// </summary>
     type TokenType =
         | IllegalToken
@@ -109,6 +112,11 @@ module Lexer =
     /// <returns> the <c>string</c> representation of the supplied <c>Token</c> </returns>
     val strToken: Token -> string
 
+    /// <summary>
+    ///     <p>Produces the <c>string</c> representation of the supplied <c>TokenStream</c>.</p>
+    /// </summary>
+    /// <typeparam name='TokenStream'> the token stream </typeparam>
+    /// <returns> the <c>string</c> representation of the supplied <c>TokenStream</c> </returns>
     val strTokens: TokenStream -> string
 
     /// <summary>
