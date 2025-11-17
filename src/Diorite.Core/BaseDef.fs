@@ -5,7 +5,7 @@
 //   |_____/|__||_____|__|  |__|____|_____|
 //
 // ------------------------------------------------------------------------------------------------------------------
-// File:    BaseTypes.fsi
+// File:    BaseDef.fs
 // Summary: Definitions for the core types in the Diorite mathematics language
 // Author:  Arsngrobg
 // Version: v1.0
@@ -20,7 +20,7 @@ namespace Diorite.Lang.Core
 /// </summary>
 // marked as AutoOpen as used across the entire project
 [<AutoOpen>]
-module BaseTypes =
+module BaseDef =
     /// <summary>
     ///     <p>The structured representation of a <c>Variable</c> in the <b>Diorite</b> mathematics language.</p>
     ///     <p><b>1.</b> The first value (<c>char</c>) is the character which is the variable name (e.g. 'x').</p>
@@ -41,6 +41,10 @@ module BaseTypes =
     ///        <c>10</c>, where the <c>10</c>th subscript is the <c>9</c>th subscript-ed .
     ///     </p>
     /// </summary>
-    /// <typeparam name="VariableType"> the <c>Variable</c> to derive the <c>string</c> representation </typeparam>
+    /// <param name='variable'> the <c>Variable</c> to derive the <c>string</c> representation </param>
     /// <returns> the <c>string</c> representation of this <c>VariableType</c> </returns>
-    val strVariable: VariableType -> string
+    let strVariable (variable: VariableType): string =
+        let (character: char), (subscript: int) = variable
+        if subscript < 0  then (invalidArg "subscript") "encoded subscript value cannot be negative"
+        if subscript > 10 then (invalidArg "subscript") "encoded subscript value cannot be greater than 10"
+        if subscript = 0  then $"{character}" else $"{character}{subscript - 1}"

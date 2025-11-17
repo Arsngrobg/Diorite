@@ -85,10 +85,13 @@ module Lexer =
 
     /// <summary>
     ///     <p>The <c>Token</c> type represents a lexical unit in the <b>Diorite</b> mathematics language.</p>
-    ///     <p>It is composed of: the <c>lexeme</c>, which is the reference to the <c>string</c> that this
-    ///        <c>Token</c> represents; the <c>id</c>, which denotes the union type of this <c>Token</c>; the
-    ///        <c>line</c>, the line of the respective source file this token is located; the <c>column</c>, the column
-    ///        of the respective source file this token is located.
+    ///     <p>It is composed of:
+    ///        <ul>
+    ///            <li>the <c>lexeme</c>, which is the <c>string</c> slice that this <c>Token</c> represents</li>
+    ///            <li>the <c>id</c>, which denotes the type of <c>Token</c></li>
+    ///            <li>the <c>line</c>, the line of the respective context in which this token is located</li>
+    ///            <li>the <c>column</c>, the column of the respective context in which this token is located</li>
+    ///        </ul>
     ///     </p>
     /// </summary>
     [<Struct>]

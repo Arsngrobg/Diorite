@@ -6,12 +6,10 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="BaseTypes.fsi" />
-        <Compile Include="BaseTypes.fs"  />
-        <Compile Include="Errors.fsi"    />
-        <Compile Include="Errors.fs"     />
-        <Compile Include="Lexer.fsi"     />
-        <Compile Include="Lexer.fs"      />
+        <Compile Include="BaseDef.fs"  />
+        <Compile Include="Errors.fs"   />
+        <Compile Include="Lexer.fsi"   />
+        <Compile Include="Lexer.fs"    />
     </ItemGroup>
 
 </Project>
