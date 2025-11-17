@@ -5,8 +5,14 @@
 #   |_____/|__||_____|__|  |__|____|_____|
 #
 # ------------------------------------------------------------------------------------------------------------------
-# This is an example file - primarily for testing purposes for the Diorite Mathematics Computing Language
+# File:    example.diorite
+# Summary: An example file, primarily for testing purposes
+# Author:  Arsngrobg
+# Version: v1.3
 # ------------------------------------------------------------------------------------------------------------------
+# Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
+# ------------------------------------------------------------------------------------------------------------------
+
 
 # value types
 100;         # numbers
