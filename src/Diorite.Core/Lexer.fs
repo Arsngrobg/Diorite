@@ -6,9 +6,9 @@
 //
 // ------------------------------------------------------------------------------------------------------------------
 // File:    Lexer.fs
-// Summary: The lexer for the Diorite language
+// Summary: The lexer for the Diorite mathematics language
 // Author:  Arsngrobg, Borngle
-// Version: v1.11
+// Version: v1.7
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
@@ -142,7 +142,7 @@ module Lexer =
     ///     <p></p>
     /// </summary>
     /// <param name='tokens'> the tokens to search for an <c>IllegalToken</c> </param>
-    /// <returns> maybe a <c>DioriteError</c> (<c>SyntaxError</c>) </returns>
+    /// <returns> an <c>option</c>, that may contain the <c>DioriteError</c> (<c>SyntaxError</c>) </returns>
     let rec getError (tokens: TokenStream): DioriteError option =
         let getErrorMsg (illegal: Token): string =
             $"Unexpected token: '{illegal.lexeme}' at [{illegal.line}:{illegal.column}]"
@@ -434,11 +434,3 @@ module Lexer =
 
         let chars: char list = source |> stringToCharList
         (scan chars) 0 0
-
-    [<EntryPoint>]
-    let main (_: string array): int =
-        let tokens: TokenStream = tokenize "2 + 2.5"
-        match (getError tokens) with
-         | Some err -> printf $"{err}\n"
-         | None     -> printf $"{tokens |> strTokens}\n"
-        0

@@ -15,6 +15,12 @@
 
 namespace Diorite.Lang.Core
 
+/// <summary>
+///     <p>The <c>Errors</c> module consist of the error handling system within the <b>Diorite</b> language.</p>
+///     <p>Its main focus is to override the default <c>FSHarp.Core.Result</c> type into a custom <c>Result</c> type
+///        that is strictly bound to the <c>DioriteError</c> as its <c>Error</c> case.
+///     </p>
+/// </summary>
 // marked as AutoOpen as used across the entire project
 [<AutoOpen>]
 module Errors =
@@ -31,67 +37,62 @@ module Errors =
         | SystemError of string // illegal state caused by external interop code
 
     /// <summary>
-    ///     <p>A stricter version of the standard <c>FSHarp.Core.Result</c> where it is strictly bound to the
-    ///        <c>DioriteError</c> error type.
+    ///     <p>A stricter version of the standard <c>FSHarp.Core.Result</c> where its <c>Error</c> case is strictly
+    ///        bound to the <c>DioriteError</c> type.
     ///     </p>
     ///     <p>This should be used over the standard <c>Result</c> type.</p>
     /// </summary>
     type Result<'a> = Result<'a, DioriteError>
 
     /// <summary>
-    ///     <p>Functional wrapper around a <c>Result</c> that contains a <c>MathError</c>.</p>
+    ///     <p>A functional wrapper around a <c>Result</c> that contains a <c>MathError</c> with a meaningful message
+    ///        of the error.
+    ///     </p>
     /// </summary>
     /// <param name='msg'> the message to be display upon encountering this <c>MathError</c> </param>
     /// <returns> a <c>MathError</c> wrapped in an <c>Error</c> case </returns>
     let inline MathError<'a> (msg: string): Result<'a> =
-        Error (MathError msg)
+        msg |> (MathError >> Error)
 
     /// <summary>
-    ///     <p>Functional wrapper around a <c>Result</c> that contains a <c>SyntaxError</c>.</p>
+    ///     <p>A functional wrapper around a <c>Result</c> that contains a <c>SyntaxError</c> with a meaningful message
+    ///        of the error.
+    ///     </p>
     /// </summary>
     /// <param name='msg'> the message to be display upon encountering this <c>SyntaxError</c> </param>
     /// <returns> a <c>SyntaxError</c> wrapped in a <c>Error</c> case </returns>
     let inline SyntaxError<'a> (msg: string): Result<'a> =
-        Error (SyntaxError msg)
+        msg |> (SyntaxError >> Error)
 
     /// <summary>
-    ///     <p>Functional wrapper around a <c>Result</c> that contains a <c>SystemError</c>.</p>
+    ///     <p>A functional wrapper around a <c>Result</c> that contains a <c>SystemError</c> with a meaningful message
+    ///        of the error.
+    ///     </p>
     /// </summary>
     /// <param name='msg'> the message to be display upon encountering this error </param>
     /// <returns> a <c>SystemError</c> wrapped in an <c>Error</c> case </returns>
     let inline SystemError<'a> (msg: string): Result<'a> =
-        Error (SystemError msg)
+        msg |> (SystemError >> Error)
 
     /// <summary>
     ///     <p>Interprets the supplied generic <c>Result</c> as a <c>bool</c>.</p>
-    ///     <code>
-    ///         let result: Result = functionThatReturnsResult ()
-    ///         IO.output $"success: {asBool(result)}\n" |> ignore
-    ///     </code>
+    ///     <p>This operation is destructive and hence any information stored in the <c>Result</c> will be lost.</p>
     /// </summary>
     /// <param name='result'> the <c>Result</c> </param>
     /// <returns> <c>true</c> if <c>Ok</c>; <c>false</c> if an <c>Error</c> </returns>
-    let inline resultAsBool (result: unit Result): bool =
-        match result with
-         | Ok    _ -> true
-         | Error _ -> false
+    let inline resultAsBool<'a> (result: 'a Result): bool =
+        match result with Ok _ -> true | Error _ -> false
 
     /// <summary>
-    ///     <p>Safely unwraps the provided <c>result</c> by either returning the value wrapped by the
-    ///        <c>Success</c> case, or the <i>alternative</i> value provided to this function.
+    ///     <p>Attempts to safely unwrap the value within the supplied <c>Result</c> if is the <c>Ok</c> case.
+    ///        If an <c>Error</c> case, the provided <c>alternative</c> value will be produced instead.
     ///     </p>
-    ///     <code>
-    ///         let result: string = getOrElse (IO.input(Some "Enter something: ")) "hi"
-    ///         IO.output result // either the user input or the string "hi"
-    ///     </code>
     /// </summary>
     /// <param name='result'> the <c>Result</c> to be unwrapped </param>
     /// <param name='alternative'> the alternative value to be returned if it was an <c>Error</c> </param>
     /// <returns> either the value wrapped by the <c>Result</c> or the <c>alternative</c> value instead </returns>
     let inline getOrElse<'a> (result: 'a Result) (alternative: 'a): 'a =
-        match result with
-         | Ok    value -> value
-         | Error _     -> alternative
+        match result with Ok value -> value | Error _ -> alternative
 
     /// <summary>
     ///     <p>Coerces the provided <c>Result</c> bound by the generic type <c>'a</c> into a <c>unit</c> bound
