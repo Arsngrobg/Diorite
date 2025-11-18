@@ -22,6 +22,33 @@ namespace Diorite.Lang.Core
 [<AutoOpen>]
 module BaseDef =
     /// <summary>
+    ///     <p>The <c>IO</c> type is inspired by the IO functor found in <b>Haskell</b>.</p>
+    ///     <p>In simple terms, the <c>IO</c> type wraps a computation which, when executed, may produce or perform side
+    ///        effects and then produce a result of type <c>'a</c>.
+    ///     </p>
+    ///     <p>It is a <b>pure</b> container for an otherwise <b>impure</b> computation.</p>
+    /// </summary>
+    /// <typeparam name="'a"> the type of the result returned by the suspended computation </typeparam>
+    type IO<'a> = IO of (unit -> 'a)
+
+    /// <summary>
+    ///     <p>The IO module defines the helper functions for executing, binding, mapping, and uplifting values to
+    ///        <c>IO</c> monadic types.
+    ///     </p>
+    ///     <p>For example, the <c>IO.run</c> helper function executes the inner function bound by the supplied
+    ///        <c>IO</c> value, and returns the inner value of type <c>'a</c>.
+    ///     </p>
+    /// </summary>
+    module IO =
+        /// <summary>
+        ///     <p>Runs the suspended computation within the supplied <c>IO</c> value.</p>
+        /// </summary>
+        /// <typeparam name='IO (fn)'> the <c>IO</c> type and its inner function <c>fn</c> </typeparam>
+        /// <returns> the result of the inner function <c>fn</c> </returns>
+        let run (IO (fn: unit -> 'a)): 'a =
+            fn ()
+
+    /// <summary>
     ///     <p>The structured representation of a <c>Variable</c> in the <b>Diorite</b> mathematics language.</p>
     ///     <p><b>1.</b> The first value (<c>char</c>) is the character which is the variable name (e.g. 'x').</p>
     ///     <p><b>2.</b> The second value (<c>int</c>) is the encoded subscript of the variable - this value is

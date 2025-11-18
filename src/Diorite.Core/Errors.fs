@@ -31,6 +31,7 @@ module Errors =
     ///        valid error code.
     ///     </p>
     /// </summary>
+    /// <typeparam name='string'> the error message </typeparam>
     type DioriteError =
         | MathError   of string // caused by division by zero for example
         | SyntaxError of string // caused by illegal tokens or illegal token pattern
@@ -60,6 +61,7 @@ module Errors =
     ///     </p>
     /// </summary>
     /// <param name='msg'> the message to be display upon encountering this <c>SyntaxError</c> </param>
+    /// <typeparam name="'a"> the inferred type the <c>Result</c> should be bound to </typeparam>
     /// <returns> a <c>SyntaxError</c> wrapped in a <c>Error</c> case </returns>
     let inline SyntaxError<'a> (msg: string): Result<'a> =
         msg |> (SyntaxError >> Error)
@@ -70,6 +72,7 @@ module Errors =
     ///     </p>
     /// </summary>
     /// <param name='msg'> the message to be display upon encountering this error </param>
+    /// <typeparam name="'a"> the inferred type the <c>Result</c> should be bound to </typeparam>
     /// <returns> a <c>SystemError</c> wrapped in an <c>Error</c> case </returns>
     let inline SystemError<'a> (msg: string): Result<'a> =
         msg |> (SystemError >> Error)
@@ -79,6 +82,7 @@ module Errors =
     ///     <p>This operation is destructive and hence any information stored in the <c>Result</c> will be lost.</p>
     /// </summary>
     /// <param name='result'> the <c>Result</c> </param>
+    /// <typeparam name="'a"> the inferred type the <c>Result</c> should be bound to </typeparam>
     /// <returns> <c>true</c> if <c>Ok</c>; <c>false</c> if an <c>Error</c> </returns>
     let inline resultAsBool<'a> (result: 'a Result): bool =
         match result with Ok _ -> true | Error _ -> false
@@ -90,6 +94,7 @@ module Errors =
     /// </summary>
     /// <param name='result'> the <c>Result</c> to be unwrapped </param>
     /// <param name='alternative'> the alternative value to be returned if it was an <c>Error</c> </param>
+    /// <typeparam name="'a"> the type of value that the supplied <c>Result</c> may contain </typeparam>
     /// <returns> either the value wrapped by the <c>Result</c> or the <c>alternative</c> value instead </returns>
     let inline getOrElse<'a> (result: 'a Result) (alternative: 'a): 'a =
         match result with Ok value -> value | Error _ -> alternative
@@ -100,6 +105,7 @@ module Errors =
     ///     </p>
     /// </summary>
     /// <param name='result'> the generic <c>Result</c> </param>
+    /// <typeparam name="'a"> the type that the supplied <c>Result</c> may contain </typeparam>
     /// <returns> a nullified <c>Result</c> </returns>
     let inline generalized<'a> (result: 'a Result): unit Result =
         match result with
@@ -114,6 +120,7 @@ module Errors =
     ///     </b></p>
     /// </summary>
     /// <param name='result'> the <c>Result</c> to unwrap </param>
+    /// <typeparam name="'a"> the type that the supplied <c>Result</c> may contain </typeparam>
     /// <returns> the value stored within the <c>Result</c> if it was <c>Ok</c> </returns>
     /// <exception cref='System.Exception'> if the <c>Result</c> is an <c>Error</c> </exception>
     [<System.Obsolete("Do not use this - use getOrElse instead!")>]

@@ -7,7 +7,7 @@
 // ------------------------------------------------------------------------------------------------------------------
 // File:    Configuration.fs
 // Summary: Defines the configuration logic that determine the behaviour based on a given set of user-supplied
-//          command-line arguments.
+//          command-line arguments
 // Author:  Arsngrobg
 // Version: v1.3
 // ------------------------------------------------------------------------------------------------------------------
@@ -76,6 +76,7 @@ Usage: {Properties.programName} [-h | --help]
 
      <file> ::= a file name, suffixed with the {Properties.fileExtension} extension
 "
+
         match args with
          | [ CLIArg.Help ] | [] ->
              printf $"{helpString}\n"
