@@ -16,6 +16,7 @@
 namespace Diorite.Lang.CLI
 
 open Diorite.Lang.CLI.Configuration
+open Diorite.Lang.Core
 
 /// <summary>
 ///     <p>The primary module of the CLI.</p>

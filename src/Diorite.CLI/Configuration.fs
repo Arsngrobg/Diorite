@@ -74,12 +74,11 @@ Usage: {Properties.programName} [-h | --help]
        {Properties.programName} [-c | --compile] <file>
        (To compile a given {Properties.fileExtension} file)
 
-     <file> ::= a file name, suffixed with the {Properties.fileExtension} extension
-"
+     <file> ::= a file name, suffixed with the {Properties.fileExtension} extension"
 
         match args with
          | [ CLIArg.Help ] | [] ->
-             printf $"{helpString}\n"
+             $"{helpString}" |> (Terminal.writeLine >> IO.run >> ignore)
              ExitCode.NoError
 
          | [ CLIArg.Version ] ->

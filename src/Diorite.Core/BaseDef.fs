@@ -48,6 +48,46 @@ module BaseDef =
         let run (IO (fn: unit -> 'a)): 'a =
             fn ()
 
+        /// <summary>
+        ///     <p>Maps the supplied <c>IO</c> functor into a new <c>IO</c> functor that extends the original delayed
+        ///        computation. The supplied function is described as the 'mapping' function which applies some
+        ///        operation on the <c>'a</c> type to the type <c>'b</c>.
+        ///     </p>
+        /// </summary>
+        /// <param name='io'> the original <c>IO</c> functor </param>
+        /// <param name='fn'> the extended computation to perform on the return result of the <c>IO</c> </param>
+        /// <typeparam name="'a"> the type bound of the <c>IO</c> functor </typeparam>
+        /// <typeparam name="'b"> the new type of the extended <c>IO</c> functor </typeparam>
+        /// <returns> a new <c>IO</c> functor that executes an operation on the original <c>IO</c> </returns>
+        let map (io: IO<'a>) (fn: 'a -> 'b): IO<'b> =
+            let ioFn: unit -> 'a = match io with IO ioFn -> ioFn
+            IO (fun () ->
+                let a: 'a = ioFn ()
+                let b: 'b = fn a
+                b
+            )
+
+        /// <summary>
+        ///     <p>Sequences two <c>IO</c> computations.</p>
+        ///     <p>This is equivalent to the <c>flatmap</c> operation.</p>
+        ///     <p>The supplied function is described as the 'uplifting' function which applies some transformation on
+        ///        the type <c>'a</c> into another <c>IO</c> functor bound to the type <c>'b</c>.
+        ///     </p>
+        /// </summary>
+        /// <param name='io'> the first <c>IO</c> functor </param>
+        /// <param name='fn'> the 'uplifting' function to transform into <c>'b IO</c> </param>
+        /// <typeparam name="'a"> the type bound of the original <c>IO</c> functor </typeparam>
+        /// <typeparam name="'b"> the type bound of the second <c>IO</c> functor </typeparam>
+        /// <returns> a new <c>IO</c> functor that executes the <c>'a IO</c> functor as well </returns>
+        let bind (io: IO<'a>) (fn: 'a -> IO<'b>): IO<'b> =
+            let ioFn: unit -> 'a = match io with IO ioFn -> ioFn
+            IO (fun () ->
+                let a:   'a     = ioFn()
+                let ioB: IO<'b> = fn a
+                let b:   'b     = run ioB
+                b
+            )
+
     /// <summary>
     ///     <p>The structured representation of a <c>Variable</c> in the <b>Diorite</b> mathematics language.</p>
     ///     <p><b>1.</b> The first value (<c>char</c>) is the character which is the variable name (e.g. 'x').</p>

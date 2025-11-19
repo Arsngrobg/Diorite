@@ -10,6 +10,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <Compile Include="Terminal.fs"      />
         <Compile Include="Configuration.fs" />
         <Compile Include="Main.fs"          />
     </ItemGroup>

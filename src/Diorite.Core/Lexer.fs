@@ -104,7 +104,6 @@ module Lexer =
     ///        </ul>
     ///     </p>
     /// </summary>
-    [<Struct>]
     type Token = {
         lexeme: string
         id:     TokenType
