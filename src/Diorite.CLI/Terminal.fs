@@ -24,16 +24,26 @@ open Diorite.Lang.Core
 /// </summary>
 module Terminal =
     /// <summary>
+    ///     <p>A type that mirrors the <c>option</c> type but is more descriptive against the struct values of the
+    ///        <c>TerminalConfiguration</c> type. The <c>UseDefault</c> case lets the configuration know that it should
+    ///        use the default or current value of that configurable property.
+    ///     </p>
+    /// </summary>
+    type ConfigurableValue<'a> =
+        | UseValue   of 'a // use a custom value
+        | UseDefault       // use the current value
+
+    /// <summary>
     ///     <p>The <c>TerminalConfiguration</c> type contains information about the user's terminal.</p>
     ///     <p>To get the current <c>TerminalConfiguration</c>, call the <c>Terminal.getConfiguration</c> function.</p>
     /// </summary>
     [<Struct>]
     type TerminalConfiguration = {
-        title:            string
-        backgroundColour: System.ConsoleColor
-        foregroundColour: System.ConsoleColor
-        lines:            int
-        columns:          int
+        title:            string              ConfigurableValue
+        backgroundColour: System.ConsoleColor ConfigurableValue
+        foregroundColour: System.ConsoleColor ConfigurableValue
+        lines:            int                 ConfigurableValue
+        columns:          int                 ConfigurableValue
     }
 
     /// <summary>
@@ -50,11 +60,11 @@ module Terminal =
     /// </summary>
     let getConfiguration: IO<TerminalConfiguration> =
         IO (fun () -> {
-            title            = System.Console.Title
-            backgroundColour = System.Console.BackgroundColor
-            foregroundColour = System.Console.ForegroundColor
-            lines            = System.Console.BufferHeight
-            columns          = System.Console.BufferWidth
+            title            = UseValue System.Console.Title
+            backgroundColour = UseValue System.Console.BackgroundColor
+            foregroundColour = UseValue System.Console.ForegroundColor
+            lines            = UseValue System.Console.BufferHeight
+            columns          = UseValue System.Console.BufferWidth
         })
 
     /// <summary>
@@ -67,11 +77,26 @@ module Terminal =
     let setConfiguration (data: TerminalConfiguration): IO<bool> =
         IO (fun () ->
             try
-                System.Console.Title           <- data.title
-                System.Console.BackgroundColor <- data.backgroundColour
-                System.Console.ForegroundColor <- data.foregroundColour
-                System.Console.BufferHeight    <- data.lines
-                System.Console.BufferWidth     <- data.columns
+                System.Console.Title           <-
+                    match data.title with
+                     | UseValue title -> title
+                     | UseDefault     -> System.Console.Title
+                System.Console.BackgroundColor <-
+                    match data.backgroundColour with
+                     | UseValue colour -> colour
+                     | UseDefault      -> System.Console.BackgroundColor
+                System.Console.ForegroundColor <-
+                    match data.foregroundColour with
+                     | UseValue colour -> colour
+                     | UseDefault      -> System.Console.ForegroundColor
+                System.Console.BufferHeight    <-
+                    match data.lines with
+                     | UseValue lines -> lines
+                     | UseDefault     -> System.Console.BufferHeight
+                System.Console.BufferWidth     <-
+                    match data.columns with
+                     | UseValue columns -> columns
+                     | UseDefault       -> System.Console.BufferWidth
                 true
             with
              | _ -> false
@@ -112,9 +137,9 @@ module Terminal =
     /// </summary>
     /// <param name='format'> the <c>string</c> to write to the user's terminal </param>
     /// <returns> an <c>IO</c> functor that writes the supplied <c>format</c> to the user's terminal </returns>
-    let writeLine (format: string): IO<unit> =
+    let write (format: string): IO<unit> =
         IO (fun () ->
-            System.Console.WriteLine format
+            System.Console.Write format
         )
 
     /// <summary>
@@ -135,3 +160,8 @@ module Terminal =
                     scanner (info.KeyChar :: accumulator)
 
             IO (fun () -> [] |> (scanner >> System.String.Concat))
+
+    let getKey (hide: bool): IO<System.ConsoleKeyInfo> =
+        IO (fun () ->
+            System.Console.ReadKey hide
+        )

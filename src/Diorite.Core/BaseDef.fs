@@ -8,7 +8,7 @@
 // File:    BaseDef.fs
 // Summary: Definitions for the core types in the Diorite mathematics language
 // Author:  Arsngrobg
-// Version: v1.0
+// Version: v1.4
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
@@ -86,6 +86,14 @@ module BaseDef =
                 let ioB: IO<'b> = fn a
                 let b:   'b     = run ioB
                 b
+            )
+
+        let seq (ioA: IO<'a>) (ioB: IO<'b>): IO<'b> =
+            let ioAFn: unit -> 'a = match ioA with IO ioFn -> ioFn
+            let ioBFn: unit -> 'b = match ioB with IO ioFn -> ioFn
+            IO (fun () ->
+                ioAFn () |> ignore
+                ioBFn ()
             )
 
     /// <summary>

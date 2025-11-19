@@ -78,7 +78,7 @@ Usage: {Properties.programName} [-h | --help]
 
         match args with
          | [ CLIArg.Help ] | [] ->
-             $"{helpString}" |> (Terminal.writeLine >> IO.run >> ignore)
+             $"{helpString}\n" |> (Terminal.write >> IO.run >> ignore)
              ExitCode.NoError
 
          | [ CLIArg.Version ] ->
@@ -87,7 +87,9 @@ Usage: {Properties.programName} [-h | --help]
 
          | [ CLIArg.Upgrade ] -> failwith "[TODO] Offer some sort of update feature (gh releases?)"
 
-         | [ CLIArg.Interpret ] -> ExitCode.REPLFailure
+         | [ CLIArg.Interpret ] ->
+             REPL.launch ()
+             ExitCode.NoError
 
          | [ CLIArg.Interpret; CLIArg.Literal _ ] -> ExitCode.REPLFailure
 
