@@ -145,7 +145,8 @@ module BaseDef =
     /// <summary>
     ///     <p>The union type which describe the cases in which a <c>Value</c> is represented as in <b>Diorite</b>.</p>
     ///     <p>This union type captures the different ways a <c>Value</c> may be expressed, ranging from concrete
-    ///        numeric data to conceptual placeholders such as infinity or the absence of any value.
+    ///        numeric data to conceptual placeholders such as <c>Infinity</c> or the absence of any value
+    ///        (<c>Undefined</c>).
     ///     </p> 
     /// </summary>
     type ValueType =
@@ -168,18 +169,18 @@ module BaseDef =
     ///     <p>A <c>FunctionName</c> is a value denoting the name of a function.</p>
     ///     <p>It is either denoted by a <c>Variable</c> or a <c>Symbolic</c> representation.</p>
     /// </summary>
-    type FunctionName =
-        | Variable of VariableType
-        | Symbolic of string
+    type FunctionReference =
+        | OfVariable of VariableType
+        | OfSymbolic of string
 
     /// <summary>
-    ///     <p>Produces the <c>string</c> representation of the supplied <c>FunctionName</c>.</p>
+    ///     <p>Produces the <c>string</c> representation of the supplied <c>FunctionReference</c>.</p>
     /// </summary>
-    /// <param name='functionName'> the <c>FunctionName</c> to get the <c>string</c> representation </param>
-    let strFunctionName (functionName: FunctionName): string =
-        match functionName with
-         | Variable var -> strVariable var
-         | Symbolic sym -> sym
+    /// <param name='functionReference'> the <c>FunctionReference</c> to get the <c>string</c> representation </param>
+    let strFunctionReference (functionReference: FunctionReference): string =
+        match functionReference with
+         | OfVariable var -> strVariable var
+         | OfSymbolic sym -> sym
 
     /// <summary>
     ///     <p>The number sets supported in the <b>Diorite</b> language.</p>
