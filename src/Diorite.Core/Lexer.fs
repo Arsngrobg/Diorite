@@ -22,15 +22,34 @@ namespace Diorite.Lang.Core
 /// </summary>
 [<RequireQualifiedAccess>]
 module Lexer =
-    /// <summary>
-    ///     The signature for a function that transforms a type <c>'a</c> into another type <c>'b</c>.
-    /// </summary>
+    // the signature for a function that transforms a type into another type
     type private Transformer<'a, 'b> = 'a -> 'b
 
-    /// <summary>
-    ///     The signature for a predicate that the consumer uses to determine whether a character should be consumed.
-    /// </summary>
+    [<RequireQualifiedAccess>]
+    module private Transformers =
+        let stringToCharList: Transformer<string, char list> = Seq.toList
+        let charToInt:        Transformer<char, int>         = (fun c -> int c - int '0')
+        let charListToString: Transformer<char list, string> = (Array.ofList >> System.String)
+        let charListToFloat:  Transformer<char list, float>  = (charListToString >> System.Double.Parse)
+
+    // the signature for a predicate that the consumer uses to determine whether a character should be consumed
     type private ConsumerPredicate = char -> bool
+
+    module private ConsumerPredicates =
+        let isLetter:   ConsumerPredicate = System.Char.IsLetter
+        let isDigit:    ConsumerPredicate = System.Char.IsDigit
+        let isBlank:    ConsumerPredicate = System.Char.IsWhiteSpace
+        let notNewline: ConsumerPredicate = (fun c -> c <> '\n')
+        let nonBlank:   ConsumerPredicate = (isBlank >> not)
+
+    // recursively consume character given that they satisfy the given predicate
+    // returns the consumed characters and the remaining characters
+    let rec private consume (predicate: ConsumerPredicate) (src: char list): char list * char list =
+        match src with
+         | c :: tail when predicate c ->
+            let (consumed: char list), (remaining: char list) = consume predicate tail
+            (c :: consumed, remaining)
+         | _                          -> ([], src)
 
     /// <summary>
     ///     <p>The discriminated union type that identifies the <c>Token</c> in a <c>TokenStream</c>.</p>
@@ -178,28 +197,6 @@ module Lexer =
     /// <param name='source'> the source string to tokenise </param>
     /// <returns> a <c>TokenStream</c> that consists of the tokens derived from the source string </returns>
     let tokenise (source: string): TokenStream =
-        // transformers
-        let stringToCharList: Transformer<string, char list> = Seq.toList
-        let charToInt:        Transformer<char, int>         = (fun c -> int c - int '0')
-        let charListToString: Transformer<char list, string> = (Array.ofList >> System.String)
-        let charListToFloat:  Transformer<char list, float>  = (charListToString >> System.Double.Parse)
-
-        // predicates
-        let isLetter:   ConsumerPredicate = System.Char.IsLetter
-        let isDigit:    ConsumerPredicate = System.Char.IsDigit
-        let isBlank:    ConsumerPredicate = System.Char.IsWhiteSpace
-        let notNewline: ConsumerPredicate = (fun c -> c <> '\n')
-        let nonBlank:   ConsumerPredicate = (isBlank >> not)
-
-        // recursively consume character given that they satisfy the given predicate
-        // returns the consumed characters and the remaining characters
-        let rec consume (predicate: ConsumerPredicate) (src: char list): char list * char list =
-            match src with
-             | c :: tail when predicate c ->
-                let (consumed: char list), (remaining: char list) = consume predicate tail
-                (c :: consumed, remaining)
-             | _                          -> ([], src)
-
         // recursive scanner that tracks the line and column local to the supplied string
         let rec scan (src: char list) (line: int) (column: int): TokenStream =
             match src with
@@ -207,16 +204,18 @@ module Lexer =
              | [] -> []
 
              // numbers
-             | c :: _ when isDigit c ->
-                 let (integerComponent: char list), (numberTail: char list) = consume isDigit src
+             | c :: _ when ConsumerPredicates.isDigit c ->
+                 let (integerComponent: char list), (numberTail: char list) = consume ConsumerPredicates.isDigit src
                  match numberTail with
                   // integer component + decimal component
-                  | '.' :: c :: tail when (isDigit c) ->
-                      let (decimalComponent: char list), (remaining: char list) = consume isDigit (c :: tail)
+                  | '.' :: c :: tail when (ConsumerPredicates.isDigit c) ->
+                      let consumerState: char list * char list = consume ConsumerPredicates.isDigit (c :: tail)
+                      let (decimalComponent: char list), (remaining: char list) = consumerState
+
                       let raw: char list = integerComponent @ ['.'] @ decimalComponent
                       let head: Token = {
-                          lexeme = raw |> charListToString
-                          id     = raw |> (charListToFloat >> TokenType.Number)
+                          lexeme = raw |> Transformers.charListToString
+                          id     = raw |> (Transformers.charListToFloat >> TokenType.Number)
                           line   = line
                           column = column
                       }
@@ -225,8 +224,8 @@ module Lexer =
                   // integer component + '.' (but no decimal component)
                   | '.' :: remaining ->
                       let head: Token = {
-                          lexeme = integerComponent |> charListToString
-                          id     = integerComponent |> (charListToFloat >> TokenType.Number)
+                          lexeme = integerComponent |> Transformers.charListToString
+                          id     = integerComponent |> (Transformers.charListToFloat >> TokenType.Number)
                           line   = line
                           column = column
                       }
@@ -241,8 +240,8 @@ module Lexer =
                   // integer component
                   | remaining ->
                       let head: Token = {
-                          lexeme = integerComponent |> charListToString
-                          id     = integerComponent |> (charListToFloat >> TokenType.Number)
+                          lexeme = integerComponent |> Transformers.charListToString
+                          id     = integerComponent |> (Transformers.charListToFloat >> TokenType.Number)
                           line   = line
                           column = column
                       }
@@ -250,14 +249,14 @@ module Lexer =
                       head :: tail
 
              // variables, keywords, and constants
-             | c :: _ when isLetter c ->
-                 match (consume isLetter src) with
+             | c :: _ when ConsumerPredicates.isLetter c ->
+                 match (consume ConsumerPredicates.isLetter src) with
                   // variable (+ optional subscript)
                   | [character], variableTail ->
                       match variableTail with
                        // with subscript
-                       | subscript :: remaining when (isDigit subscript) ->
-                           let encodedSubscript: int = subscript |> (charToInt >> (fun s -> s + 1))
+                       | subscript :: remaining when (ConsumerPredicates.isDigit subscript) ->
+                           let encodedSubscript: int = subscript |> (Transformers.charToInt >> (fun s -> s + 1))
                            let head: Token = {
                                lexeme = $"{character}{encodedSubscript}"
                                id     = (character, encodedSubscript |> uint8) |> TokenType.Variable
@@ -279,7 +278,7 @@ module Lexer =
 
                   // keywords & constants
                   | chars, remaining ->
-                      let word: string = chars |> charListToString
+                      let word: string = chars |> Transformers.charListToString
                       let id: TokenType = match word with
                                            | "if"               -> TokenType.If
                                            | "otherwise"        -> TokenType.Otherwise
@@ -413,7 +412,7 @@ module Lexer =
 
              // comment (ignores everything until newline)
              | '#' :: _ ->
-                 let _, (remaining: char list) = consume notNewline src
+                 let _, (remaining: char list) = consume ConsumerPredicates.notNewline src
                  scan remaining line (column + remaining.Length)
 
              // newline (increment line)
@@ -421,15 +420,15 @@ module Lexer =
                  scan remaining (line + 1) 0
 
              // skip whitespace
-             | c :: _ when (isBlank c) ->
-                 let (consumed: char list), (remaining: char list) = consume isBlank src
+             | c :: _ when (ConsumerPredicates.isBlank c) ->
+                 let (consumed: char list), (remaining: char list) = consume ConsumerPredicates.isBlank src
                  scan remaining line (column + consumed.Length)
 
              // illegal tokens
              | _ ->
-                 let (lexeme: char list), (remaining: char list) = consume nonBlank src
+                 let (lexeme: char list), (remaining: char list) = consume ConsumerPredicates.nonBlank src
                  let head: Token = {
-                     lexeme = lexeme |> charListToString
+                     lexeme = lexeme |> Transformers.charListToString
                      id     = TokenType.IllegalToken
                      line   = line
                      column = column
@@ -437,5 +436,5 @@ module Lexer =
                  let tail: TokenStream = scan remaining line (column + head.lexeme.Length)
                  head :: tail
 
-        let chars: char list = source |> stringToCharList
+        let chars: char list = source |> Transformers.stringToCharList
         (scan chars) 0 0
