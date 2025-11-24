@@ -67,9 +67,13 @@
 <factor>        ::= <signed>
                  |  <signed> "^" <signed>
 
-<signed>        ::= <subExpression>
+<signed>        ::= <percentage>
                  |  "+" <signed>
                  |  "-" <signed>
+
+<percentage>    ::= <subExpression> <percentage'>
+<percentage'>   ::= ε
+                 |  "%" <percentage'>
 
 <subExpression> ::= <value>
                  |  <variable>
