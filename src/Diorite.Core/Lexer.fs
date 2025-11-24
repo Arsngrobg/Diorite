@@ -53,16 +53,16 @@ module Lexer =
 
     /// <summary>
     ///     <p>The discriminated union type that identifies the <c>Token</c> in a <c>TokenStream</c>.</p>
-    ///     <p>Some <c>TokenType</c>s may store some metadata about it like <c>TokenType.Number</c>, which stores the
-    ///        numerical representation of the token consisting of a numbered string.
+    ///     <p>These are simply identifier types for a <c>Token</c>, they hold no metadata, this makes it easier for the
+    ///        parser to consume tokens.
     ///     </p>
     /// </summary>
     type TokenType =
         | IllegalToken
 
         // value types
-        | Number   of float
-        | Variable of VariableType
+        | Number
+        | Variable
         | Symbol
 
         // reserved words
@@ -117,6 +117,22 @@ module Lexer =
         | SemiColon
 
     /// <summary>
+    ///     <p>The <c>TokenPayload</c> is the metadata for a particular <c>Token</c>.</p>
+    ///     <p>There are only <i>two</i> types of payloads that the tokeniser recognises:
+    ///        <list type='number'>
+    ///            <item><description>a number (<c>float</c>)</description></item>
+    ///            <item><description>a variable (<c>VariableType</c>)</description></item>
+    ///        </list>
+    ///        This feature replaces the original implementation, where the <c>TokenType</c> DU type retained that data,
+    ///        however, it made parsing more tedious.
+    ///     </p>
+    /// </summary>
+    type TokenPayload =
+        | NoPayload
+        | NumberPayload   of float
+        | VariablePayload of VariableType
+
+    /// <summary>
     ///     <p>The <c>Token</c> type represents a lexical unit in the <b>Diorite</b> mathematics language.</p>
     ///     <p>It is composed of:
     ///        <ul>
@@ -128,10 +144,11 @@ module Lexer =
     ///     </p>
     /// </summary>
     type Token = {
-        lexeme: string
-        id:     TokenType
-        line:   int
-        column: int
+        lexeme:  string
+        id:      TokenType
+        payload: TokenPayload
+        line:    int
+        column:  int
     }
 
     /// <summary>
@@ -187,7 +204,7 @@ module Lexer =
     ///     </p>
     ///     <p>Typical usage:
     ///        <code>
-    ///           let tokens: Lexer.TokenStream = Lexer.tokenize "2 + 2.5"
+    ///           let tokens: Lexer.TokenStream = Lexer.tokenise "2 + 2.5"
     ///           match (Lexer.getError tokens) with
     ///            | Some err -> printf $"{err}\n"
     ///            | None     -> printf $"{tokens}\n"
@@ -214,36 +231,40 @@ module Lexer =
 
                       let raw: char list = integerComponent @ ['.'] @ decimalComponent
                       let head: Token = {
-                          lexeme = raw |> Transformers.charListToString
-                          id     = raw |> (Transformers.charListToFloat >> TokenType.Number)
-                          line   = line
-                          column = column
+                          lexeme  = raw |> Transformers.charListToString
+                          id      = TokenType.Number
+                          payload = raw |> (Transformers.charListToFloat >> TokenPayload.NumberPayload)
+                          line    = line
+                          column  = column
                       }
                       let tail: TokenStream = scan remaining line (column + head.lexeme.Length)
                       head :: tail
                   // integer component + '.' (but no decimal component)
                   | '.' :: remaining ->
                       let head: Token = {
-                          lexeme = integerComponent |> Transformers.charListToString
-                          id     = integerComponent |> (Transformers.charListToFloat >> TokenType.Number)
-                          line   = line
-                          column = column
+                          lexeme  = integerComponent |> Transformers.charListToString
+                          id      = TokenType.Number
+                          payload = integerComponent |> (Transformers.charListToFloat >> TokenPayload.NumberPayload)
+                          line    = line
+                          column  = column
                       }
                       let illegal: Token = {
-                          lexeme = "."
-                          id     = TokenType.IllegalToken
-                          line   = line
-                          column = column + head.lexeme.Length
+                          lexeme  = "."
+                          id      = TokenType.IllegalToken
+                          payload = NoPayload
+                          line    = line
+                          column  = column + head.lexeme.Length
                       }
                       let tail: TokenStream = scan remaining line (illegal.column + 1)
                       head :: illegal :: tail
                   // integer component
                   | remaining ->
                       let head: Token = {
-                          lexeme = integerComponent |> Transformers.charListToString
-                          id     = integerComponent |> (Transformers.charListToFloat >> TokenType.Number)
-                          line   = line
-                          column = column
+                          lexeme  = integerComponent |> Transformers.charListToString
+                          id      = TokenType.Number
+                          payload = integerComponent |> (Transformers.charListToFloat >> TokenPayload.NumberPayload)
+                          line    = line
+                          column  = column
                       }
                       let tail: TokenStream = scan remaining line (column + head.lexeme.Length)
                       head :: tail
@@ -258,20 +279,22 @@ module Lexer =
                        | subscript :: remaining when (ConsumerPredicates.isDigit subscript) ->
                            let encodedSubscript: int = subscript |> (Transformers.charToInt >> (fun s -> s + 1))
                            let head: Token = {
-                               lexeme = $"{character}{encodedSubscript}"
-                               id     = (character, encodedSubscript |> uint8) |> TokenType.Variable
-                               line   = line
-                               column = column
+                               lexeme  = $"{character}{encodedSubscript}"
+                               id      = TokenType.Variable
+                               payload = (character, encodedSubscript |> uint8) |> TokenPayload.VariablePayload
+                               line    = line
+                               column  = column
                            }
                            let tail: TokenStream = scan remaining line (column + head.lexeme.Length)
                            head :: tail
                        // no subscript
                        | remaining ->
                            let head: Token = {
-                               lexeme = $"{character}"
-                               id     = (character, 0uy) |> TokenType.Variable
-                               line   = line
-                               column = column
+                               lexeme  = $"{character}"
+                               id      = TokenType.Variable
+                               payload = (character, 0uy) |> TokenPayload.VariablePayload
+                               line    = line
+                               column  = column
                            }
                            let tail: TokenStream = scan remaining line (column + head.lexeme.Length)
                            head :: tail
@@ -290,123 +313,124 @@ module Lexer =
                                            | "euler"            -> TokenType.Euler
                                            | _                  -> TokenType.Symbol
                       let head: Token = {
-                          lexeme = word
-                          id     = id
-                          line   = line
-                          column = column
+                          lexeme  = word
+                          id      = id
+                          payload = NoPayload
+                          line    = line
+                          column  = column
                       }
                       let tail: TokenStream = scan remaining line (column + word.Length)
                       head :: tail
 
              // args & params
              | ',' :: remaining ->
-                 let head: Token       = {lexeme=","; id=TokenType.Comma; line=line; column=column}
+                 let head: Token       = {lexeme=","; id=TokenType.Comma; payload=NoPayload; line=line; column=column}
                  let tail: TokenStream = scan remaining line (column + 1)
                  head :: tail
 
              // set notation
              | '-' :: '>' :: remaining ->
-                 let head: Token       = {lexeme="->"; id=TokenType.Arrow; line=line; column=column}
+                 let head: Token       = {lexeme="->"; id=TokenType.Arrow; payload=NoPayload; line=line; column=column}
                  let tail: TokenStream = scan remaining line (column + 2)
                  head :: tail
              | ':'        :: remaining ->
-                 let head: Token       = {lexeme=":"; id=TokenType.Colon; line=line; column=column}
+                 let head: Token       = {lexeme=":"; id=TokenType.Colon; payload=NoPayload; line=line; column=column}
                  let tail: TokenStream = scan remaining line (column + 1)
                  head :: tail
 
              // comparison operators
              | '<' :: '=' :: remaining ->
-                 let head: Token       = {lexeme="<="; id=TokenType.LessThan; line=line; column=column}
+                 let head: Token       = {lexeme="<="; id=TokenType.LessThan; payload=NoPayload; line=line; column=column}
                  let tail: TokenStream = scan remaining line (column + 2)
                  head :: tail
              | '>' :: '=' :: remaining ->
-                 let head: Token       = {lexeme=">="; id=TokenType.LessThanOrEqual; line=line; column=column}
+                 let head: Token       = {lexeme=">="; id=TokenType.LessThanOrEqual; payload=NoPayload; line=line; column=column}
                  let tail: TokenStream = scan remaining line (column + 2)
                  head :: tail
              | '!' :: '=' :: remaining ->
-                 let head: Token       = {lexeme="!="; id=TokenType.NotEqual; line=line; column=column}
+                 let head: Token       = {lexeme="!="; id=TokenType.NotEqual; payload=NoPayload; line=line; column=column}
                  let tail: TokenStream = scan remaining line (column + 2)
                  head :: tail
              | '='        :: remaining ->
-                 let head: Token       = {lexeme="="; id=TokenType.Equals; line=line; column=column}
+                 let head: Token       = {lexeme="="; id=TokenType.Equals; payload=NoPayload; line=line; column=column}
                  let tail: TokenStream = scan remaining line (column + 1)
                  head :: tail
              | '<'        :: remaining ->
-                 let head: Token       = {lexeme="<"; id=TokenType.LessThan; line=line; column=column}
+                 let head: Token       = {lexeme="<"; id=TokenType.LessThan; payload=NoPayload; line=line; column=column}
                  let tail: TokenStream = scan remaining line (column + 1)
                  head :: tail
              | '>'        :: remaining ->
-                 let head: Token       = {lexeme="<"; id=TokenType.GreaterThan; line=line; column=column}
+                 let head: Token       = {lexeme="<"; id=TokenType.GreaterThan; payload=NoPayload; line=line; column=column}
                  let tail: TokenStream = scan remaining line (column + 1)
                  head :: tail
 
              // arithmetic operators
              | '^'        :: remaining ->
-                 let head: Token       = {lexeme="^"; id=TokenType.Hat; line=line; column=column}
+                 let head: Token       = {lexeme="^"; id=TokenType.Hat; payload=NoPayload; line=line; column=column}
                  let tail: TokenStream = scan remaining line (column + 1)
                  head :: tail
              | '!'        :: remaining ->
-                 let head: Token       = {lexeme="!"; id=TokenType.Exclamation; line=line; column=column}
+                 let head: Token       = {lexeme="!"; id=TokenType.Exclamation; payload=NoPayload; line=line; column=column}
                  let tail: TokenStream = scan remaining line (column + 1)
                  head :: tail
              | '*'        :: remaining ->
-                 let head: Token       = {lexeme="*"; id=TokenType.Asterisk; line=line; column=column}
+                 let head: Token       = {lexeme="*"; id=TokenType.Asterisk; payload=NoPayload; line=line; column=column}
                  let tail: TokenStream = scan remaining line (column + 1)
                  head :: tail
              | '/' :: '/' :: remaining ->
-                 let head: Token       = {lexeme="//"; id=TokenType.DoubleForwardSlash; line=line; column=column}
+                 let head: Token       = {lexeme="//"; id=TokenType.DoubleForwardSlash; payload=NoPayload; line=line; column=column}
                  let tail: TokenStream = scan remaining line (column + 2)
                  head :: tail
              | '/'        :: remaining ->
-                 let head: Token       = {lexeme="/"; id=TokenType.ForwardSlash; line=line; column=column}
+                 let head: Token       = {lexeme="/"; id=TokenType.ForwardSlash; payload=NoPayload; line=line; column=column}
                  let tail: TokenStream = scan remaining line (column + 1)
                  head :: tail
              | '%'        :: remaining ->
-                 let head: Token       = {lexeme="%"; id=TokenType.Percentage; line=line; column=column}
+                 let head: Token       = {lexeme="%"; id=TokenType.Percentage; payload=NoPayload; line=line; column=column}
                  let tail: TokenStream = scan remaining line (column + 1)
                  head :: tail
              | '+'        :: remaining ->
-                 let head: Token       = {lexeme="+"; id=TokenType.Plus; line=line; column=column}
+                 let head: Token       = {lexeme="+"; id=TokenType.Plus; payload=NoPayload; line=line; column=column}
                  let tail: TokenStream = scan remaining line (column + 1)
                  head :: tail
              | '-'        :: remaining ->
-                 let head: Token       = {lexeme="-"; id=TokenType.Hyphen; line=line; column=column}
+                 let head: Token       = {lexeme="-"; id=TokenType.Hyphen; payload=NoPayload; line=line; column=column}
                  let tail: TokenStream = scan remaining line (column + 1)
                  head :: tail
              | '|'        :: remaining ->
-                 let head: Token       = {lexeme="|"; id=TokenType.Bar; line=line; column=column}
+                 let head: Token       = {lexeme="|"; id=TokenType.Bar; payload=NoPayload; line=line; column=column}
                  let tail: TokenStream = scan remaining line (column + 1)
                  head :: tail
 
              // brackets, curly braces & square brackets
              | '('        :: remaining ->
-                 let head: Token       = {lexeme="("; id=TokenType.LeftParenthesis; line=line; column=column}
+                 let head: Token       = {lexeme="("; id=TokenType.LeftParenthesis; payload=NoPayload; line=line; column=column}
                  let tail: TokenStream = scan remaining line (column + 1)
                  head :: tail
              | ')'        :: remaining ->
-                 let head: Token       = {lexeme=")"; id=TokenType.RightParenthesis; line=line; column=column}
+                 let head: Token       = {lexeme=")"; id=TokenType.RightParenthesis; payload=NoPayload; line=line; column=column}
                  let tail: TokenStream = scan remaining line (column + 1)
                  head :: tail
              | '{'        :: remaining ->
-                 let head: Token       = {lexeme="{"; id=TokenType.LeftBrace; line=line; column=column}
+                 let head: Token       = {lexeme="{"; id=TokenType.LeftBrace; payload=NoPayload; line=line; column=column}
                  let tail: TokenStream = scan remaining line (column + 1)
                  head :: tail
              | '}'        :: remaining ->
-                 let head: Token       = {lexeme="}"; id=TokenType.RightBrace; line=line; column=column}
+                 let head: Token       = {lexeme="}"; id=TokenType.RightBrace; payload=NoPayload; line=line; column=column}
                  let tail: TokenStream = scan remaining line (column + 1)
                  head :: tail
              | '['        :: remaining ->
-                 let head: Token       = {lexeme="["; id=TokenType.LeftBracket; line=line; column=column}
+                 let head: Token       = {lexeme="["; id=TokenType.LeftBracket; payload=NoPayload; line=line; column=column}
                  let tail: TokenStream = scan remaining line (column + 1)
                  head :: tail
              | ']'        :: remaining ->
-                 let head: Token       = {lexeme="]"; id=TokenType.RightBracket; line=line; column=column}
+                 let head: Token       = {lexeme="]"; id=TokenType.RightBracket; payload=NoPayload; line=line; column=column}
                  let tail: TokenStream = scan remaining line (column + 1)
                  head :: tail
 
              // end of statement
              | ';' :: remaining ->
-                 let head: Token       = {lexeme=";"; id=TokenType.SemiColon; line=line; column=column}
+                 let head: Token       = {lexeme=";"; id=TokenType.SemiColon; payload=NoPayload; line=line; column=column}
                  let tail: TokenStream = scan remaining line (column + 1)
                  head :: tail
 
@@ -428,10 +452,11 @@ module Lexer =
              | _ ->
                  let (lexeme: char list), (remaining: char list) = consume ConsumerPredicates.nonBlank src
                  let head: Token = {
-                     lexeme = lexeme |> Transformers.charListToString
-                     id     = TokenType.IllegalToken
-                     line   = line
-                     column = column
+                     lexeme  = lexeme |> Transformers.charListToString
+                     id      = TokenType.IllegalToken
+                     payload = NoPayload
+                     line    = line
+                     column  = column
                  }
                  let tail: TokenStream = scan remaining line (column + head.lexeme.Length)
                  head :: tail
