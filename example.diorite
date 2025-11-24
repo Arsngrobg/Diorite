@@ -37,8 +37,6 @@ x % y;       # modulo          (5)
 +x;          # unary positive  (5)
 x!;          # factorial       (120)
 |-x|;        # absolute        (5)
-'x;          # integration     (5*x + C)
-x';          # differentiation (0)
 
 # constants
 pi;          # 3.1415926
@@ -85,6 +83,8 @@ f(x: Z) -> N = {
     -x if x < 0;
      x otherwise;
 }
+
+# NOTE: this is a compile-time feature and will do nothing when running in the interpreter
 
 # a function can be memoized
 # using the fibonacci sequence as an example, it computes duplicate values repeatedly
