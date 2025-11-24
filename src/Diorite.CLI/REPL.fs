@@ -56,6 +56,7 @@ module REPL =
             Terminal.getCursorPosition |> IO.bind <| (fun (_, y) -> Terminal.setCursorPosition (0, y - 1))
 
         let rec env (): unit =
+            // prepare for user input
             IO.run <| (
                 Terminal.setConfiguration {
                     title            = Terminal.UseDefault
@@ -66,7 +67,10 @@ module REPL =
                 } |> IO.seq <|
                 Terminal.write ">>> "
             )
+
             let code: string = IO.run (Terminal.readLine false)
+
+            // output the code entered and the tokens (if necessary)
             IO.run <| (
                 resetCursor |> IO.seq <|
                 Terminal.setConfiguration {
@@ -84,8 +88,35 @@ module REPL =
                     lines            = Terminal.UseDefault
                     columns          = Terminal.UseDefault
                 } |> IO.seq <|
-                Terminal.write $"  {code}\n"
+                Terminal.write $"  {code}\n" |> IO.bind <|
+                (fun _ ->
+                   if code |> System.String.IsNullOrEmpty then
+                       IO.nil // do not output tokens
+                   else
+                       Terminal.setConfiguration {
+                            title            = Terminal.UseDefault
+                            backgroundColour = Terminal.UseDefault
+                            foregroundColour = System.ConsoleColor.DarkGray |> Terminal.UseValue
+                            lines            = Terminal.UseDefault
+                            columns          = Terminal.UseDefault
+                       } |> IO.seq <|
+                       Terminal.write $" ¦  {code |> (Lexer.tokenise >> Lexer.strTokens)}\n" |> IO.bind <|
+                       (fun _ ->
+                           match (code |> (Lexer.tokenise >> Parser.parse)) with
+                            | Ok    root -> Terminal.write $" ¦  {root}\n"
+                            | Error err  ->
+                                Terminal.setConfiguration {
+                                    title            = Terminal.UseDefault
+                                    backgroundColour = Terminal.UseDefault
+                                    foregroundColour = System.ConsoleColor.Red |> Terminal.UseValue
+                                    lines            = Terminal.UseDefault
+                                    columns          = Terminal.UseDefault
+                                } |> IO.seq <|
+                                Terminal.write $" X  {strError err}\n"
+                       )
+                )
             )
+
             env ()
 
         initTerminal ()

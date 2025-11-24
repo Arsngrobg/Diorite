@@ -16,7 +16,10 @@
 namespace Diorite.Lang.Core
 
 /// <summary>
-///     <p>The <c>BaseTypes</c> module contains bindings for the common types and their public-facing API functions.</p>
+///     <p>The <c>BaseTypes</c> module contains bindings for common definitions across the <b>Diorite</b> project.</p>
+///     <p>All types and functions defined here are said to be common utilities or required uniformly across the entire
+///        project.
+///     </p>
 /// </summary>
 // marked as AutoOpen as used across the entire project
 [<AutoOpen>]
@@ -40,6 +43,11 @@ module BaseDef =
     ///     </p>
     /// </summary>
     module IO =
+        /// <summary>
+        ///     <p>An <c>IO</c> functor that does nothing.</p>
+        /// </summary>
+        let nil: IO<unit> = IO id
+
         /// <summary>
         ///     <p>Runs the suspended computation within the supplied <c>IO</c> value.</p>
         /// </summary>
@@ -68,7 +76,6 @@ module BaseDef =
             )
 
         /// <summary>
-        ///     <p>Sequences two <c>IO</c> computations.</p>
         ///     <p>This is equivalent to the <c>flatmap</c> operation.</p>
         ///     <p>The supplied function is described as the 'uplifting' function which applies some transformation on
         ///        the type <c>'a</c> into another <c>IO</c> functor bound to the type <c>'b</c>.
@@ -88,6 +95,17 @@ module BaseDef =
                 b
             )
 
+        /// <summary>
+        ///     <p>Sequences two <c>IO</c> functors.</p>
+        ///     <p>It produces a new <c>IO</c> functor that executes both operations, where the return value of the
+        ///        first <c>IO</c> functor is ignored and the return value of the second <c>IO</c> functor is returned.
+        ///     </p>
+        /// </summary>
+        /// <param name='ioA'> the first <c>IO</c> functor </param>
+        /// <param name='ioB'> the second <c>IO</c> functor </param>
+        /// <typeparam name="'a"> the return type of the first <c>IO</c> functor </typeparam>
+        /// <typeparam name="'b"> the return type of the second <c>IO</c> functor </typeparam>
+        /// <returns> the composite of the two <c>IO</c> functors into a single <c>IO</c> functor </returns>
         let seq (ioA: IO<'a>) (ioB: IO<'b>): IO<'b> =
             let ioAFn: unit -> 'a = match ioA with IO ioFn -> ioFn
             let ioBFn: unit -> 'b = match ioB with IO ioFn -> ioFn
@@ -103,12 +121,13 @@ module BaseDef =
     ///        optional, where a subscript of <c>0</c> internally represents the plain character (e.g. <c>'x'</c>) and
     ///        <c>10</c> internally represents the subscript-ed variable <c>"x9"</c>, which is the maximum amount of
     ///        subscript-ed permutations of the character.
+    ///        <i>The encoded subscript is declared as an unsigned 8-bit integer.</i>
     ///     </p>
     ///     <p>For all characters of the alphabet (including lowercase &amp; uppercase), each with 11 unique
     ///        permutations, that means <b>Diorite</b> supports a total of <c>572</c> variables.
     ///     </p>
     /// </summary>
-    type VariableType = char * int
+    type VariableType = char * uint8
 
     /// <summary>
     ///     <p>Produces the <c>string</c> representation of the supplied <c>VariableType</c>.</p>
@@ -119,7 +138,102 @@ module BaseDef =
     /// <param name='variable'> the <c>Variable</c> to derive the <c>string</c> representation </param>
     /// <returns> the <c>string</c> representation of this <c>VariableType</c> </returns>
     let strVariable (variable: VariableType): string =
-        let (character: char), (subscript: int) = variable
-        if subscript < 0  then (invalidArg "subscript") "encoded subscript value cannot be negative"
-        if subscript > 10 then (invalidArg "subscript") "encoded subscript value cannot be greater than 10"
-        if subscript = 0  then $"{character}" else $"{character}{subscript - 1}"
+        let (character: char), (subscript: uint8) = variable
+        if subscript > 10uy then (invalidArg "subscript") "encoded subscript value cannot be greater than 10"
+        if subscript = 0uy  then $"{character}" else $"{character}{subscript - 1uy}"
+
+    /// <summary>
+    ///     <p>The union type which describe the cases in which a <c>Value</c> is represented as in <b>Diorite</b>.</p>
+    ///     <p>This union type captures the different ways a <c>Value</c> may be expressed, ranging from concrete
+    ///        numeric data to conceptual placeholders such as infinity or the absence of any value.
+    ///     </p> 
+    /// </summary>
+    type ValueType =
+        | Number    of float
+        | Infinity
+        | Undefined
+
+    /// <summary>
+    ///     <p>Produces the <c>string</c> representation of the supplied <c>ValueType</c>.</p>
+    /// </summary>
+    /// <param name='value'> the <c>ValueType</c> to get the <c>string</c> representation </param>
+    /// <returns> the <c>string</c> representation of the supplied <c>ValueType</c> </returns>
+    let strValue (value: ValueType): string =
+        match value with
+         | Number    value -> $"{value}"
+         | Undefined       ->  "undefined"
+         | Infinity        ->  "infinity"
+
+    /// <summary>
+    ///     <p>A <c>FunctionName</c> is a value denoting the name of a function.</p>
+    ///     <p>It is either denoted by a <c>Variable</c> or a <c>Symbolic</c> representation.</p>
+    /// </summary>
+    type FunctionName =
+        | Variable of VariableType
+        | Symbolic of string
+
+    /// <summary>
+    ///     <p>Produces the <c>string</c> representation of the supplied <c>FunctionName</c>.</p>
+    /// </summary>
+    /// <param name='functionName'> the <c>FunctionName</c> to get the <c>string</c> representation </param>
+    let strFunctionName (functionName: FunctionName): string =
+        match functionName with
+         | Variable var -> strVariable var
+         | Symbolic sym -> sym
+
+    /// <summary>
+    ///     <p>The number sets supported in the <b>Diorite</b> language.</p>
+    ///     <p>These sets define the domain of a function.</p>
+    /// </summary>
+    type NumberSet =
+        | Natural    // N = {0, ..., ∞}
+        | Integer    // Z = {-∞, ..., 0, ..., ∞}
+        | Real       // R = {Q & I}
+        | Rational   // Q = {x where x = a/b & b != 0}
+        | Irrational // I = {x where x != a/b & a != b}
+        | Complex    // C = {x where x = a + bi}
+
+    /// <summary>
+    ///     <p>Produces the <c>string</c> representation of the supplied <c>NumberSet</c>.</p>
+    /// </summary>
+    /// <param name='set'> the <c>NumberSet</c> </param>
+    /// <returns> the <c>string</c> representation of the supplied <c>NumberSet</c> </returns>
+    let strNumberSet (set: NumberSet): string =
+        match set with
+         | Natural    -> "N"
+         | Integer    -> "Z"
+         | Real       -> "R"
+         | Rational   -> "Q"
+         | Irrational -> "I"
+         | Complex    -> "C"
+
+    /// <summary>
+    ///     <p>The <c>ParameterType</c> is a parameter in a function in <b>Diorite</b>.</p>
+    ///     <p><b>1.</b> The first value (<c>VariableType</c>), which is the identifier for the parameter.</p>
+    ///     <p><b>2.</b> The second value (<c>NumberSet</c>), which denotes the number set which the parameter must
+    ///        comply with in order for the function to accept it.
+    ///     </p>
+    /// </summary>
+    type ParameterType = VariableType * NumberSet
+
+    /// <summary>
+    ///     <p>Produces the <c>string</c> representation of the supplied <c>ParameterType</c>.</p>
+    /// </summary>
+    /// <param name='param'> the <c>ParameterType</c> </param>
+    /// <returns> the <c>string</c> representation of the supplied <c>ParameterType</c> </returns>
+    let strParameterType (param: ParameterType): string =
+        let (identifier: VariableType), (set: NumberSet) = param
+        $"{strVariable identifier} -> {strNumberSet set}"
+
+    /// <summary>
+    ///     <p>The <c>FunctionAttributes</c> record type stores data related to a function definition in the
+    ///        <b>Diorite</b>. It maintains a reference to the variable which references this function, hence a cyclical
+    ///        reference; a list of parameters (<c>ParameterType</c>); and its return type (<c>NumberSet</c> - its
+    ///        range).
+    ///     </p>
+    /// </summary>
+    type FunctionAttributes = {
+        identifier: VariableType
+        parameters: ParameterType list
+        returns:    NumberSet
+    }

@@ -17,7 +17,7 @@ you are still able to utilize the interpreter/compiler on Linux systems if you d
 Install Diorite by either compiling from source or checking out the
 [releases](https://github.com/Arsngrobg/Diorite/releases) tab. Store it in a safe directory, and add it to your `PATH`
 variables so you can execute this command in the command line:
-```fsharp
+```shell
 $ diorite -i
 ```
 without any issues.
@@ -40,7 +40,7 @@ If you want to save your state, just type `@save <filename>` and it will save th
 a `.diorite` file in the current working directory.
 
 To run your `.diorite` file, in the terminal, execute the command:
-```fsharp
+```shell
 $ diorite -i <name>.diorite
 ```
 After execution, you will be presented with the REPL exactly as you left it, ready to continue where you left off. Note
@@ -54,7 +54,7 @@ that if using an IDE, the integrated terminal does not format well with the REPL
     - `infinity`/`inf`: any operation applied on it will just return `infinity`
     - `π`/`pi`:         `3.14159265...`
     - `τ`/`tau`:        `6.28318530...`  (`2π`)
-    - `e`/`euler`:      `2.718281828...` (euler's number)
+    - `e`/`euler`:      `2.718281828...` (Euler's number)
 - Operations (BIDMAS)
   - Binary:   exponentiation, multiplication, division, modulo, addition, and subtraction
   - Unary:    plus, minus, factorial

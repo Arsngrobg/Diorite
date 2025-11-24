@@ -7,127 +7,111 @@
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* The grammar specification for the Diorite mathematics computing language.                                          */
 /* Whitespace is implied by this grammar (unless specified or enforced otherwise)                                     */
+/* ε is the 'epsilon' character, which denotes an empty string                                                        */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/* fundamental types */
-<digit>         ::= "1"|"2"|"3"|"4"|"5"|"6"|"7"|"8"|"9"|"0"
+/* base definitions */
+<digit>   ::= "0"|"1"|"2"|"3"|"4"|"5"|"6"|"7"|"8"|"9"
+<digits>  ::= <digit>
+           |  <digit> <digits>
 
-<digits>        ::= <digit>
-                 |  <digit> <digits>
+<number>  ::= <digits>
+           |  <digits> "." <digits>
 
-<letter>        ::= "a"|"b"|"c"|"d"|"e"|"f"|"g"|"h"|"i"|"j"|"l"|"m"|"n"|"o"|"p"|"q"|"r"|"s"|"t"|"u"|"v"|"w"|"x"|"y"|"z"
-                 |  "A"|"B"|"C"|"D"|"E"|"F"|"G"|"H"|"I"|"J"|"L"|"M"|"N"|"O"|"P"|"Q"|"R"|"S"|"T"|"U"|"V"|"W"|"X"|"Y"|"Z"
+<letter>  ::= "a"|"b"|"c"|"d"|"e"|"f"|"g"|"h"|"i"|"j"|"k"|"l"|"m"|"n"|"o"|"p"|"q"|"r"|"s"|"t"|"u"|"v"|"w"|"x"|"y"|"z"
+           |  "A"|"B"|"C"|"D"|"E"|"F"|"G"|"H"|"I"|"J"|"K"|"L"|"M"|"N"|"O"|"P"|"Q"|"R"|"S"|"T"|"U"|"V"|"W"|"X"|"Y"|"Z"
+<letters> ::= <letter>
+           |  <letter> <letters>
 
-<letters>       ::= <letter>
-                 |  <letter> <letters>
+/* number sets */
+<numberSet> ::= "N"  /* natural     */
+             |  "Z"  /* integer     */
+             |  "R"  /* reals       */
+             |  "Q"  /* rationals   */
+             |  "I"  /* irrationals */
+             |  "C"  /* complex     */
 
-<number>        ::= <digits>
-                 |  <digits> "." <digits>
+/* values & variables */
+<variable>  ::= <letter>
+             |  <letter> <digit>
+<value>     ::= "undefined"
+             |  "infinity" | "inf"
+             |  "pi"
+             |  "tau"
+             |  "euler"
+             |  <number>
 
-<identifier>    ::= <letter>
-                 |  <letter> <digit>
-
-<eoi>           ::= ";"
-                 |  ";" <eoi>
-
-/* new */
-<program>       ::= ε
-                 |  <statement> <program>
+/* source file */
+<source>      ::= ε
+               |  <statement> <source>
 
 /* statement */
-<statement>     ::= ";"
-                 |  <expression> ";"
-                 |  <identifier>  "=" <expression> ";"
-                 |  <functiondef> "=" <functionbody>
+<statement>   ::= ";"
+               |  <expression> ";"
+               |  <variable>           "=" <expression> ";"
+               |  <functionDefinition> "=" <functionBody>
 
 /* expressions */
-<expression>     ::= <term> <expression'>
+<expression>    ::= <term> <expression'>
+<expression'>   ::= ε
+                 |  "+" <term> <expression'>
+                 |  "-" <term> <expression'>
 
-<expression'>    ::= ε
-                  |  "+" <term> <expression'>
-                  |  "-" <term> <expression'>
+<term>          ::= <factor> <term'>
+<term'>         ::= ε
+                 |  "*"  <factor> <term'>
+                 |  "/"  <factor> <term'>
+                 |  "//" <factor> <term'>
+                 |  "%"  <factor> <term'>
 
-<term>           ::= <factor> <term'>
+<factor>        ::= <signed>
+                 |  <signed> "^" <signed>
 
-<term'>          ::= ε
-                  |  "*"  <factor> <term'>
-                  |  "/"  <factor> <term'>
-                  |  "//" <factor> <term'>
-                  |  "%"  <factor> <term'>
+<signed>        ::= <subExpression>
+                 |  "+" <signed>
+                 |  "-" <signed>
 
-<factor>         ::= <signed>
-                  |  <signed> "^" <signed>
-
-<signed>         ::= <exponent>
-                  |  "+" <signed>
-                  |  "-" <signed>
-
-<exponent>       ::= <subexpression> <exponent'>
-
-<exponent'>      ::= ε
-                  |  "!" <exponent'>
-
-<subexpression>  ::= <value>
-                  |  "(" <expression> ")"
-                  |  "|" <expression> "|"
-                  |  <identifier> "(" <args> ")"
-                  |  <letters>    "(" <args> ")"
-
-<args>           ::= <expression>
-                  |  <expression> "," <args>
-
-<value>          ::= "undefined"
-                  |  "infinity" | "inf"
-                  |  "pi"
-                  |  "tau"
-                  |  "euler"
-                  |  <letters> <digit>
-                  |  <number>
-
-/* functions */
-<functiondef>    ::= <functionmeta> <identifier> "(" <functionparams> ")" <functionreturn>
-
-<functionmeta>   ::= ε
-                  |  "[" "inlined"  "]"             <functionmeta>
-                  |  "[" "memoized" "]"             <functionmeta>
-                  |  "[" "symbol" ":" <letters> "]" <functionmeta>
-
-<functionparams> ::= <functionparam>
-                  |  <functionparam> "," <functionparams>
-
-<functionparam>  ::= <identifier>
-                  |  <identifier> ":" "N"
-                  |  <identifier> ":" "Z"
-                  |  <identifier> ":" "R"
-                  |  <identifier> ":" "Q"
-                  |  <identifier> ":" "I"
-                  |  <identifier> ":" "C"
-
-<functionreturn> ::= ε
-                  |  "->" "N"
-                  |  "->" "Z"
-                  |  "->" "R"
-                  |  "->" "Q"
-                  |  "->" "I"
-                  |  "->" "C"
-
-<functionbody>   ::= <expression> ";"
-                  |  "{" <conditions> "}"
+<subExpression> ::= <value>
+                 |  <variable>
+                 |  "(" <expression> ")"
+                 |  "|" <expression> "|"
+                 |  <variable> "(" <functionArgs> ")"
+                 |  <letters>  "(" <functionArgs> ")"
 
 /* conditions */
-<conditions>     ::= <ifcond> ";" <conditions>
-                  |  <ifcond> ";" <otherwisecond> ";"
+<conditions>         ::= <ifCondition> ";" <conditions>
+                      |  <ifCondition> ";" <otherwiseCondition> ";"
 
-<ifcond>         ::= <expression> "if" <expression> <comparison> <expression>
+<ifCondition>        ::= <expression> "if" <expression> <comparison> <expression>
+<otherwiseCondition> ::= <expression> "otherwise"
 
-<otherwisecond>  ::= <expression> "otherwise"
+<comparison>         ::= "="
+                      |  "!="
+                      |  ">"
+                      |  "<"
+                      |  ">="
+                      |  "<="
 
-<comparison>     ::= "="
-                  |  "!="
-                  |  "<"
-                  |  "<="
-                  |  ">"
-                  |  ">="
+/* functions */
+<functionDefinition> ::= <functionMetadata> <variable> "(" <functionParams> ")" <functionRange>
+
+<functionMetadata>   ::= ε
+                      |  "[" <letters> ":" <letters> "]"
+                      |  "[" <letters> "]"
+
+<functionArgs>       ::= <expression>
+                      |  <expression> "," <functionArgs>
+
+<functionParams>     ::= <functionParam>
+                      |  <functionParam> "," <functionParams>
+<functionParam>      ::= <variable>
+                      |  <variable> ":" <numberSet>
+
+<functionRange>      ::= ε
+                      |  "->" <numberSet>
+
+<functionBody>       ::= <expression> ";"
+                      |  "{" <conditions> "}"
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Diorite | Developed and produced by Arsngrobg and Borngle | 2025                                                   */

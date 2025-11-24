@@ -16,8 +16,11 @@
 namespace Diorite.Lang.Core
 
 /// <summary>
-///     <p>The <c>Lexer</c> module contains bindings related to tokenizing raw strings into lexical tokens.</p>
+///     <p>The <c>Lexer</c> module contains bindings related to producing tokens from raw strings into lexical
+///        tokens.
+///     </p>
 /// </summary>
+[<RequireQualifiedAccess>]
 module Lexer =
     /// <summary>
     ///     The signature for a function that transforms a type <c>'a</c> into another type <c>'b</c>.
@@ -46,6 +49,7 @@ module Lexer =
         // reserved words
         | Undefined
         | Infinity
+        | Plot
 
         // symbolic constants
         | Pi
@@ -117,6 +121,12 @@ module Lexer =
     /// </summary>
     type TokenStream = Token list
 
+    let rec statementContainsToken (tokens: TokenStream) (id: TokenType): bool =
+        match tokens with
+         | []                               -> false
+         | token :: _    when token.id = id -> true
+         | _     :: tail                    -> (statementContainsToken tail) id
+
     /// <summary>
     ///     <p>Produces the <c>string</c> representation of the supplied <c>Token</c>.</p>
     /// </summary>
@@ -132,9 +142,10 @@ module Lexer =
     /// <returns> the <c>string</c> representation of the supplied <c>TokenStream</c> </returns>
     let rec strTokens (tokens: TokenStream): string =
         match tokens with
-         | [] | [{id = TokenType.SemiColon}]  -> ""
-         | {id = TokenType.SemiColon} :: tail -> $"\n{strTokens tail}"
-         | t                          :: tail -> $"({strToken t}) {strTokens tail}"
+         | []                                      -> ""
+         | [t] when t.id = TokenType.SemiColon     -> $"({strToken t})"
+         | {id = TokenType.SemiColon} as t :: tail -> $"({strToken t})\n{strTokens tail}"
+         | t                               :: tail -> $"({strToken t}) {strTokens tail}"
 
     /// <summary>
     ///     <p>Finds the first instance of an <c>IllegalToken</c> in the <c>TokenStream</c>.</p>
@@ -152,39 +163,33 @@ module Lexer =
          | _    :: tail                               -> getError tail
 
     /// <summary>
-    ///     <p>Tokenizes the supplied <c>string</c> into a sequence of <c>Token</c>s (<c>TokenStream</c>).</p>
+    ///     <p>Produces tokens from the supplied <c>string</c> into a sequence of <c>Token</c>s
+    ///        (<c>TokenStream</c>).
+    ///     </p>
     ///     <p>Typical usage:
     ///        <code>
-    ///           open Diorite.Lang.Core.Lexer
-    ///           let tokens: TokenStream = tokenize "2 + 2.5"
-    ///           match (getError tokens) with
+    ///           let tokens: Lexer.TokenStream = Lexer.tokenize "2 + 2.5"
+    ///           match (Lexer.getError tokens) with
     ///            | Some err -> printf $"{err}\n"
     ///            | None     -> printf $"{tokens}\n"
     ///        </code>
     ///     </p>
     /// </summary>
-    /// <param name='source'> the source string to tokenize </param>
+    /// <param name='source'> the source string to tokenise </param>
     /// <returns> a <c>TokenStream</c> that consists of the tokens derived from the source string </returns>
-    let tokenize (source: string): TokenStream =
+    let tokenise (source: string): TokenStream =
         // transformers
         let stringToCharList: Transformer<string, char list> = Seq.toList
-
-        let charToInt: Transformer<char, int> = (fun c -> int c - int '0')
-
+        let charToInt:        Transformer<char, int>         = (fun c -> int c - int '0')
         let charListToString: Transformer<char list, string> = (Array.ofList >> System.String)
-
-        let charListToFloat: Transformer<char list, float> = (charListToString >> System.Double.Parse)
+        let charListToFloat:  Transformer<char list, float>  = (charListToString >> System.Double.Parse)
 
         // predicates
-        let isLetter: ConsumerPredicate = System.Char.IsLetter
-
-        let isDigit: ConsumerPredicate = System.Char.IsDigit
-
-        let isBlank: ConsumerPredicate = System.Char.IsWhiteSpace
-
+        let isLetter:   ConsumerPredicate = System.Char.IsLetter
+        let isDigit:    ConsumerPredicate = System.Char.IsDigit
+        let isBlank:    ConsumerPredicate = System.Char.IsWhiteSpace
         let notNewline: ConsumerPredicate = (fun c -> c <> '\n')
-
-        let nonBlank: ConsumerPredicate = (isBlank >> not)
+        let nonBlank:   ConsumerPredicate = (isBlank >> not)
 
         // recursively consume character given that they satisfy the given predicate
         // returns the consumed characters and the remaining characters
@@ -255,7 +260,7 @@ module Lexer =
                            let encodedSubscript: int = subscript |> (charToInt >> (fun s -> s + 1))
                            let head: Token = {
                                lexeme = $"{character}{encodedSubscript}"
-                               id     = (character, encodedSubscript) |> TokenType.Variable
+                               id     = (character, encodedSubscript |> uint8) |> TokenType.Variable
                                line   = line
                                column = column
                            }
@@ -265,7 +270,7 @@ module Lexer =
                        | remaining ->
                            let head: Token = {
                                lexeme = $"{character}"
-                               id     = (character, 0) |> TokenType.Variable
+                               id     = (character, 0uy) |> TokenType.Variable
                                line   = line
                                column = column
                            }
@@ -280,6 +285,7 @@ module Lexer =
                                            | "otherwise"        -> TokenType.Otherwise
                                            | "undefined"        -> TokenType.Undefined
                                            | "infinity" | "inf" -> TokenType.Infinity
+                                           | "plot"             -> TokenType.Plot
                                            | "pi"               -> TokenType.Pi
                                            | "tau"              -> TokenType.Tau
                                            | "euler"            -> TokenType.Euler

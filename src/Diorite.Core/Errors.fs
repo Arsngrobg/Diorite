@@ -38,6 +38,17 @@ module Errors =
         | SystemError of string // illegal state caused by external interop code
 
     /// <summary>
+    ///     <p>Produces a <i>prettier</i> <c>string</c> representation of the supplied <c>DioriteError</c>.</p>
+    /// </summary>
+    /// <param name='error'> the <c>DioriteError</c> </param>
+    /// <returns> the <c>string</c> representation of the supplied <c>DioriteError</c> </returns>
+    let strError (error: DioriteError): string =
+        match error with
+         | MathError   msg -> $"MathError: {msg}"
+         | SyntaxError msg -> $"SyntaxError: {msg}"
+         | SystemError msg -> $"SystemError: {msg}"
+
+    /// <summary>
     ///     <p>A stricter version of the standard <c>FSHarp.Core.Result</c> where its <c>Error</c> case is strictly
     ///        bound to the <c>DioriteError</c> type.
     ///     </p>

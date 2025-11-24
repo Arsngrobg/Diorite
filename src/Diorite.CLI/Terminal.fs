@@ -161,7 +161,14 @@ module Terminal =
 
             IO (fun () -> [] |> (scanner >> System.String.Concat))
 
-    let getKey (hide: bool): IO<System.ConsoleKeyInfo> =
+    /// <summary>
+    ///     <p>Produces an <c>IO</c> functor that contains the computation which reads the next key that the user
+    ///        enters.
+    ///     </p>
+    /// </summary>
+    /// <param name='hide'> whether to display the key the user entered should be displayed in the terminal </param>
+    /// <returns> an <c>IO</c> functor that reads the key entered by the user </returns>
+    let readKey (hide: bool): IO<System.ConsoleKeyInfo> =
         IO (fun () ->
             System.Console.ReadKey hide
         )
