@@ -115,6 +115,21 @@ module BaseDef =
             )
 
     /// <summary>
+    ///     <p>The constant pi (<c>π</c>).</p>
+    /// </summary>
+    let constantPi: float    = 3.141592653589793
+
+    /// <summary>
+    ///     <p>The constant tau (<c>τ</c>).</p>
+    /// </summary>
+    let constantTau: float   = 6.283185307179586
+
+    /// <summary>
+    ///     <p>Euler's constant (<c>e</c>).</p>
+    /// </summary>
+    let constantEuler: float = 2.718281828459045
+
+    /// <summary>
     ///     <p>The structured representation of a <c>Variable</c> in the <b>Diorite</b> mathematics language.</p>
     ///     <p><b>1.</b> The first value (<c>char</c>) is the character which is the variable name (e.g. 'x').</p>
     ///     <p><b>2.</b> The second value (<c>int</c>) is the encoded subscript of the variable - this value is
@@ -193,6 +208,11 @@ module BaseDef =
         | Rational   // Q = {x where x = a/b & b != 0}
         | Irrational // I = {x where x != a/b & a != b}
         | Complex    // C = {x where x = a + bi}
+
+    /// <summary>
+    ///     <p>The default <c>NumberSet</c>.</p>
+    /// </summary>
+    let defaultNumberSet: NumberSet = NumberSet.Real
 
     /// <summary>
     ///     <p>Produces the <c>string</c> representation of the supplied <c>NumberSet</c>.</p>
