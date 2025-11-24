@@ -226,14 +226,28 @@ module BaseDef =
         $"{strVariable identifier} -> {strNumberSet set}"
 
     /// <summary>
+    ///     <p>The <c>FunctionMetadata</c> record type encompasses data about a function in <b>Diorite</b>.</p>
+    ///     <p>It retains data such as: the <c>symbol</c>ic name it may have, whether the return value should be inlined
+    ///        (a compile-time optimization), or whether the function should maintain a cache that reduces the number of
+    ///        repeat computations - for example, computing the fibonacci number at the 5th place, then the 4th place.
+    ///     </p>
+    /// </summary>
+    type FunctionMetadata = {
+        symbol:   string option
+        inlined:  bool
+        memoized: bool
+    }
+
+    /// <summary>
     ///     <p>The <c>FunctionAttributes</c> record type stores data related to a function definition in the
     ///        <b>Diorite</b>. It maintains a reference to the variable which references this function, hence a cyclical
-    ///        reference; a list of parameters (<c>ParameterType</c>); and its return type (<c>NumberSet</c> - its
-    ///        range).
+    ///        reference; a list of parameters (<c>ParameterType</c>); its return type (<c>NumberSet</c> - its
+    ///        range); and the metadata associated with this function definition (<c>FunctionMetadata</c>).
     ///     </p>
     /// </summary>
     type FunctionAttributes = {
         identifier: VariableType
         parameters: ParameterType list
         returns:    NumberSet
+        metadata:   FunctionMetadata
     }
