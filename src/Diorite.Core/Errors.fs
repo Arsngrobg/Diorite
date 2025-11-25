@@ -57,6 +57,24 @@ module Errors =
     type Result<'a> = Result<'a, DioriteError>
 
     /// <summary>
+    ///     <p>The globally-defined operator for chaining successful <c>Result</c> types by applying callback functions
+    ///        on them.
+    ///     </p>
+    ///     <p>If the supplied <c>Result</c> matches the <c>Ok</c> case, then the registered <c>fn</c> function is
+    ///        applied to it.
+    ///     </p>
+    /// </summary>
+    /// <param name='result'> the result to apply to this  </param>
+    /// <param name='fn'> the callback function to apply on the successful value stored in the <c>Result</c> </param>
+    /// <typeparam name="'a"> the type of value stored in the original <c>Result</c> type </typeparam>
+    /// <typeparam name="'b"> the type of value that the callback function <c>fn</c> returns </typeparam>
+    /// <returns> a value of type <c>'b</c> if the <c>Result</c> is the <c>Ok</c> case </returns>
+    let (?=>) (result: Result<'a>) (fn: 'a -> Result<'b>): Result<'b> =
+        match result with
+         | Error err   -> Error err
+         | Ok    value -> fn value
+
+    /// <summary>
     ///     <p>A functional wrapper around a <c>Result</c> that contains a <c>MathError</c> with a meaningful message
     ///        of the error.
     ///     </p>

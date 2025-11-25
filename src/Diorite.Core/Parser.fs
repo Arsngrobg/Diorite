@@ -172,15 +172,6 @@ module Parser =
     /// </summary>
     type Parser<'a> = TokenStream -> ParseState<'a> Result
 
-    // type definition as it cleans up the function signature for the (-->) operator
-    type private OnSuccess<'a, 'b> = ParseState<'a> -> ParseState<'b> Result
-
-    // chaining operator for successful parse/consume operations
-    let (-->) (state: ParseState<'a> Result) (fn: OnSuccess<'a, 'b>): ParseState<'b> Result =
-        match state with
-         | Error err   -> Error err
-         | Ok    state -> fn    state
-
     // helper function for producing an error message
     let private getErrorMsg (token: Token option) (expected: string): string =
         match token with
@@ -204,10 +195,10 @@ module Parser =
              | []     -> Ok ([], [])
              // <source> ::= <statement> <source>
              | tokens ->
-                 statement tokens --> (fun (stmt, tail) ->
+                 statement tokens ?=> (fun (stmt, tail) ->
                      match stmt with
                       | None      -> source tail
-                      | Some stmt -> source tail --> (fun (stms, remaining) -> Ok (stmt :: stms, remaining))
+                      | Some stmt -> source tail ?=> (fun (stms, remaining) -> Ok (stmt :: stms, remaining))
              )
         )
         // <statement> ::= ";"
@@ -223,16 +214,16 @@ module Parser =
                      match tail with
                       // <statement> ::= <variable> "=" <expression> ";"
                       | {id = TokenType.Equals} :: tail ->
-                          expression tail                  --> (fun (exp, tail) ->
-                          consume tail TokenType.SemiColon --> (fun (_, remaining) ->
+                          expression tail                  ?=> (fun (exp, tail) ->
+                          consume tail TokenType.SemiColon ?=> (fun (_, remaining) ->
                               let tree: AST = AST.BinaryOperation (AST.Variable v, BinaryOperator.Assignment, exp)
                               Ok (Some tree, remaining)
                           ))
                       // <statement> ::= <functionDefinition> "=" <functionBody>
                       | tail ->
-                          functionDefinition (t::tail)  --> (fun (def, tail      ) ->
-                          consume tail TokenType.Equals --> (fun (_,   tail      ) ->
-                          functionBody tail             --> (fun (body, remaining) ->
+                          functionDefinition (t::tail)  ?=> (fun (def, tail      ) ->
+                          consume tail TokenType.Equals ?=> (fun (_,   tail      ) ->
+                          functionBody tail             ?=> (fun (body, remaining) ->
                               let tree: AST = AST.FunctionDefinition (def, body)
                               Ok (Some tree, remaining)
                           )))
@@ -246,8 +237,8 @@ module Parser =
                  | {id = TokenType.SemiColon} :: remaining -> Ok (None, remaining)
                  // <statement> ::= <expression> ";"
                  | tokens ->
-                     expression tokens                --> (fun (exp, tail     ) ->
-                     consume tail TokenType.SemiColon --> (fun (_,   remaining) ->
+                     expression tokens                ?=> (fun (exp, tail     ) ->
+                     consume tail TokenType.SemiColon ?=> (fun (_,   remaining) ->
                          Ok (Some exp, remaining)
                      ))
         )
@@ -260,13 +251,13 @@ module Parser =
                 match tokens with
                  // <expression'> ::= "+" <term> <expression'>
                  | {id = TokenType.Plus} :: tail ->
-                     term tail --> (fun (term, tail) ->
+                     term tail ?=> (fun (term, tail) ->
                          let accumulator: AST = AST.BinaryOperation (accumulator, BinaryOperator.Addition, term)
                          expression' accumulator tail
                      )
                  // <expression'> ::= "+" <term> <expression'>
                  | {id = TokenType.Hyphen} :: tail ->
-                     term tail --> (fun (term, tail) ->
+                     term tail ?=> (fun (term, tail) ->
                          let accumulator: AST = AST.BinaryOperation (accumulator, BinaryOperator.Subtraction, term)
                          expression' accumulator tail
                      )
@@ -275,7 +266,7 @@ module Parser =
             )
 
             // will either return just the term or a nested tree of addition/subtraction
-            term tokens --> (fun (term, tail) ->
+            term tokens ?=> (fun (term, tail) ->
                 expression' term tail
             )
         )
@@ -290,25 +281,25 @@ module Parser =
                 match tokens with
                  // <term'> ::= "*" <factor> <term'>
                  | {id = TokenType.Asterisk} :: tail ->
-                     factor tail --> (fun (term, tail) ->
+                     factor tail ?=> (fun (term, tail) ->
                          let accumulator: AST = AST.BinaryOperation (accumulator, BinaryOperator.Multiplication, term)
                          term' accumulator tail
                      )
                  // <term'> ::= "/" <factor> <term'>
                  | {id = TokenType.ForwardSlash} :: tail ->
-                     factor tail --> (fun (factor, tail) ->
+                     factor tail ?=> (fun (factor, tail) ->
                          let accumulator: AST = AST.BinaryOperation (accumulator, BinaryOperator.Division, factor)
                          term' accumulator tail
                      )
                  // <term'> ::= "//" <factor> <term'>
                  | {id = TokenType.DoubleForwardSlash} :: tail ->
-                     factor tail --> (fun (factor, tail) ->
+                     factor tail ?=> (fun (factor, tail) ->
                          let accumulator: AST = AST.BinaryOperation (accumulator, BinaryOperator.FloorDivision, factor)
                          term' accumulator tail
                      )
                  // <term'> ::= "%" <factor> <term'>
                  | {id = TokenType.Percentage} :: tail ->
-                     factor tail --> (fun (factor, tail) ->
+                     factor tail ?=> (fun (factor, tail) ->
                          let accumulator: AST = AST.BinaryOperation (accumulator, BinaryOperator.Modulo, factor)
                          term' accumulator tail
                   )
@@ -316,18 +307,18 @@ module Parser =
                  | remaining -> Ok (accumulator, remaining)
             )
 
-            factor tokens --> (fun (factor, tail) ->
+            factor tokens ?=> (fun (factor, tail) ->
                 term' factor tail
             )
         )
         // <factor> ::= <signed>
         //           |  <signed> "^" <signed>
         and factor: Parser<AST> = (fun tokens ->
-            signed tokens --> (fun (leftSigned, tail) ->
+            signed tokens ?=> (fun (leftSigned, tail) ->
                 match tail with
                  // <factor> ::= <signed> "^" <signed>
                  | {id = TokenType.Hat} :: tail ->
-                     signed tail --> (fun (rightSigned, remaining) ->
+                     signed tail ?=> (fun (rightSigned, remaining) ->
                          let tree: AST = AST.BinaryOperation (leftSigned, BinaryOperator.Exponent, rightSigned)
                          Ok (tree, remaining)
                      )
@@ -342,13 +333,13 @@ module Parser =
             match tokens with
              // <signed> ::= "+" <signed>
              | {id = TokenType.Plus} :: tail ->
-                 signed tail --> (fun (ops, remaining) ->
+                 signed tail ?=> (fun (ops, remaining) ->
                      let tree: AST = AST.UnaryOperation (ops, UnaryOperator.Positive)
                      Ok (tree, remaining)
                  )
              // <signed> ::= "-" <signed>
              | {id = TokenType.Hyphen} :: tail ->
-                 signed tail --> (fun (ops, remaining) ->
+                 signed tail ?=> (fun (ops, remaining) ->
                      let tree: AST = AST.UnaryOperation (ops, UnaryOperator.Negative)
                      Ok (tree, remaining)
                  )
@@ -365,14 +356,14 @@ module Parser =
             match tokens with
              // <subExpression> ::= "(" <expression> ")"
              | {id = TokenType.LeftParenthesis} :: tail ->
-                 expression tail                         --> (fun (exp, tail     ) ->
-                 consume tail TokenType.RightParenthesis --> (fun (_,   remaining) ->
+                 expression tail                         ?=> (fun (exp, tail     ) ->
+                 consume tail TokenType.RightParenthesis ?=> (fun (_,   remaining) ->
                      Ok (exp, remaining)
                  ))
              // <subExpression> ::= "|" <expression> "|"
              | {id = TokenType.Bar} :: tail ->
-                 expression tail            --> (fun (exp, tail     ) ->
-                 consume tail TokenType.Bar --> (fun (_,   remaining) ->
+                 expression tail            ?=> (fun (exp, tail     ) ->
+                 consume tail TokenType.Bar ?=> (fun (_,   remaining) ->
                      let tree: AST = AST.UnaryOperation (exp, UnaryOperator.Absolute)
                      Ok (tree, remaining)
                  ))
@@ -382,8 +373,8 @@ module Parser =
                  match tail with
                   // <subExpression> ::= <variable> "(" <functionArgs> ")"
                   | {id = TokenType.LeftParenthesis} :: tail ->
-                      functionArgs tail                       --> (fun (args, tail     ) ->
-                      consume tail TokenType.RightParenthesis --> (fun (_,    remaining) ->
+                      functionArgs tail                       ?=> (fun (args, tail     ) ->
+                      consume tail TokenType.RightParenthesis ?=> (fun (_,    remaining) ->
                           let tree: AST = AST.FunctionCall (FunctionReference.OfVariable v, args)
                           Ok (tree, remaining)
                       ))
@@ -391,50 +382,50 @@ module Parser =
                   | remaining -> Ok (AST.Variable v, remaining)
              // <subExpression> ::= <letters> "(" <functionArgs> ")"
              | {id = TokenType.Symbol} as t :: tail ->
-                  consume tail TokenType.LeftParenthesis  --> (fun (_,    tail     ) ->
-                 functionArgs tail                        --> (fun (args, tail     ) ->
-                 consume tail TokenType.RightParenthesis  --> (fun (_,    remaining) ->
+                  consume tail TokenType.LeftParenthesis  ?=> (fun (_,    tail     ) ->
+                 functionArgs tail                        ?=> (fun (args, tail     ) ->
+                 consume tail TokenType.RightParenthesis  ?=> (fun (_,    remaining) ->
                     let tree: AST = AST.FunctionCall (FunctionReference.OfSymbolic t.lexeme, args)
                     Ok (tree, remaining)
                  )))
              // <subExpression> ::= <value>
-             | tokens -> value tokens --> (fun (factor, remaining) ->
+             | tokens -> value tokens ?=> (fun (factor, remaining) ->
                    Ok (AST.Value factor, remaining)
                )
         )
         // <conditions> ::= <ifCondition> ";" <conditions>
         //               |  <ifCondition> ";" <otherwiseCondition> ";"
         and conditions: Parser<AST list> = (fun tokens ->
-            ifCondition tokens               --> (fun (condition, tail) ->
-            consume tail TokenType.SemiColon --> (fun (_,         tail) ->
+            ifCondition tokens               ?=> (fun (condition, tail) ->
+            consume tail TokenType.SemiColon ?=> (fun (_,         tail) ->
                 // <conditions> ::= <ifCondition> ";" <conditions>
                 if (Lexer.statementContainsToken tail) TokenType.If then
-                    conditions tail --> (fun (conditions, remaining) ->
+                    conditions tail ?=> (fun (conditions, remaining) ->
                         Ok (condition :: conditions, remaining)
                     )
                 // <conditions> ::= <ifCondition> ";" <otherwiseCondition> ";"
                 else
-                    otherwiseCondition tail          --> (fun (baseCase, tail     ) ->
-                    consume tail TokenType.SemiColon --> (fun (_,        remaining) ->
+                    otherwiseCondition tail          ?=> (fun (baseCase, tail     ) ->
+                    consume tail TokenType.SemiColon ?=> (fun (_,        remaining) ->
                         Ok ([condition; baseCase], remaining)
                     ))
             ))
         )
         // <ifCondition> ::= <expression> "if" <expression> <comparison> <expression>
         and ifCondition: Parser<AST> = (fun tokens ->
-            expression tokens         --> (fun (ifTrue,   tail     ) ->
-            consume tail TokenType.If --> (fun (_,        tail     ) ->
-            expression tail           --> (fun (leftCmp,  tail     ) ->
-            comparison tail           --> (fun (cmpOp,    tail     ) ->
-            expression tail           --> (fun (rightCmp, remaining) ->
+            expression tokens         ?=> (fun (ifTrue,   tail     ) ->
+            consume tail TokenType.If ?=> (fun (_,        tail     ) ->
+            expression tail           ?=> (fun (leftCmp,  tail     ) ->
+            comparison tail           ?=> (fun (cmpOp,    tail     ) ->
+            expression tail           ?=> (fun (rightCmp, remaining) ->
                 let tree: AST = AST.CaseComparison (ifTrue, (leftCmp, cmpOp, rightCmp))
                 Ok (tree, remaining)
             )))))
         )
         // <otherwiseCondition> ::= <expression> "otherwise"
         and otherwiseCondition: Parser<AST> = (fun tokens ->
-            expression tokens                --> (fun (defaultValue, tail     ) ->
-            consume tail TokenType.Otherwise --> (fun (_,            remaining) ->
+            expression tokens                ?=> (fun (defaultValue, tail     ) ->
+            consume tail TokenType.Otherwise ?=> (fun (_,            remaining) ->
                 Ok (baseCase defaultValue, remaining)
             ))
         )
@@ -502,11 +493,11 @@ module Parser =
         )
         // <functionDefinition> ::= <functionMetadata> <variable> "(" <functionParams> ")" <functionRange>
         and functionDefinition: Parser<FunctionAttributes> = (fun tokens ->
-            variable tokens                         --> (fun (v,      tail     ) ->
-            consume tail TokenType.LeftParenthesis  --> (fun (_,      tail     ) ->
-            functionParams tail                     --> (fun (paramz, tail     ) ->
-            consume tail TokenType.RightParenthesis --> (fun (_,      tail     ) ->
-            functionRange tail                      --> (fun (set,    remaining) ->
+            variable tokens                         ?=> (fun (v,      tail     ) ->
+            consume tail TokenType.LeftParenthesis  ?=> (fun (_,      tail     ) ->
+            functionParams tail                     ?=> (fun (paramz, tail     ) ->
+            consume tail TokenType.RightParenthesis ?=> (fun (_,      tail     ) ->
+            functionRange tail                      ?=> (fun (set,    remaining) ->
                  let attr: FunctionAttributes = {
                      identifier = v
                      parameters = paramz
@@ -516,14 +507,25 @@ module Parser =
                  Ok (attr, remaining)
             )))))
         )
+        // <functionMetadata> ::= ε
+        //                     |  "[" "symbol" ":" <letters> "]"
+        //                     |  "[" "inlined"  "]"
+        //                     |  "[" "memoized" "]"
+        and functionMetadata: Parser<FunctionMetadata> = (fun tokens ->
+            consume tokens TokenType.LeftBracket ?=> (fun (_,   tail) ->
+            consume tail   TokenType.Symbol      ?=> (fun (sym, tail) ->
+                match tail with
+                 {id = }
+            ))
+        )
         // <functionParams> ::= <functionParam>
         //                   |  <functionParam> "," <functionParams>
         and functionParams: Parser<ParameterType list> = (fun tokens ->
-            functionParam tokens --> (fun (param, tail) ->
+            functionParam tokens ?=> (fun (param, tail) ->
                 match tail with
                  // <functionParams> ::= <functionParam> "," <functionParams>
                  | {id = TokenType.Comma} :: tail ->
-                     functionParams tail --> (fun (paramz, remaining) ->
+                     functionParams tail ?=> (fun (paramz, remaining) ->
                          Ok (param :: paramz, remaining)
                      )
                  // <functionParams> ::= <functionParam>
@@ -533,11 +535,11 @@ module Parser =
         // <functionParam> ::= <variable>
         //                  |  <variable> ":" <numberSet>
         and functionParam: Parser<ParameterType> = (fun tokens ->
-            variable tokens --> (fun (v, tail) ->
+            variable tokens ?=> (fun (v, tail) ->
                 match tail with
                  // <functionParam> ::= <variable> ":" <numberSet>
                  | {id = TokenType.Colon} :: tail ->
-                     numberSet tail --> (fun (set, remaining) ->
+                     numberSet tail ?=> (fun (set, remaining) ->
                          Ok ((v, set), remaining)
                      )
                  // <functionParam> ::= <variable>
@@ -547,11 +549,11 @@ module Parser =
         // <functionArgs> ::= <expression>
         //                 |  <expression> "," <functionArgs>
         and functionArgs: Parser<AST list> = (fun tokens ->
-            expression tokens --> (fun (arg, tail) ->
+            expression tokens ?=> (fun (arg, tail) ->
                 match tail with
                  // <functionArgs> ::= <expression> "," <functionArgs>
                  | {id = TokenType.Comma} :: tail ->
-                     functionArgs tail --> (fun (args, remaining) ->
+                     functionArgs tail ?=> (fun (args, remaining) ->
                          Ok (arg :: args, remaining)
                      )
                  // <functionArgs> ::= <expression>
@@ -573,14 +575,14 @@ module Parser =
             match tokens with
              // <functionBody> ::= "{" <conditions> "}"
              | {id = TokenType.LeftBrace} :: tail ->
-                 conditions tail                   --> (fun (conditions, tail     ) ->
-                 consume tail TokenType.RightBrace --> (fun (_,          remaining) ->
+                 conditions tail                   ?=> (fun (conditions, tail     ) ->
+                 consume tail TokenType.RightBrace ?=> (fun (_,          remaining) ->
                      Ok (conditions |> AST.NodeSequence, remaining)
                  ))
              // <functionBody> ::= <expression> ";"
              | tail ->
-                 expression tail                  --> (fun (exp, tail) ->
-                 consume tail TokenType.SemiColon --> (fun (_, remaining) ->
+                 expression tail                  ?=> (fun (exp, tail) ->
+                 consume tail TokenType.SemiColon ?=> (fun (_, remaining) ->
                      Ok (exp, remaining)
                  ))
         )
