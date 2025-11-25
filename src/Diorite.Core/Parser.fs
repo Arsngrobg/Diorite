@@ -210,25 +210,22 @@ module Parser =
             //              |  <functionDefinition> "=" <functionBody>
             if (Lexer.statementContainsToken tokens) TokenType.Equals then
                 match tokens with
-                 | {id = TokenType.Variable v} as t :: tail ->
-                     match tail with
-                      // <statement> ::= <variable> "=" <expression> ";"
-                      | {id = TokenType.Equals} :: tail ->
-                          expression tail                  ?=> (fun (exp, tail) ->
-                          consume tail TokenType.SemiColon ?=> (fun (_, remaining) ->
-                              let tree: AST = AST.BinaryOperation (AST.Variable v, BinaryOperator.Assignment, exp)
-                              Ok (Some tree, remaining)
-                          ))
-                      // <statement> ::= <functionDefinition> "=" <functionBody>
-                      | tail ->
-                          functionDefinition (t::tail)  ?=> (fun (def, tail      ) ->
-                          consume tail TokenType.Equals ?=> (fun (_,   tail      ) ->
-                          functionBody tail             ?=> (fun (body, remaining) ->
-                              let tree: AST = AST.FunctionDefinition (def, body)
-                              Ok (Some tree, remaining)
-                          )))
-                 | head :: _ -> SyntaxError (getErrorMsg (Some head) "Variable")
-                 | []        -> SyntaxError (getErrorMsg None "Variable")
+                 // <statement> ::= <variable> "=" <expression> ";"
+                 | {id = TokenType.Variable v} :: tail ->
+                      consume tail TokenType.Equals    ?=> (fun (_,   tail     ) ->
+                      expression tail                  ?=> (fun (exp, tail     ) ->
+                      consume tail TokenType.SemiColon ?=> (fun (_,   remaining) ->
+                          let tree: AST = AST.BinaryOperation (AST.Variable v, BinaryOperator.Assignment, exp)
+                          Ok (Some tree, remaining)
+                      )))
+                 // <statement> ::= <functionDefinition> "=" <functionBody>
+                 | tokens ->
+                      functionDefinition tokens     ?=> (fun (def,  tail     ) ->
+                      consume tail TokenType.Equals ?=> (fun (_,    tail     ) ->
+                      functionBody tail             ?=> (fun (body, remaining) ->
+                          let tree: AST = AST.FunctionDefinition (def, body)
+                          Ok (Some tree, remaining)
+                      )))
             // <statement> ::= ";"
             //              |  <expression> ";"
             else
@@ -493,30 +490,70 @@ module Parser =
         )
         // <functionDefinition> ::= <functionMetadata> <variable> "(" <functionParams> ")" <functionRange>
         and functionDefinition: Parser<FunctionAttributes> = (fun tokens ->
-            variable tokens                         ?=> (fun (v,      tail     ) ->
-            consume tail TokenType.LeftParenthesis  ?=> (fun (_,      tail     ) ->
-            functionParams tail                     ?=> (fun (paramz, tail     ) ->
-            consume tail TokenType.RightParenthesis ?=> (fun (_,      tail     ) ->
-            functionRange tail                      ?=> (fun (set,    remaining) ->
+            functionMetadata defaultFunctionMetadata tokens ?=> (fun (meta,   tail     ) ->
+            variable tail                                   ?=> (fun (v,      tail     ) ->
+            consume tail TokenType.LeftParenthesis          ?=> (fun (_,      tail     ) ->
+            functionParams tail                             ?=> (fun (paramz, tail     ) ->
+            consume tail TokenType.RightParenthesis         ?=> (fun (_,      tail     ) ->
+            functionRange tail                              ?=> (fun (set,    remaining) ->
                  let attr: FunctionAttributes = {
                      identifier = v
                      parameters = paramz
                      returns    = set
-                     metadata   = {symbol=None; inlined=false; memoized=false}
+                     metadata   = meta
                  }
                  Ok (attr, remaining)
-            )))))
+            ))))))
         )
         // <functionMetadata> ::= ε
-        //                     |  "[" "symbol" ":" <letters> "]"
-        //                     |  "[" "inlined"  "]"
-        //                     |  "[" "memoized" "]"
-        and functionMetadata: Parser<FunctionMetadata> = (fun tokens ->
-            consume tokens TokenType.LeftBracket ?=> (fun (_,   tail) ->
-            consume tail   TokenType.Symbol      ?=> (fun (sym, tail) ->
-                match tail with
-                 {id = }
-            ))
+        //                     |  "[" "symbol" ":" <letters> "]" <functionMetadata>
+        //                     |  "[" "inlined"  "]"             <functionMetadata>
+        //                     |  "[" "memoized" "]"             <functionMetadata>
+        and functionMetadata (currentMeta: FunctionMetadata): Parser<FunctionMetadata> = (fun tokens ->
+            printf "dfg\n"
+            match tokens with
+            // <functionMetadata> ::= "[" "symbol" ":" <letters> "]" <functionMetadata>
+            //                     |  "[" "inlined"  "]"             <functionMetadata>
+            //                     |  "[" "memoized" "]"             <functionMetadata>
+             | {id = TokenType.LeftBracket} :: tail ->
+                 consume tail TokenType.Symbol ?=> (fun (metaAttr, tail) ->
+                     match metaAttr.lexeme with
+                      // <functionMetadata> ::= "[" "symbol" ":" <letters> "]" <functionMetadata>
+                      | "symbol" ->
+                          consume tail TokenType.Colon        ?=> (fun (_,   tail) ->
+                          consume tail TokenType.Symbol       ?=> (fun (sym, tail) ->
+                          consume tail TokenType.RightBracket ?=> (fun (_,   tail) ->
+                              let newMeta: FunctionMetadata = {
+                                  symbol   = Some sym.lexeme
+                                  inlined  = currentMeta.inlined
+                                  memoized = currentMeta.memoized
+                              }
+                              functionMetadata newMeta tail
+                          )))
+                      // <functionMetadata> ::= "[" "inlined" "]" <functionMetadata>
+                      | "inlined" ->
+                          consume tail TokenType.RightBracket ?=> (fun (_, tail) ->
+                              let newMeta: FunctionMetadata = {
+                                  symbol   = currentMeta.symbol
+                                  inlined  = true
+                                  memoized = currentMeta.memoized
+                              }
+                              functionMetadata newMeta tail
+                          )
+                      // <functionMetadata> ::= "[" "memoized" "]" <functionMetadata>
+                      | "memoized" ->
+                          consume tail TokenType.RightBracket ?=> (fun (_, tail) ->
+                              let newMeta: FunctionMetadata = {
+                                  symbol   = currentMeta.symbol
+                                  inlined  = currentMeta.inlined
+                                  memoized = true
+                              }
+                              functionMetadata newMeta tail
+                          )
+                      | sym -> SyntaxError $"Invalid function meta attribute \"{sym}\""
+                 )
+             // <functionMetadata> ::= ε
+             | remaining -> Ok (currentMeta, remaining)
         )
         // <functionParams> ::= <functionParam>
         //                   |  <functionParam> "," <functionParams>

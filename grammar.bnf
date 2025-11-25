@@ -96,8 +96,9 @@
 <functionDefinition> ::= <functionMetadata> <variable> "(" <functionParams> ")" <functionRange>
 
 <functionMetadata>   ::= ε
-                      |  "[" <letters> ":" <letters> "]"
-                      |  "[" <letters> "]"
+                      |  "[" "symbol" ":" <letters> "]" <functionMetadata>
+                      |  "[" "inlined"  "]"             <functionMetadata>
+                      |  "[" "memoized" "]"             <functionMetadata>
 
 <functionArgs>       ::= <expression>
                       |  <expression> "," <functionArgs>

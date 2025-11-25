@@ -249,7 +249,7 @@ module BaseDef =
     /// <summary>
     ///     <p>The <c>FunctionMetadata</c> record type encompasses data about a function in <b>Diorite</b>.</p>
     ///     <p>It retains data such as: the <c>symbol</c>ic name it may have, whether the return value should be inlined
-    ///        (a compile-time optimization), or whether the function should maintain a cache that reduces the number of
+    ///        (a compile-time optimisation), or whether the function should maintain a cache that reduces the number of
     ///        repeat computations - for example, computing the fibonacci number at the 5th place, then the 4th place.
     ///     </p>
     /// </summary>
@@ -257,6 +257,16 @@ module BaseDef =
         symbol:   string option
         inlined:  bool
         memoized: bool
+    }
+    
+    /// <summary>
+    ///     <p>The default <c>FunctionMetadata</c>.</p>
+    ///     <p>In this case, it contains nullified/empty fields.</p>
+    /// </summary>
+    let defaultFunctionMetadata: FunctionMetadata = {
+        symbol   = None
+        inlined  = false
+        memoized = false
     }
 
     /// <summary>
