@@ -15,6 +15,11 @@
 
 namespace Diorite.Lang.Core
 
+// typedefs
+type private Token       = Lexer.Token
+type private TokenStream = Lexer.TokenStream
+type private TokenType   = Lexer.TokenType
+
 /// <summary>
 ///     <p>The <c>Parser</c> module defines the core <c>AST</c> types, including the <b>unary</b>, <b>binary</b>, and
 ///        <b>comparison</b> operators.
@@ -156,7 +161,7 @@ module Parser =
     ///        <c>TokenStream</c> of a <c>Parser</c>.
     ///     </p>
     /// </summary>
-    type ParseState<'a> = 'a * Lexer.TokenStream
+    type ParseState<'a> = 'a * TokenStream
 
     /// <summary>
     ///     <p>A <i>parser</i> is a component in the parsing stage.</p>
@@ -165,7 +170,7 @@ module Parser =
     ///        piece of the tree, such as a list of function arguments.
     ///     </p>
     /// </summary>
-    type Parser<'a> = Lexer.TokenStream -> ParseState<'a> Result
+    type Parser<'a> = TokenStream -> ParseState<'a> Result
 
     // type definition as it cleans up the function signature for the (-->) operator
     type private OnSuccess<'a, 'b> = ParseState<'a> -> ParseState<'b> Result
@@ -177,13 +182,13 @@ module Parser =
          | Ok    state -> fn    state
 
     // helper function for producing an error message
-    let private getErrorMsg (token: Lexer.Token option) (expected: string): string =
+    let private getErrorMsg (token: Token option) (expected: string): string =
         match token with
          | Some token -> $"Expected {expected} - got \"{token.lexeme}\" at line {token.line}, column {token.column}"
          | None       -> $"Expected {expected}"
 
     // dumb consumer that gets cranky if it doesn't match the id supplied to it
-    let private consume (tokens: Lexer.TokenStream) (id: Lexer.TokenType): ParseState<Lexer.Token> Result =
+    let private consume (tokens: TokenStream) (id: Lexer.TokenType): ParseState<Lexer.Token> Result =
         match tokens with
          | token :: remaining when token.id = id -> Ok (token, remaining)
          | head  :: _                            -> SyntaxError (getErrorMsg (Some head) $"{id}")
@@ -212,22 +217,22 @@ module Parser =
         and statement: Parser<AST option> = (fun tokens ->
             // <statement> ::= <variable>           "=" <expression> ";"
             //              |  <functionDefinition> "=" <functionBody>
-            if (Lexer.statementContainsToken tokens) Lexer.Equals then
+            if (Lexer.statementContainsToken tokens) TokenType.Equals then
                 match tokens with
-                 | {id = Lexer.Variable v} as t :: tail ->
+                 | {id = TokenType.Variable v} as t :: tail ->
                      match tail with
                       // <statement> ::= <variable> "=" <expression> ";"
-                      | {id = Lexer.Equals} :: tail ->
-                          expression tail              --> (fun (exp, tail) ->
-                          consume tail Lexer.SemiColon --> (fun (_, remaining) ->
+                      | {id = TokenType.Equals} :: tail ->
+                          expression tail                  --> (fun (exp, tail) ->
+                          consume tail TokenType.SemiColon --> (fun (_, remaining) ->
                               let tree: AST = AST.BinaryOperation (AST.Variable v, BinaryOperator.Assignment, exp)
                               Ok (Some tree, remaining)
                           ))
                       // <statement> ::= <functionDefinition> "=" <functionBody>
                       | tail ->
-                          functionDefinition (t::tail) --> (fun (def, tail      ) ->
-                          consume tail Lexer.Equals    --> (fun (_,   tail      ) ->
-                          functionBody tail            --> (fun (body, remaining) ->
+                          functionDefinition (t::tail)  --> (fun (def, tail      ) ->
+                          consume tail TokenType.Equals --> (fun (_,   tail      ) ->
+                          functionBody tail             --> (fun (body, remaining) ->
                               let tree: AST = AST.FunctionDefinition (def, body)
                               Ok (Some tree, remaining)
                           )))
@@ -238,11 +243,11 @@ module Parser =
             else
                 match tokens with
                  // <statement> ::= ";"
-                 | {id = Lexer.SemiColon} :: remaining -> Ok (None, remaining)
+                 | {id = TokenType.SemiColon} :: remaining -> Ok (None, remaining)
                  // <statement> ::= <expression> ";"
                  | tokens ->
-                     expression tokens            --> (fun (exp, tail     ) ->
-                     consume tail Lexer.SemiColon --> (fun (_,   remaining) ->
+                     expression tokens                --> (fun (exp, tail     ) ->
+                     consume tail TokenType.SemiColon --> (fun (_,   remaining) ->
                          Ok (Some exp, remaining)
                      ))
         )
@@ -254,13 +259,13 @@ module Parser =
             let rec expression' (accumulator: AST): Parser<AST> = (fun tokens ->
                 match tokens with
                  // <expression'> ::= "+" <term> <expression'>
-                 | {id = Lexer.Plus} :: tail ->
+                 | {id = TokenType.Plus} :: tail ->
                      term tail --> (fun (term, tail) ->
                          let accumulator: AST = AST.BinaryOperation (accumulator, BinaryOperator.Addition, term)
                          expression' accumulator tail
                      )
                  // <expression'> ::= "+" <term> <expression'>
-                 | {id = Lexer.Hyphen} :: tail ->
+                 | {id = TokenType.Hyphen} :: tail ->
                      term tail --> (fun (term, tail) ->
                          let accumulator: AST = AST.BinaryOperation (accumulator, BinaryOperator.Subtraction, term)
                          expression' accumulator tail
@@ -284,25 +289,25 @@ module Parser =
             let rec term' (accumulator: AST): Parser<AST> = (fun tokens ->
                 match tokens with
                  // <term'> ::= "*" <factor> <term'>
-                 | {id = Lexer.Asterisk} :: tail ->
+                 | {id = TokenType.Asterisk} :: tail ->
                      factor tail --> (fun (term, tail) ->
                          let accumulator: AST = AST.BinaryOperation (accumulator, BinaryOperator.Multiplication, term)
                          term' accumulator tail
                      )
                  // <term'> ::= "/" <factor> <term'>
-                 | {id = Lexer.ForwardSlash} :: tail ->
+                 | {id = TokenType.ForwardSlash} :: tail ->
                      factor tail --> (fun (factor, tail) ->
                          let accumulator: AST = AST.BinaryOperation (accumulator, BinaryOperator.Division, factor)
                          term' accumulator tail
                      )
                  // <term'> ::= "//" <factor> <term'>
-                 | {id = Lexer.DoubleForwardSlash} :: tail ->
+                 | {id = TokenType.DoubleForwardSlash} :: tail ->
                      factor tail --> (fun (factor, tail) ->
                          let accumulator: AST = AST.BinaryOperation (accumulator, BinaryOperator.FloorDivision, factor)
                          term' accumulator tail
                      )
                  // <term'> ::= "%" <factor> <term'>
-                 | {id = Lexer.Percentage} :: tail ->
+                 | {id = TokenType.Percentage} :: tail ->
                      factor tail --> (fun (factor, tail) ->
                          let accumulator: AST = AST.BinaryOperation (accumulator, BinaryOperator.Modulo, factor)
                          term' accumulator tail
@@ -321,7 +326,7 @@ module Parser =
             signed tokens --> (fun (leftSigned, tail) ->
                 match tail with
                  // <factor> ::= <signed> "^" <signed>
-                 | {id = Lexer.Hat} :: tail ->
+                 | {id = TokenType.Hat} :: tail ->
                      signed tail --> (fun (rightSigned, remaining) ->
                          let tree: AST = AST.BinaryOperation (leftSigned, BinaryOperator.Exponent, rightSigned)
                          Ok (tree, remaining)
@@ -336,13 +341,13 @@ module Parser =
         and signed: Parser<AST> = (fun tokens ->
             match tokens with
              // <signed> ::= "+" <signed>
-             | {id = Lexer.Plus} :: tail ->
+             | {id = TokenType.Plus} :: tail ->
                  signed tail --> (fun (ops, remaining) ->
                      let tree: AST = AST.UnaryOperation (ops, UnaryOperator.Positive)
                      Ok (tree, remaining)
                  )
              // <signed> ::= "-" <signed>
-             | {id = Lexer.Hyphen} :: tail ->
+             | {id = TokenType.Hyphen} :: tail ->
                  signed tail --> (fun (ops, remaining) ->
                      let tree: AST = AST.UnaryOperation (ops, UnaryOperator.Negative)
                      Ok (tree, remaining)
@@ -359,36 +364,36 @@ module Parser =
         and subExpression: Parser<AST> = (fun tokens ->
             match tokens with
              // <subExpression> ::= "(" <expression> ")"
-             | {id = Lexer.LeftParenthesis} :: tail ->
-                 expression tail                     --> (fun (exp, tail     ) ->
-                 consume tail Lexer.RightParenthesis --> (fun (_,   remaining) ->
+             | {id = TokenType.LeftParenthesis} :: tail ->
+                 expression tail                         --> (fun (exp, tail     ) ->
+                 consume tail TokenType.RightParenthesis --> (fun (_,   remaining) ->
                      Ok (exp, remaining)
                  ))
              // <subExpression> ::= "|" <expression> "|"
-             | {id = Lexer.Bar} :: tail ->
-                 expression tail        --> (fun (exp, tail     ) ->
-                 consume tail Lexer.Bar --> (fun (_,   remaining) ->
+             | {id = TokenType.Bar} :: tail ->
+                 expression tail            --> (fun (exp, tail     ) ->
+                 consume tail TokenType.Bar --> (fun (_,   remaining) ->
                      let tree: AST = AST.UnaryOperation (exp, UnaryOperator.Absolute)
                      Ok (tree, remaining)
                  ))
              // <subExpression> ::= <variable>
              //                  |  <variable> "(" <functionArgs> ")"
-             | {id = Lexer.Variable v} :: tail ->
+             | {id = TokenType.Variable v} :: tail ->
                  match tail with
                   // <subExpression> ::= <variable> "(" <functionArgs> ")"
-                  | {id = Lexer.LeftParenthesis} :: tail ->
-                      functionArgs tail                   --> (fun (args, tail     ) ->
-                      consume tail Lexer.RightParenthesis --> (fun (_,    remaining) ->
+                  | {id = TokenType.LeftParenthesis} :: tail ->
+                      functionArgs tail                       --> (fun (args, tail     ) ->
+                      consume tail TokenType.RightParenthesis --> (fun (_,    remaining) ->
                           let tree: AST = AST.FunctionCall (FunctionReference.OfVariable v, args)
                           Ok (tree, remaining)
                       ))
                   // <subExpression> ::= <variable>
                   | remaining -> Ok (AST.Variable v, remaining)
              // <subExpression> ::= <letters> "(" <functionArgs> ")"
-             | {id = Lexer.Symbol} as t :: tail ->
-                  consume tail Lexer.LeftParenthesis  --> (fun (_,    tail     ) ->
-                 functionArgs tail                    --> (fun (args, tail     ) ->
-                 consume tail Lexer.RightParenthesis  --> (fun (_,    remaining) ->
+             | {id = TokenType.Symbol} as t :: tail ->
+                  consume tail TokenType.LeftParenthesis  --> (fun (_,    tail     ) ->
+                 functionArgs tail                        --> (fun (args, tail     ) ->
+                 consume tail TokenType.RightParenthesis  --> (fun (_,    remaining) ->
                     let tree: AST = AST.FunctionCall (FunctionReference.OfSymbolic t.lexeme, args)
                     Ok (tree, remaining)
                  )))
@@ -400,36 +405,36 @@ module Parser =
         // <conditions> ::= <ifCondition> ";" <conditions>
         //               |  <ifCondition> ";" <otherwiseCondition> ";"
         and conditions: Parser<AST list> = (fun tokens ->
-            ifCondition tokens           --> (fun (condition, tail) ->
-            consume tail Lexer.SemiColon --> (fun (_,         tail) ->
+            ifCondition tokens               --> (fun (condition, tail) ->
+            consume tail TokenType.SemiColon --> (fun (_,         tail) ->
                 // <conditions> ::= <ifCondition> ";" <conditions>
-                if (Lexer.statementContainsToken tail) Lexer.If then
+                if (Lexer.statementContainsToken tail) TokenType.If then
                     conditions tail --> (fun (conditions, remaining) ->
                         Ok (condition :: conditions, remaining)
                     )
                 // <conditions> ::= <ifCondition> ";" <otherwiseCondition> ";"
                 else
-                    otherwiseCondition tail      --> (fun (baseCase, tail     ) ->
-                    consume tail Lexer.SemiColon --> (fun (_,        remaining) ->
+                    otherwiseCondition tail          --> (fun (baseCase, tail     ) ->
+                    consume tail TokenType.SemiColon --> (fun (_,        remaining) ->
                         Ok ([condition; baseCase], remaining)
                     ))
             ))
         )
         // <ifCondition> ::= <expression> "if" <expression> <comparison> <expression>
         and ifCondition: Parser<AST> = (fun tokens ->
-            expression tokens     --> (fun (ifTrue,   tail     ) ->
-            consume tail Lexer.If --> (fun (_,        tail     ) ->
-            expression tail       --> (fun (leftCmp,  tail     ) ->
-            comparison tail       --> (fun (cmpOp,    tail     ) ->
-            expression tail       --> (fun (rightCmp, remaining) ->
+            expression tokens         --> (fun (ifTrue,   tail     ) ->
+            consume tail TokenType.If --> (fun (_,        tail     ) ->
+            expression tail           --> (fun (leftCmp,  tail     ) ->
+            comparison tail           --> (fun (cmpOp,    tail     ) ->
+            expression tail           --> (fun (rightCmp, remaining) ->
                 let tree: AST = AST.CaseComparison (ifTrue, (leftCmp, cmpOp, rightCmp))
                 Ok (tree, remaining)
             )))))
         )
         // <otherwiseCondition> ::= <expression> "otherwise"
         and otherwiseCondition: Parser<AST> = (fun tokens ->
-            expression tokens            --> (fun (defaultValue, tail     ) ->
-            consume tail Lexer.Otherwise --> (fun (_,            remaining) ->
+            expression tokens                --> (fun (defaultValue, tail     ) ->
+            consume tail TokenType.Otherwise --> (fun (_,            remaining) ->
                 Ok (baseCase defaultValue, remaining)
             ))
         )
@@ -441,12 +446,12 @@ module Parser =
         //               |  "<="
         and comparison: Parser<ComparisonOperator> = (fun tokens ->
             match tokens with
-             | {id = Lexer.Equals}             :: remaining -> Ok (ComparisonOperator.EqualTo,              remaining)
-             | {id = Lexer.NotEqual}           :: remaining -> Ok (ComparisonOperator.NotEqualTo,           remaining)
-             | {id = Lexer.GreaterThan}        :: remaining -> Ok (ComparisonOperator.GreaterThan,          remaining)
-             | {id = Lexer.LessThan}           :: remaining -> Ok (ComparisonOperator.LessThan,             remaining)
-             | {id = Lexer.GreaterThanOrEqual} :: remaining -> Ok (ComparisonOperator.GreaterThanOrEqualTo, remaining)
-             | {id = Lexer.LessThanOrEqual   } :: remaining -> Ok (ComparisonOperator.LessThanOrEqualTo,    remaining)
+             | {id = TokenType.Equals}             :: rem -> Ok (ComparisonOperator.EqualTo,              rem)
+             | {id = TokenType.NotEqual}           :: rem -> Ok (ComparisonOperator.NotEqualTo,           rem)
+             | {id = TokenType.GreaterThan}        :: rem -> Ok (ComparisonOperator.GreaterThan,          rem)
+             | {id = TokenType.LessThan}           :: rem -> Ok (ComparisonOperator.LessThan,             rem)
+             | {id = TokenType.GreaterThanOrEqual} :: rem -> Ok (ComparisonOperator.GreaterThanOrEqualTo, rem)
+             | {id = TokenType.LessThanOrEqual   } :: rem -> Ok (ComparisonOperator.LessThanOrEqualTo,    rem)
              | head :: _ -> SyntaxError (getErrorMsg (Some head) "ComparisonOperator")
              | []        -> SyntaxError (getErrorMsg None "ComparisonOperator")
         )
@@ -458,13 +463,13 @@ module Parser =
         //              |  "C"  /* complex     */
         and numberSet: Parser<NumberSet> = (fun tokens ->
             match tokens with
-             | {id = Lexer.Variable ('N', 0uy)} :: remaining -> Ok (NumberSet.Natural,    remaining)
-             | {id = Lexer.Variable ('Z', 0uy)} :: remaining -> Ok (NumberSet.Integer,    remaining)
-             | {id = Lexer.Variable ('R', 0uy)} :: remaining -> Ok (NumberSet.Real,       remaining)
-             | {id = Lexer.Variable ('Q', 0uy)} :: remaining -> Ok (NumberSet.Rational,   remaining)
-             | {id = Lexer.Variable ('I', 0uy)} :: remaining -> Ok (NumberSet.Irrational, remaining)
-             | {id = Lexer.Variable ('C', 0uy)} :: remaining -> Ok (NumberSet.Complex,    remaining)
-             | {id = Lexer.Variable v} as t :: _ ->
+             | {id = TokenType.Variable ('N', 0uy)} :: remaining -> Ok (NumberSet.Natural,    remaining)
+             | {id = TokenType.Variable ('Z', 0uy)} :: remaining -> Ok (NumberSet.Integer,    remaining)
+             | {id = TokenType.Variable ('R', 0uy)} :: remaining -> Ok (NumberSet.Real,       remaining)
+             | {id = TokenType.Variable ('Q', 0uy)} :: remaining -> Ok (NumberSet.Rational,   remaining)
+             | {id = TokenType.Variable ('I', 0uy)} :: remaining -> Ok (NumberSet.Irrational, remaining)
+             | {id = TokenType.Variable ('C', 0uy)} :: remaining -> Ok (NumberSet.Complex,    remaining)
+             | {id = TokenType.Variable v} as t :: _ ->
                  SyntaxError $"Expected valid NumberSet - got {strVariable v} at line {t.line}, column {t.column}"
              | head :: _ -> SyntaxError (getErrorMsg (Some head) "NumberSet")
              | []        -> SyntaxError (getErrorMsg None "NumberSet")
@@ -474,7 +479,7 @@ module Parser =
         // (tokeniser already handles distinction)
         and variable: Parser<VariableType> = (fun tokens ->
             match tokens with
-             | {id = Lexer.Variable v} :: remaining -> Ok (v, remaining)
+             | {id = TokenType.Variable v} :: remaining -> Ok (v, remaining)
              | head :: _ -> SyntaxError (getErrorMsg (Some head) "Variable")
              | []        -> SyntaxError (getErrorMsg None "Variable")
         )
@@ -486,22 +491,22 @@ module Parser =
         //          |  <number>
         and value: Parser<ValueType> = (fun tokens ->
             match tokens with
-             | {id = Lexer.Undefined} :: remaining -> Ok (ValueType.Undefined,            remaining)
-             | {id = Lexer.Infinity}  :: remaining -> Ok (ValueType.Infinity,             remaining)
-             | {id = Lexer.Pi}        :: remaining -> Ok (ValueType.Number constantPi,    remaining)
-             | {id = Lexer.Tau}       :: remaining -> Ok (ValueType.Number constantTau,   remaining)
-             | {id = Lexer.Euler}     :: remaining -> Ok (ValueType.Number constantEuler, remaining)
-             | {id = Lexer.Number n}  :: remaining -> Ok (ValueType.Number n,             remaining)
+             | {id = TokenType.Undefined} :: remaining -> Ok (ValueType.Undefined,            remaining)
+             | {id = TokenType.Infinity}  :: remaining -> Ok (ValueType.Infinity,             remaining)
+             | {id = TokenType.Pi}        :: remaining -> Ok (ValueType.Number constantPi,    remaining)
+             | {id = TokenType.Tau}       :: remaining -> Ok (ValueType.Number constantTau,   remaining)
+             | {id = TokenType.Euler}     :: remaining -> Ok (ValueType.Number constantEuler, remaining)
+             | {id = TokenType.Number n}  :: remaining -> Ok (ValueType.Number n,             remaining)
                  | head :: _ -> SyntaxError (getErrorMsg (Some head) "Number, Keyword, or Constant")
                  | []        -> SyntaxError (getErrorMsg None "Number, Keyword, or Constant")
         )
         // <functionDefinition> ::= <functionMetadata> <variable> "(" <functionParams> ")" <functionRange>
         and functionDefinition: Parser<FunctionAttributes> = (fun tokens ->
-            variable tokens                     --> (fun (v,      tail     ) ->
-            consume tail Lexer.LeftParenthesis  --> (fun (_,      tail     ) ->
-            functionParams tail                 --> (fun (paramz, tail     ) ->
-            consume tail Lexer.RightParenthesis --> (fun (_,      tail     ) ->
-            functionRange tail                  --> (fun (set,    remaining) ->
+            variable tokens                         --> (fun (v,      tail     ) ->
+            consume tail TokenType.LeftParenthesis  --> (fun (_,      tail     ) ->
+            functionParams tail                     --> (fun (paramz, tail     ) ->
+            consume tail TokenType.RightParenthesis --> (fun (_,      tail     ) ->
+            functionRange tail                      --> (fun (set,    remaining) ->
                  let attr: FunctionAttributes = {
                      identifier = v
                      parameters = paramz
@@ -517,7 +522,7 @@ module Parser =
             functionParam tokens --> (fun (param, tail) ->
                 match tail with
                  // <functionParams> ::= <functionParam> "," <functionParams>
-                 | {id = Lexer.Comma} :: tail ->
+                 | {id = TokenType.Comma} :: tail ->
                      functionParams tail --> (fun (paramz, remaining) ->
                          Ok (param :: paramz, remaining)
                      )
@@ -531,7 +536,7 @@ module Parser =
             variable tokens --> (fun (v, tail) ->
                 match tail with
                  // <functionParam> ::= <variable> ":" <numberSet>
-                 | {id = Lexer.Colon} :: tail ->
+                 | {id = TokenType.Colon} :: tail ->
                      numberSet tail --> (fun (set, remaining) ->
                          Ok ((v, set), remaining)
                      )
@@ -545,7 +550,7 @@ module Parser =
             expression tokens --> (fun (arg, tail) ->
                 match tail with
                  // <functionArgs> ::= <expression> "," <functionArgs>
-                 | {id = Lexer.Comma} :: tail ->
+                 | {id = TokenType.Comma} :: tail ->
                      functionArgs tail --> (fun (args, remaining) ->
                          Ok (arg :: args, remaining)
                      )
@@ -558,7 +563,7 @@ module Parser =
         and functionRange: Parser<NumberSet> = (fun tokens ->
             match tokens with
              // <functionRange> ::= "->" <numberSet>
-             | {id = Lexer.Arrow} :: tail -> numberSet tail
+             | {id = TokenType.Arrow} :: tail -> numberSet tail
              // <functionRange> ::= ε
              | remaining -> Ok (NumberSet.Real, remaining)
         )
@@ -567,15 +572,15 @@ module Parser =
         and functionBody: Parser<AST> = (fun tokens ->
             match tokens with
              // <functionBody> ::= "{" <conditions> "}"
-             | {id = Lexer.LeftBrace} :: tail ->
-                 conditions tail               --> (fun (conditions, tail     ) ->
-                 consume tail Lexer.RightBrace --> (fun (_,          remaining) ->
+             | {id = TokenType.LeftBrace} :: tail ->
+                 conditions tail                   --> (fun (conditions, tail     ) ->
+                 consume tail TokenType.RightBrace --> (fun (_,          remaining) ->
                      Ok (conditions |> AST.NodeSequence, remaining)
                  ))
              // <functionBody> ::= <expression> ";"
              | tail ->
-                 expression tail --> (fun (exp, tail) ->
-                 consume tail Lexer.SemiColon --> (fun (_, remaining) ->
+                 expression tail                  --> (fun (exp, tail) ->
+                 consume tail TokenType.SemiColon --> (fun (_, remaining) ->
                      Ok (exp, remaining)
                  ))
         )
@@ -587,7 +592,7 @@ module Parser =
     /// </summary>
     /// <param name='tokens'> the tokens to analyse </param>
     /// <returns> a <c>Result</c> that may or may not contain a valid tree </returns>
-    let parse (tokens: Lexer.TokenStream): AST Result =
+    let parse (tokens: TokenStream): AST Result =
         match Parsers.source tokens with
          | Error err                -> Error err
          | Ok    (_,     head :: _) -> SyntaxError $"Illegal trailing \"{head.lexeme}\""
