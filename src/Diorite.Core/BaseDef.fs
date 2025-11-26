@@ -160,13 +160,14 @@ module BaseDef =
     /// <summary>
     ///     <p>The union type which describe the cases in which a <c>Value</c> is represented as in <b>Diorite</b>.</p>
     ///     <p>This union type captures the different ways a <c>Value</c> may be expressed, ranging from concrete
-    ///        numeric data to conceptual placeholders such as <c>Infinity</c> or the absence of any value
-    ///        (<c>Undefined</c>).
+    ///        numeric data to conceptual placeholders such as <c>PInfinity</c>/<c>NInfinity</c> or the absence of any
+    ///        value (<c>Undefined</c>).
     ///     </p> 
     /// </summary>
     type ValueType =
         | Number    of float
-        | Infinity
+        | PInfinity
+        | NInfinity
         | Undefined
 
     /// <summary>
@@ -178,7 +179,8 @@ module BaseDef =
         match value with
          | Number    value -> $"{value}"
          | Undefined       ->  "undefined"
-         | Infinity        ->  "infinity"
+         | PInfinity       ->  "∞"
+         | NInfinity       ->  "-∞"
 
     /// <summary>
     ///     <p>A <c>FunctionName</c> is a value denoting the name of a function.</p>

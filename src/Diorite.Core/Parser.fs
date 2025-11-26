@@ -497,7 +497,7 @@ module Parser =
         and value: Parser<ValueType> = (fun tokens ->
             match tokens with
              | {id = TokenType.Undefined} :: remaining -> Ok (ValueType.Undefined,            remaining)
-             | {id = TokenType.Infinity}  :: remaining -> Ok (ValueType.Infinity,             remaining)
+             | {id = TokenType.Infinity}  :: remaining -> Ok (ValueType.PInfinity,            remaining)
              | {id = TokenType.Pi}        :: remaining -> Ok (ValueType.Number constantPi,    remaining)
              | {id = TokenType.Tau}       :: remaining -> Ok (ValueType.Number constantTau,   remaining)
              | {id = TokenType.Euler}     :: remaining -> Ok (ValueType.Number constantEuler, remaining)
