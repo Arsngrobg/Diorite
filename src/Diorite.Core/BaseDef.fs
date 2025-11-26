@@ -194,7 +194,7 @@ module BaseDef =
     /// </summary>
     type FunctionReference =
         | OfVariable of VariableType
-        | OfSymbolic of string
+        | OfSymbol   of string
 
     /// <summary>
     ///     <p>Produces the <c>string</c> representation of the supplied <c>FunctionReference</c>.</p>
@@ -203,7 +203,7 @@ module BaseDef =
     let strFunctionReference (functionReference: FunctionReference): string =
         match functionReference with
          | OfVariable var -> strVariable var
-         | OfSymbolic sym -> sym
+         | OfSymbol   sym -> sym
 
     /// <summary>
     ///     <p>The number sets supported in the <b>Diorite</b> language.</p>

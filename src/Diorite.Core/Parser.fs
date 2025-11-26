@@ -399,7 +399,7 @@ module Parser =
                   consume tail TokenType.LeftParenthesis  ?=> (fun (_,    tail     ) ->
                  functionArgs tail                        ?=> (fun (args, tail     ) ->
                  consume tail TokenType.RightParenthesis  ?=> (fun (_,    remaining) ->
-                    let tree: AST = AST.FunctionCall (FunctionReference.OfSymbolic t.lexeme, args)
+                    let tree: AST = AST.FunctionCall (FunctionReference.OfSymbol t.lexeme, args)
                     Ok (tree, remaining)
                  )))
              // <subExpression> ::= <value>
