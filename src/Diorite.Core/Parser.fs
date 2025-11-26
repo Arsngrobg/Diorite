@@ -24,9 +24,6 @@ type private TokenType   = Lexer.TokenType
 ///     <p>The <c>Parser</c> module defines the core <c>AST</c> types, including the <b>unary</b>, <b>binary</b>, and
 ///        <b>comparison</b> operators.
 ///     </p>
-///     <p>It exposes a single function: <c>parse</c> that accepts a <c>TokenStream</c>, and produces an <c>AST</c>,
-///        if the parse was successful.
-///     </p>
 /// </summary>
 [<RequireQualifiedAccess>]
 module Parser =
@@ -37,7 +34,6 @@ module Parser =
     ///     </p>
     /// </summary>
     type BinaryOperator =
-        | Assignment
         | Addition
         | Subtraction
         | Multiplication
@@ -98,6 +94,15 @@ module Parser =
         /// </summary>
         /// <typeparam name='VariableType'> the variable reference data </typeparam>
         | Variable           of VariableType
+        /// <summary>
+        ///     <p>An assignment operation in <b>Diorite</b>.</p>
+        ///     <p>It is a tuple that holds the <c>VariableType</c> the assignment applies to, and the expression that
+        ///        it should evaluate to.
+        ///     </p>
+        /// </summary>
+        /// <typeparam name='VariableType'> the variable this assignment operation targets </typeparam>
+        /// <typeparam name='AST'> the intermediate value that should be set to the <c>VariableType</c> </typeparam>
+        | Assignment         of VariableType * AST
         /// <summary>
         ///     <p>A structured representation of a <b>binary</b> operation.</p>
         ///     <p>It is a tuple that indicates that the left sub-expression is operated on by the binary operator with
@@ -211,13 +216,12 @@ module Parser =
             if (Lexer.statementContainsToken tokens) TokenType.Equals then
                 match tokens with
                  // <statement> ::= <variable> "=" <expression> ";"
-                 | {id = TokenType.Variable v} :: tail ->
-                      consume tail TokenType.Equals    ?=> (fun (_,   tail     ) ->
+                 | {id = TokenType.Variable v} :: {id = TokenType.Equals} :: tail ->
                       expression tail                  ?=> (fun (exp, tail     ) ->
                       consume tail TokenType.SemiColon ?=> (fun (_,   remaining) ->
-                          let tree: AST = AST.BinaryOperation (AST.Variable v, BinaryOperator.Assignment, exp)
+                          let tree: AST = AST.Assignment (v, exp)
                           Ok (Some tree, remaining)
-                      )))
+                      ))
                  // <statement> ::= <functionDefinition> "=" <functionBody>
                  | tokens ->
                       functionDefinition tokens     ?=> (fun (def,  tail     ) ->
@@ -323,7 +327,7 @@ module Parser =
                  | remaining -> Ok (leftSigned, remaining)
             )
         )
-        // <signed> ::= <subExpression>
+        // <signed> ::= <subExpression> <factorials>
         //           |  "+" <signed>
         //           |  "-" <signed>
         and signed: Parser<AST> = (fun tokens ->
@@ -340,8 +344,21 @@ module Parser =
                      let tree: AST = AST.UnaryOperation (ops, UnaryOperator.Negative)
                      Ok (tree, remaining)
                  )
-             // <signed> ::= <subExpression>
-             | tail -> subExpression tail
+             // <signed> ::= <subExpression> <factorials>
+             | tokens ->
+                 subExpression tokens   ?=> (fun (subExp, tail) ->
+                 factorials subExp tail
+                 )
+        )
+
+        // <factorials> ::= ε
+        //               |  "!" <factorials>
+        and factorials (accumulator: AST): Parser<AST> = (fun tokens ->
+            match tokens with
+             | {id = TokenType.Exclamation} :: tail ->
+                 let tree: AST = AST.UnaryOperation (accumulator, UnaryOperator.Factorial)
+                 factorials tree tail
+             | remaining -> Ok (accumulator, remaining)
         )
         // <subExpression> ::= <value>
         //                  |  <variable>

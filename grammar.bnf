@@ -67,9 +67,12 @@
 <factor>        ::= <signed>
                  |  <signed> "^" <signed>
 
-<signed>        ::= <subExpression>
+<signed>        ::= <subExpression> <factorials>
                  |  "+" <signed>
                  |  "-" <signed>
+
+<factorials>    ::= ε
+                 |  "!" <factorials>
 
 <subExpression> ::= <value>
                  |  <variable>
