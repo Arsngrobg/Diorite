@@ -145,6 +145,12 @@ module BaseDef =
     type VariableType = char * uint8
 
     /// <summary>
+    ///     <p>The number of supported characters for variables in <b>Diorite</b>.</p>
+    ///     <p>All upper and lowercase alphabetical characters are supported.</p>
+    /// </summary>
+    let supportedVariableChars: int = (['a' .. 'z'] @ ['A' .. 'Z']).Length
+
+    /// <summary>
     ///     <p>Produces the <c>string</c> representation of the supplied <c>VariableType</c>.</p>
     ///     <p>It returns the string representation of all valid variables with subscripts between <c>0</c> and
     ///        <c>10</c>, where the <c>10</c>th subscript is the <c>9</c>th subscript-ed .

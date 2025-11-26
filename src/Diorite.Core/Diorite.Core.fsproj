@@ -12,6 +12,7 @@
         <Compile Include="Errors.fs"     />
         <Compile Include="Lexer.fs"      />
         <Compile Include="Parser.fs"     />
+        <Compile Include="Interpreter.fs" />
     </ItemGroup>
 
 </Project>
