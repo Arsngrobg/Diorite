@@ -35,7 +35,7 @@ module Lexer =
     // the signature for a predicate that the consumer uses to determine whether a character should be consumed
     type ConsumerPredicate = char -> bool
 
-    module Consumers =
+    module ConsumerPredicates =
         let isLetter:   ConsumerPredicate = System.Char.IsLetter
         let isDigit:    ConsumerPredicate = System.Char.IsDigit
         let isBlank:    ConsumerPredicate = System.Char.IsWhiteSpace
@@ -44,14 +44,12 @@ module Lexer =
 
     // recursively consume character given that they satisfy the given predicate
     // returns the consumed characters and the remaining characters
-    let rec consume (predicate: char -> bool) (src: char list): char list * char list =
+    let rec consume (predicate: ConsumerPredicate) (src: char list): char list * char list =
         match src with
          | c :: tail when predicate c ->
             let (consumed: char list), (remaining: char list) = consume predicate tail
             (c :: consumed, remaining)
          | _                          -> ([], src)
-
-    let consumeLetters: char list -> char list * char list = consume System.Char.IsLetter
 
     /// <summary>
     ///     <p>The discriminated union type that identifies the <c>Token</c> in a <c>TokenStream</c>.</p>

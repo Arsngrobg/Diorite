@@ -15,7 +15,7 @@
 
 namespace Diorite.Lang.CLI
 
-open Diorite.Lang.Core
+open Diorite.Lang.API
 
 /// <summary>
 ///     <p>The primary module of the CLI.</p>
@@ -29,12 +29,4 @@ module Main =
     /// <returns> an exit code that describes the state of the CLI after exiting. </returns>
     [<EntryPoint>]
     let main (argv: string array): int =
-        while true do
-            let source: string = System.Console.ReadLine ()
-            match source |> (Lexer.tokenise >> Parser.parse) with
-             | Error err  -> printf $"{strError err}\n"
-             | Ok    root ->
-                 match (Interpreter.eval (Interpreter.Memory.initStorage ())) root with
-                  | Error err    -> printf $"{strError err}\n"
-                  | Ok    (r, _) -> printf $"{r}\n"
         0

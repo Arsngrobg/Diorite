@@ -15,10 +15,13 @@
 
 namespace Diorite.Lang.API
 
-// [<AutoOpen>]
-// module API =
-//     val tokensOf:   string -> Lexer.TokenStream
-//     val treeOf:     string -> Parser.AST
-//     val eval:       string -> (ValueType list) Result
-//     val compile:    string -> IR Result
-//     val getVersion: unit   -> Version
+open Diorite.Lang.Core // the core library
+
+[<AutoOpen>]
+module API =
+     // val tokensOf:   string -> TokenStream
+     // val treeOf:     string -> AST
+     // val eval:       string -> ValueType list Result
+     // val compile:    string -> IR Result
+     // val getMemory:  unit   -> Memory
+     val getVersion: unit   -> Properties.Version

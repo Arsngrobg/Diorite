@@ -15,7 +15,7 @@
 
 namespace Diorite.Lang.Core
 
-//#nowarn "0025" // ignore "not all cases matched" - as all those cases are implicitly covered
+#nowarn "0025" // ignore "not all cases matched" - as all those cases are implicitly covered
 
 // typedefs
 type private AST                = Parser.AST

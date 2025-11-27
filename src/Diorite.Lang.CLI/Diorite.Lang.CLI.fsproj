@@ -7,7 +7,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Diorite.Lang.Core1\Diorite.Lang.Core1.fsproj" />
+        <ProjectReference Include="..\Diorite.Lang.API\Diorite.Lang.API.fsproj" />
     </ItemGroup>
 
     <ItemGroup>
