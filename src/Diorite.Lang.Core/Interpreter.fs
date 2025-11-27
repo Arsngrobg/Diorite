@@ -15,6 +15,8 @@
 
 namespace Diorite.Lang.Core
 
+//#nowarn "0025" // ignore "not all cases matched" - as all those cases are implicitly covered
+
 // typedefs
 type private AST                = Parser.AST
 type private BinaryOperator     = Parser.BinaryOperator
@@ -22,7 +24,7 @@ type private UnaryOperator      = Parser.UnaryOperator
 type private ComparisonOperator = Parser.ComparisonOperator
 
 [<RequireQualifiedAccess>]
-module Interpreter =        
+module Interpreter =
     [<RequireQualifiedAccess>]
     module Memory =
         type FunctionData = FunctionAttributes * AST
@@ -69,6 +71,8 @@ module Interpreter =
     type BinaryOperationRule     = ValueType -> ValueType -> ValueType Result
     type UnaryOperationRule      = ValueType              -> ValueType Result
     type ComparisonOperationRule = ValueType -> ValueType -> bool      Result
+
+    type EvaluationResult = (ValueType list * Memory.Storage) Result
 
     let unsupportedBinaryOperation (op: BinaryOperator) (left: ValueType) (right: ValueType): 'a Result =
         MathError $"Unsupported binary {op} between {strValue left} & {strValue right}"
@@ -237,5 +241,132 @@ module Interpreter =
          | Ok    b -> if b then cmpTrue else (left ?=? right)
     )
 
-    let rec evalTree (mem: Memory.Storage) (root: AST): (ValueType list * Memory.Storage) Result =
-        Ok ([], mem)
+    /// <summary>
+    ///     <p>Checks to see if the supplied <c>ValueType</c> has membership in the <c>NumberSet</c>.</p>
+    /// </summary>
+    /// <param name='set'> the set to check against the <c>ValueType</c> </param>
+    /// <param name='value'> the <c>ValueType</c> that may be present in the <c>NumberSet</c> </param>
+    /// <returns> <c>true</c> if the <c>ValueType</c> is in the number set; <c>false</c> if otherwise </returns>
+    let rec inNumberSet (set: NumberSet) (value: ValueType): bool =
+        match set with
+         | Natural    ->
+             match value with
+              | PInfinity -> true
+              | Number n  -> (inNumberSet Integer) value && n >= 0.0
+              | _         -> false
+         | Integer    ->
+             match value with
+              | PInfinity
+              | NInfinity -> true
+              | Number n  -> n = (System.Math.Floor n)
+              | _         -> false
+         | Real       -> match value with Undefined -> false | _ -> true
+         | Rational   -> match value with Undefined -> false | _ -> true
+         | Irrational -> false // TODO: some sort of irrational test
+         | Complex    -> match value with Undefined -> false | _ -> true // TODO: implement Complex numbers
+
+    let rec eval (mem: Memory.Storage) (root: AST): EvaluationResult =
+        match root with
+         | AST.NodeSequence nodes ->
+             match nodes with
+              | []           -> Ok ([], mem)
+              | [node]       -> (eval mem) node
+              | head :: tail ->
+                  ((eval mem) head) ?=> (fun (result,  mem) ->
+                      ((eval mem) (AST.NodeSequence tail)) ?=> (fun (results, mem) ->
+                          // result is either empty or a single value
+                          Ok (result @ results, mem)
+                      ))
+         | AST.Value valueType -> Ok ([valueType], mem)
+         | AST.Variable var    ->
+             match (Memory.getVariable mem.variables) var with
+              | Memory.OfValue    valueType -> Ok ([valueType], mem)
+              | Memory.OfFunction _         -> MathError $"Expected a value in {strVariable var} - got a function"
+         | AST.Assignment (var, expr) ->
+             (eval mem) expr ?=> (fun ([result], _) ->
+                 let newVars: Memory.VariableTable = (Memory.setVariable mem.variables) var (Memory.OfValue result)
+                 let mem: Memory.Storage = {
+                     variables = newVars
+                     symbols   = mem.symbols
+                 }
+                 Ok ([result], mem)
+             )
+         | AST.BinaryOperation (l, o, r) ->
+             ((eval mem) l) ?=> (fun ([l], _) -> // unsafe match - binary eval should produce a single node
+             ((eval mem) r) ?=> (fun ([r], _) -> // unsafe match - binary eval should produce a single node
+                 match o with
+                  | BinaryOperator.Addition       -> (l <+>  r) ?=> (fun result -> Ok ([result], mem))
+                  | BinaryOperator.Subtraction    -> (l <->  r) ?=> (fun result -> Ok ([result], mem))
+                  | BinaryOperator.Multiplication -> (l <*>  r) ?=> (fun result -> Ok ([result], mem))
+                  | BinaryOperator.Division       -> (l </>  r) ?=> (fun result -> Ok ([result], mem))
+                  | BinaryOperator.Modulo         -> (l <%>  r) ?=> (fun result -> Ok ([result], mem))
+                  | BinaryOperator.FloorDivision  -> (l <//> r) ?=> (fun result -> Ok ([result], mem))
+                  | BinaryOperator.Exponent       -> (l <^>  r) ?=> (fun result -> Ok ([result], mem))
+             ))
+         | AST.UnaryOperation (operand, operator) ->
+             ((eval mem) operand) ?=> (fun ([operand], _) -> // unsafe match - unary eval should produce a node
+                match operator with
+                 | UnaryOperator.Positive  -> ((<~+>) operand)    ?=> (fun result -> Ok ([result], mem))
+                 | UnaryOperator.Negative  -> ((<~->) operand)    ?=> (fun result -> Ok ([result], mem))
+                 | UnaryOperator.Factorial -> (operand |> (<~!>)) ?=> (fun result -> Ok ([result], mem))
+                 | UnaryOperator.Absolute  -> (operand |> (<+->)) ?=> (fun result -> Ok ([result], mem))
+             )
+         | AST.CaseComparison (toReturn, (l, o, r)) ->
+             let makeDecision (cmpTrue: bool): EvaluationResult =
+                 if not cmpTrue then
+                     Ok ([Number nan], mem) // a signal to let evaluator know to try and eval the next condition
+                 else
+                     (eval mem) toReturn
+             ((eval mem) l) ?=> (fun ([l], _) -> // unsafe match - binary eval should produce a single node
+             ((eval mem) r) ?=> (fun ([r], _) -> // unsafe match - binary eval should produce a single node
+                 match o with
+                  | ComparisonOperator.EqualTo              -> (l ?=?  r) ?=> makeDecision
+                  | ComparisonOperator.NotEqualTo           -> (l ?!=? r) ?=> makeDecision
+                  | ComparisonOperator.GreaterThan          -> (l ?>?  r) ?=> makeDecision
+                  | ComparisonOperator.LessThan             -> (l ?<?  r) ?=> makeDecision
+                  | ComparisonOperator.GreaterThanOrEqualTo -> (l ?>=? r) ?=> makeDecision
+                  | ComparisonOperator.LessThanOrEqualTo    -> (l ?<=? r) ?=> makeDecision
+             ))
+         | AST.FunctionCall (ref, args) ->
+             match ref with
+              | FunctionReference.OfVariable var ->
+                  match (Memory.getVariable mem.variables) var with
+                   | Memory.OfValue    value        -> MathError $"Expected function - got {strValue value}"
+                   | Memory.OfFunction (data, body) ->
+                       (loadArgs mem) (data.parameters, args) ?=> (fun table ->
+                           let mem: Memory.Storage = {
+                               variables = table
+                               symbols   = mem.symbols
+                           }
+                           (eval mem) body
+                       )
+              | FunctionReference.OfSymbol sym ->
+                  match (Memory.getSymbol mem.symbols) sym with
+                   | None   -> MathError $"No symbol defined for function \"{sym}\""
+                   | Some (data, body) ->
+                       (loadArgs mem) (data.parameters, args) ?=> (fun table ->
+                           let mem: Memory.Storage = {
+                               variables = table
+                               symbols   = mem.symbols
+                           }
+                           (eval mem) body
+                       )
+         | AST.FunctionDefinition (data, body) -> Ok ([], mem)
+    and loadArgs (mem: Memory.Storage) (parameters: ParameterType list, args: AST list): Memory.VariableTable Result =
+        match parameters, args with
+         | [],                  []             -> Ok mem.variables
+         | (var, set) :: pTail, aHead :: aTail ->
+             (eval mem) aHead ?=> (fun ([value], _) ->
+                 // TODO: set membership
+                 if not (inNumberSet set value) then
+                    let argPos: int = parameters.Length - pTail.Length - 1
+                    MathError $"{strVariable var} - argument {argPos} must be within the {set} number set"
+                 else
+                     let mem: Memory.Storage = {
+                         variables = (Memory.setVariable mem.variables) var (Memory.OfValue value)
+                         symbols   = mem.symbols
+                     }
+                     (loadArgs mem) (pTail, aTail)
+             )
+         | parameters, []   -> MathError $"Missing {parameters.Length} arguments for function"
+         | [],         args -> MathError $"Too many arguments for functions - got {args.Length}"

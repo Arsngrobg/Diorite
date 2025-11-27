@@ -177,21 +177,36 @@ module Parser =
     /// </summary>
     type Parser<'a> = TokenStream -> ParseState<'a> Result
 
-    // helper function for producing an error message
-    let private getErrorMsg (token: Token option) (expected: string): string =
+    /// <summary>
+    ///     <p>Helper function for producing the correct error message for a potentially invalid token.</p>
+    ///     <p>Expected is a <c>string</c> rather than a <c>TokenType</c> as it allows for more flexible error
+    ///        messaging.
+    ///     </p>
+    /// </summary>
+    /// <param name='token'> the potential <c>Token</c> to be shown in the message </param>
+    /// <param name='expected'> the expected value(s) at the current read in the parser </param>
+    /// <returns> a <c>string</c> that is the error message </returns>
+    let getErrorMsg (token: Token option) (expected: string): string =
         match token with
          | Some token -> $"Expected {expected} - got \"{token.lexeme}\" at line {token.line}, column {token.column}"
          | None       -> $"Expected {expected}"
 
-    // dumb consumer that gets cranky if it doesn't match the id supplied to it
-    let private consume (tokens: TokenStream) (id: Lexer.TokenType): ParseState<Lexer.Token> Result =
+    /// <summary>
+    ///     <p>A dumb consumer function that attempts to accept the current token in the supplied <c>TokenStream</c>,
+    ///        provided that it matches the <c>TokenType</c>. If it fails, it very angrily, throws an error.
+    ///     </p>
+    /// </summary>
+    /// <param name='tokens'> the <c>TokenStream</c> </param>
+    /// <param name='id'> the <c>TokenType</c> that the head of the <c>TokenStream</c> must match </param>
+    /// <returns> a <c>Result</c> that may contain a <c>ParseState</c>, which allows it to continue parsing </returns>
+    let consume (tokens: TokenStream) (id: Lexer.TokenType): ParseState<Lexer.Token> Result =
         match tokens with
          | token :: remaining when token.id = id -> Ok (token, remaining)
          | head  :: _                            -> SyntaxError (getErrorMsg (Some head) $"{id}")
          | []                                    -> SyntaxError (getErrorMsg None $"{id}")
 
     [<RequireQualifiedAccess>]
-    module private Parsers =
+    module Parsers =
         // <source> ::= ε
         //           |  <statement> <source>
         let rec source: Parser<AST list> = (fun tokens ->
@@ -496,12 +511,12 @@ module Parser =
         //          |  <number>
         and value: Parser<ValueType> = (fun tokens ->
             match tokens with
-             | {id = TokenType.Undefined} :: remaining -> Ok (ValueType.Undefined,            remaining)
-             | {id = TokenType.Infinity}  :: remaining -> Ok (ValueType.PInfinity,            remaining)
-             | {id = TokenType.Pi}        :: remaining -> Ok (ValueType.Number constantPi,    remaining)
-             | {id = TokenType.Tau}       :: remaining -> Ok (ValueType.Number constantTau,   remaining)
-             | {id = TokenType.Euler}     :: remaining -> Ok (ValueType.Number constantEuler, remaining)
-             | {id = TokenType.Number n}  :: remaining -> Ok (ValueType.Number n,             remaining)
+             | {id = TokenType.Undefined} :: remaining -> Ok (ValueType.Undefined, remaining)
+             | {id = TokenType.Infinity}  :: remaining -> Ok (ValueType.PInfinity, remaining)
+             | {id = TokenType.Pi}        :: remaining -> Ok (constantPi,          remaining)
+             | {id = TokenType.Tau}       :: remaining -> Ok (constantTau,         remaining)
+             | {id = TokenType.Euler}     :: remaining -> Ok (constantEuler,       remaining)
+             | {id = TokenType.Number n}  :: remaining -> Ok (ValueType.Number n,  remaining)
                  | head :: _ -> SyntaxError (getErrorMsg (Some head) "Number, Keyword, or Constant")
                  | []        -> SyntaxError (getErrorMsg None "Number, Keyword, or Constant")
         )
@@ -527,7 +542,6 @@ module Parser =
         //                     |  "[" "inlined"  "]"             <functionMetadata>
         //                     |  "[" "memoized" "]"             <functionMetadata>
         and functionMetadata (currentMeta: FunctionMetadata): Parser<FunctionMetadata> = (fun tokens ->
-            printf "dfg\n"
             match tokens with
             // <functionMetadata> ::= "[" "symbol" ":" <letters> "]" <functionMetadata>
             //                     |  "[" "inlined"  "]"             <functionMetadata>

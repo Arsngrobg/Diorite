@@ -1,8 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Diorite.Core", "src\Diorite.Core\Diorite.Core.fsproj", "{DB38393C-FEEA-4687-89C7-B5A2A93B9990}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Diorite.Lang.Core", "src\Diorite.Lang.Core\Diorite.Lang.Core.fsproj", "{DB38393C-FEEA-4687-89C7-B5A2A93B9990}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Diorite.CLI", "src\Diorite.CLI\Diorite.CLI.fsproj", "{F81D9EE5-ACC5-4593-AE81-52A0794030BB}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Diorite.Lang.CLI", "src\Diorite.Lang.CLI\Diorite.Lang.CLI.fsproj", "{F81D9EE5-ACC5-4593-AE81-52A0794030BB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
