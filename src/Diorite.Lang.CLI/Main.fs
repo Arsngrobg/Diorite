@@ -29,4 +29,5 @@ module Main =
     /// <returns> an exit code that describes the state of the CLI after exiting. </returns>
     [<EntryPoint>]
     let main (argv: string array): int =
+        printf ()
         0

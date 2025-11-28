@@ -23,7 +23,7 @@ namespace Diorite.Lang.Core
 /// </summary>
 // marked as AutoOpen as used across the entire project
 [<AutoOpen>]
-module Errors =
+module internal Errors =
     /// <summary>
     ///     <p>A discriminated union type for an error in the <b>Diorite</b> language. Every error stores a message that
     ///        displays a descriptive message of what went wrong in the software. These are not <c>Exceptions</c> nor

@@ -15,22 +15,20 @@
 
 namespace Diorite.Lang.API
 
-open Diorite.Lang.Core // the core library
-
 /// <summary>
 ///     <p>The public-facing API for <b>Diorite</b>.</p>
 /// </summary>
 [<AutoOpen>]
 module API =
-     // val tokensOf:    string      -> TokenStream
-     // val tokensError: TokenStream -> DioriteError list
-     // val treeOf:      string      -> AST            Result
+     // val tokensOf:    string                -> TokenStream
+     // val tokenErrors: TokenStream           -> DioriteError list
+     // val treeOf:      string                -> Result<AST, DioriteError>
      // val initRuntime: Runtime.Configuration -> Evaluator
-     // val compile:     string      -> IR             Result
+     // val compile:     string                -> Result<IR, DioriteError>
 
      /// <summary>
      ///    <p>Gets the version of <b>Diorite</b> that this API exposes.</p>
      /// </summary>
      /// <returns> the version of <b>Diorite</b> this API exposes </returns>
-     let getVersion (): Properties.Version =
-         Properties.languageVersion
+     let getVersion (): Diorite.Lang.Core.Properties.Version =
+         Diorite.Lang.Core.Properties.languageVersion
