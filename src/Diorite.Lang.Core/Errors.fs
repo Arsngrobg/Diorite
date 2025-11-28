@@ -8,7 +8,7 @@
 // File:    Error.fs
 // Summary: The error handling system for Diorite
 // Author:  Arsngrobg
-// Version: v1.9
+// Version: v1.11
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
@@ -33,9 +33,15 @@ module Errors =
     /// </summary>
     /// <typeparam name='string'> the error message </typeparam>
     type DioriteError =
-        | MathError   of string // caused by division by zero for example
-        | SyntaxError of string // caused by illegal tokens or illegal token pattern
-        | SystemError of string // illegal state caused by external interop code
+        /// <summary>
+        ///     <p>Caused by illegal math operations.</p>
+        ///     <p><i>Example: division by zero</i></p>
+        /// </summary>
+        | MathError   of string
+        /// <summary>
+        ///     <p>Caused by invalid syntax or incorrect sequence of tokens.</p>
+        /// </summary>
+        | SyntaxError of string
 
     /// <summary>
     ///     <p>Produces a <i>prettier</i> <c>string</c> representation of the supplied <c>DioriteError</c>.</p>
@@ -46,7 +52,6 @@ module Errors =
         match error with
          | MathError   msg -> $"MathError: {msg}"
          | SyntaxError msg -> $"SyntaxError: {msg}"
-         | SystemError msg -> $"SystemError: {msg}"
 
     /// <summary>
     ///     <p>A stricter version of the standard <c>FSHarp.Core.Result</c> where its <c>Error</c> case is strictly
@@ -69,7 +74,7 @@ module Errors =
     /// <typeparam name="'a"> the type of value stored in the original <c>Result</c> type </typeparam>
     /// <typeparam name="'b"> the type of value that the callback function <c>fn</c> returns </typeparam>
     /// <returns> a value of type <c>'b</c> if the <c>Result</c> is the <c>Ok</c> case </returns>
-    let (?=>) (result: Result<'a>) (fn: 'a -> Result<'b>): Result<'b> =
+    let (?=>) (result: 'a Result) (fn: 'a -> 'b Result): 'b Result =
         match result with
          | Error err   -> Error err
          | Ok    value -> fn value
@@ -81,7 +86,7 @@ module Errors =
     /// </summary>
     /// <param name='msg'> the message to be display upon encountering this <c>MathError</c> </param>
     /// <returns> a <c>MathError</c> wrapped in an <c>Error</c> case </returns>
-    let inline MathError<'a> (msg: string): Result<'a> =
+    let inline MathError<'a> (msg: string): 'a Result =
         msg |> (MathError >> Error)
 
     /// <summary>
@@ -92,19 +97,8 @@ module Errors =
     /// <param name='msg'> the message to be display upon encountering this <c>SyntaxError</c> </param>
     /// <typeparam name="'a"> the inferred type the <c>Result</c> should be bound to </typeparam>
     /// <returns> a <c>SyntaxError</c> wrapped in a <c>Error</c> case </returns>
-    let inline SyntaxError<'a> (msg: string): Result<'a> =
+    let inline SyntaxError<'a> (msg: string): 'a Result =
         msg |> (SyntaxError >> Error)
-
-    /// <summary>
-    ///     <p>A functional wrapper around a <c>Result</c> that contains a <c>SystemError</c> with a meaningful message
-    ///        of the error.
-    ///     </p>
-    /// </summary>
-    /// <param name='msg'> the message to be display upon encountering this error </param>
-    /// <typeparam name="'a"> the inferred type the <c>Result</c> should be bound to </typeparam>
-    /// <returns> a <c>SystemError</c> wrapped in an <c>Error</c> case </returns>
-    let inline SystemError<'a> (msg: string): Result<'a> =
-        msg |> (SystemError >> Error)
 
     /// <summary>
     ///     <p>Interprets the supplied generic <c>Result</c> as a <c>bool</c>.</p>
@@ -137,9 +131,7 @@ module Errors =
     /// <typeparam name="'a"> the type that the supplied <c>Result</c> may contain </typeparam>
     /// <returns> a nullified <c>Result</c> </returns>
     let inline generalized<'a> (result: 'a Result): unit Result =
-        match result with
-         | Error e -> Error e
-         | Ok    _ -> Ok    ()
+        result ?=> (fun _ -> Ok ())
 
     /// <summary>
     ///     <p>Forcefully unwraps the value within the supplied <c>Result</c>.</p>

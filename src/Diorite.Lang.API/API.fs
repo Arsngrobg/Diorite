@@ -6,18 +6,31 @@
 //
 // ------------------------------------------------------------------------------------------------------------------
 // File:    API.fs
-// Summary: The public-facing API for the Diorite language - the internal function bindings
+// Summary: The public-facing API for the Diorite language - to provide a safe abstraction layer over internals
 // Author:  Arsngrobg
 // Version: v1.0
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
 
-module Diorite.Lang.API
+namespace Diorite.Lang.API
 
-open Diorite.Lang.Core
+open Diorite.Lang.Core // the core library
 
+/// <summary>
+///     <p>The public-facing API for <b>Diorite</b>.</p>
+/// </summary>
 [<AutoOpen>]
 module API =
-    let getVersion (): Properties.Version =
-        Properties.languageVersion
+     // val tokensOf:    string      -> TokenStream
+     // val tokensError: TokenStream -> DioriteError list
+     // val treeOf:      string      -> AST            Result
+     // val initRuntime: Runtime.Configuration -> Evaluator
+     // val compile:     string      -> IR             Result
+
+     /// <summary>
+     ///    <p>Gets the version of <b>Diorite</b> that this API exposes.</p>
+     /// </summary>
+     /// <returns> the version of <b>Diorite</b> this API exposes </returns>
+     let getVersion (): Properties.Version =
+         Properties.languageVersion

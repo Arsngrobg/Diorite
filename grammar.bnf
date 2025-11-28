@@ -47,6 +47,7 @@
 
 /* statement */
 <statement>   ::= ";"
+               |  "plot" <expression> ";"
                |  <expression> ";"
                |  <variable>           "=" <expression> ";"
                |  <functionDefinition> "=" <functionBody>

@@ -5,23 +5,23 @@
 //   |_____/|__||_____|__|  |__|____|_____|
 //
 // ------------------------------------------------------------------------------------------------------------------
-// File:    API.fsi
-// Summary: The public-facing API for the Diorite language - to be used over messing with language internals
+// File:    AssemblyInfo.fs
+// Summary: Assembly info such as metadata and only allowing the API layer to interact with core functionality
 // Author:  Arsngrobg
 // Version: v1.0
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
 
-namespace Diorite.Lang.API
+namespace Diorite.Lang.Core
 
-open Diorite.Lang.Core // the core library
+open System.Reflection
+open System.Runtime.CompilerServices
 
-[<AutoOpen>]
-module API =
-     // val tokensOf:   string -> TokenStream
-     // val treeOf:     string -> AST
-     // val eval:       string -> ValueType list Result
-     // val compile:    string -> IR Result
-     // val getMemory:  unit   -> Memory
-     val getVersion: unit   -> Properties.Version
+[<assembly: AssemblyTitle       "Diorite.Lang.Core"                                      >]
+[<assembly: AssemblyDescription "Core functionality for the Diorite mathematics language">]
+[<assembly: AssemblyProduct     "Diorite"                                                >]
+
+[<assembly: InternalsVisibleTo  "Diorite.Lang.API"                                       >]
+
+do ()
