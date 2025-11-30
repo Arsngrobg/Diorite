@@ -22,6 +22,30 @@ namespace Diorite.Lang.Core
 [<AutoOpen>]
 module Syntax =
     /// <summary>
+    ///     <p>The union type which describe the cases in which a <c>Value</c> is represented as in <b>Diorite</b>.</p>
+    ///     <p><b>1.</b> <c>Number</c>: a 64-bit, floating-point decimal.</p>
+    ///     <p><b>2.</b> <c>Complex</c>: a pair of real values, <c>a + im(b)</c>, where <c>a</c> &amp; <c>b</c> are
+    ///        <c>Real</c> numbers.
+    ///     </p>
+    ///     <p><b>3.</b> <c>Undefined</c>: denoting that a <b>variable</b> or operation is not properly defined.</p>
+    /// </summary>
+    type ValueType =
+        /// <summary>
+        ///     <p>A 64-bit, floating-point decimal.</p>
+        /// </summary>
+        | Number    of float
+        /// <summary>
+        ///     <p>A complex number of the form <c>a + im(b)</c>.</p>
+        ///     <p>Where <c>a</c> &amp; <c>b</c> are <c>Real</c> numbers.</p>
+        /// </summary>
+        | Complex   of float * float
+        /// <summary>
+        ///     <p>An undetermined value.</p>
+        ///     <p><i>Can also be seen as the absence of a value - like <c>null</c>.</i></p>
+        /// </summary>
+        | Undefined
+
+    /// <summary>
     ///     <p>The structured representation of a <c>Variable</c> in the <b>Diorite</b> mathematics language.</p>
     ///     <p><b>1.</b> The first value (<c>char</c>) is the character which is the variable name (e.g. 'x').</p>
     ///     <p><b>2.</b> The second value (<c>int</c>) is the encoded subscript of the variable - this value is
@@ -81,38 +105,6 @@ module Syntax =
     ///     <p>Any function without the range definition operator defaults to <c>Real</c> also.</p>
     /// </summary>
     let defaultNumberSet: NumberSet = NumberSet.Real
-
-    /// <summary>
-    ///     <p>The union type which describe the cases in which a <c>Value</c> is represented as in <b>Diorite</b>.</p>
-    ///     <p>This union type captures the different ways a <c>Value</c> may be expressed, ranging from concrete
-    ///        numeric data to conceptual placeholders such as <c>PInfinity</c>/<c>NInfinity</c> or the absence of any
-    ///        value (<c>Undefined</c>).
-    ///     </p> 
-    /// </summary>
-    type ValueType =
-        /// <summary>
-        ///     <p>A 64-bit, floating-point decimal.</p>
-        /// </summary>
-        | Number    of float
-        /// <summary>
-        ///     <p>A complex number of the form <c>a + im(b)</c>.</p>
-        /// </summary>
-        | Complex   of float * float
-        /// <summary>
-        ///     <p>Positive infinity.</p>
-        ///     <p><c>∞</c></p>
-        /// </summary>
-        | PInfinity
-        /// <summary>
-        ///     <p>Negative infinity.</p>
-        ///     <p><c>-∞</c></p>
-        /// </summary>
-        | NInfinity
-        /// <summary>
-        ///     <p>An undetermined value.</p>
-        ///     <p><i>Can also be seen as the absence of a value - like <c>null</c>.</i></p>
-        /// </summary>
-        | Undefined
     
     /// <summary>
     ///     <p>A <c>TokenType</c> is an identifier type for a lexical <c>Token</c> in the <b>Diorite</b>.</p>
