@@ -23,7 +23,7 @@ namespace Diorite.Lang.Core
 /// </summary>
 // marked as AutoOpen as used across the entire project
 [<AutoOpen>]
-module internal Errors =
+module Errors =
     /// <summary>
     ///     <p>A discriminated union type for an error in the <b>Diorite</b> language. Every error stores a message that
     ///        displays a descriptive message of what went wrong in the software. These are not <c>Exceptions</c> nor
@@ -59,7 +59,7 @@ module internal Errors =
     ///     </p>
     ///     <p>This should be used over the standard <c>Result</c> type.</p>
     /// </summary>
-    type Result<'a> = Result<'a, DioriteError>
+    type internal Result<'a> = Result<'a, DioriteError>
 
     /// <summary>
     ///     <p>The globally-defined operator for chaining successful <c>Result</c> types by applying callback functions
@@ -69,15 +69,28 @@ module internal Errors =
     ///        applied to it.
     ///     </p>
     /// </summary>
-    /// <param name='result'> the result to apply to this  </param>
+    /// <param name='result'> the result to apply to this </param>
     /// <param name='fn'> the callback function to apply on the successful value stored in the <c>Result</c> </param>
     /// <typeparam name="'a"> the type of value stored in the original <c>Result</c> type </typeparam>
     /// <typeparam name="'b"> the type of value that the callback function <c>fn</c> returns </typeparam>
     /// <returns> a value of type <c>'b</c> if the <c>Result</c> is the <c>Ok</c> case </returns>
-    let (?=>) (result: 'a Result) (fn: 'a -> 'b Result): 'b Result =
+    let inline internal (?=>) (result: 'a Result) (fn: 'a -> 'b Result): 'b Result =
         match result with
          | Error err   -> Error err
          | Ok    value -> fn value
+
+    /// <summary>
+    ///     <p>The implementation of the <b>bind</b> operator for <c>Result</c>s.</p>
+    ///     <p>It binds two functions together to act as a single atomic unit of operation.</p>
+    /// </summary>
+    /// <param name='a'> the first function </param>
+    /// <param name='b'> the second function </param>
+    /// <typeparam name="'a"> the type accepted by the <c>a</c> function </typeparam>
+    /// <typeparam name="'b"> the type accepted by the <c>b</c> function </typeparam>
+    /// <typeparam name="'c"> the type returned by the <c>b</c> function </typeparam>
+    /// <returns> a function that accepts <c>'a</c>, and returns <c>'c Result</c> </returns>
+    let internal (>>=) (a: 'a -> 'b Result) (b: 'b -> 'c Result): 'a -> 'c Result =
+        (fun _a -> (a _a ?=> b))
 
     /// <summary>
     ///     <p>A functional wrapper around a <c>Result</c> that contains a <c>MathError</c> with a meaningful message
@@ -86,7 +99,7 @@ module internal Errors =
     /// </summary>
     /// <param name='msg'> the message to be display upon encountering this <c>MathError</c> </param>
     /// <returns> a <c>MathError</c> wrapped in an <c>Error</c> case </returns>
-    let inline MathError<'a> (msg: string): 'a Result =
+    let inline internal MathError<'a> (msg: string): 'a Result =
         msg |> (MathError >> Error)
 
     /// <summary>
@@ -97,7 +110,7 @@ module internal Errors =
     /// <param name='msg'> the message to be display upon encountering this <c>SyntaxError</c> </param>
     /// <typeparam name="'a"> the inferred type the <c>Result</c> should be bound to </typeparam>
     /// <returns> a <c>SyntaxError</c> wrapped in a <c>Error</c> case </returns>
-    let inline SyntaxError<'a> (msg: string): 'a Result =
+    let inline internal SyntaxError<'a> (msg: string): 'a Result =
         msg |> (SyntaxError >> Error)
 
     /// <summary>
@@ -107,7 +120,7 @@ module internal Errors =
     /// <param name='result'> the <c>Result</c> </param>
     /// <typeparam name="'a"> the inferred type the <c>Result</c> should be bound to </typeparam>
     /// <returns> <c>true</c> if <c>Ok</c>; <c>false</c> if an <c>Error</c> </returns>
-    let inline resultAsBool<'a> (result: 'a Result): bool =
+    let inline internal resultAsBool<'a> (result: 'a Result): bool =
         match result with Ok _ -> true | Error _ -> false
 
     /// <summary>
@@ -119,7 +132,7 @@ module internal Errors =
     /// <param name='alternative'> the alternative value to be returned if it was an <c>Error</c> </param>
     /// <typeparam name="'a"> the type of value that the supplied <c>Result</c> may contain </typeparam>
     /// <returns> either the value wrapped by the <c>Result</c> or the <c>alternative</c> value instead </returns>
-    let inline getOrElse<'a> (result: 'a Result) (alternative: 'a): 'a =
+    let inline internal getOrElse<'a> (result: 'a Result) (alternative: 'a): 'a =
         match result with Ok value -> value | Error _ -> alternative
 
     /// <summary>
@@ -130,7 +143,7 @@ module internal Errors =
     /// <param name='result'> the generic <c>Result</c> </param>
     /// <typeparam name="'a"> the type that the supplied <c>Result</c> may contain </typeparam>
     /// <returns> a nullified <c>Result</c> </returns>
-    let inline generalized<'a> (result: 'a Result): unit Result =
+    let inline internal generalized<'a> (result: 'a Result): unit Result =
         result ?=> (fun _ -> Ok ())
 
     /// <summary>
@@ -145,7 +158,7 @@ module internal Errors =
     /// <returns> the value stored within the <c>Result</c> if it was <c>Ok</c> </returns>
     /// <exception cref='System.Exception'> if the <c>Result</c> is an <c>Error</c> </exception>
     [<System.Obsolete("Do not use this - use getOrElse instead!")>]
-    let forceUnwrap<'a> (result: 'a Result): 'a =
+    let inline internal forceUnwrap<'a> (result: 'a Result): 'a =
         match result with
          | Error err   -> raise <| System.Exception $"Result failed{err}"
          | Ok    value -> value
