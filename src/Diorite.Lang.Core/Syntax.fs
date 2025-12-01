@@ -700,7 +700,7 @@ module Syntax =
         | PiecewiseConditions of PiecewiseCondition list
 
     /// <summary>
-    ///     <p>The <c>AST</c> is the tree structure of a <b>Diorite</b> statement.</p>
+    ///     <p>The <c>AST</c> is the tree structure of a top-level <b>Diorite</b> statement.</p>
     /// </summary>
     [<RequireQualifiedAccess>]
     type AST =
