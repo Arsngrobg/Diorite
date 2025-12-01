@@ -29,5 +29,5 @@ module Main =
     /// <returns> an exit code that describes the state of the CLI after exiting. </returns>
     [<EntryPoint>]
     let main (argv: string array): int =
-        printf ()
+        () |> (getVersion >> Diorite.Lang.Core.Properties.strVersion >> printf "%s\n")
         0

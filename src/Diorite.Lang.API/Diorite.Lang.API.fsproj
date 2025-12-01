@@ -10,7 +10,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Compile Include="API.fs" />
+      <Compile Include="Functions.fs" />
     </ItemGroup>
 
 </Project>
