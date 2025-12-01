@@ -59,7 +59,7 @@ module Errors =
     ///     </p>
     ///     <p>This should be used over the standard <c>Result</c> type.</p>
     /// </summary>
-    type internal Result<'a> = Result<'a, DioriteError>
+    type Result<'a> = Result<'a, DioriteError>
 
     /// <summary>
     ///     <p>The globally-defined operator for chaining successful <c>Result</c> types by applying callback functions
@@ -74,7 +74,7 @@ module Errors =
     /// <typeparam name="'a"> the type of value stored in the original <c>Result</c> type </typeparam>
     /// <typeparam name="'b"> the type of value that the callback function <c>fn</c> returns </typeparam>
     /// <returns> a value of type <c>'b</c> if the <c>Result</c> is the <c>Ok</c> case </returns>
-    let inline internal (?=>) (result: 'a Result) (fn: 'a -> 'b Result): 'b Result =
+    let inline (?=>) (result: 'a Result) (fn: 'a -> 'b Result): 'b Result =
         match result with
          | Error err   -> Error err
          | Ok    value -> fn value
@@ -89,7 +89,7 @@ module Errors =
     /// <typeparam name="'b"> the type accepted by the <c>b</c> function </typeparam>
     /// <typeparam name="'c"> the type returned by the <c>b</c> function </typeparam>
     /// <returns> a function that accepts <c>'a</c>, and returns <c>'c Result</c> </returns>
-    let internal (>>=) (a: 'a -> 'b Result) (b: 'b -> 'c Result): 'a -> 'c Result =
+    let (>>=) (a: 'a -> 'b Result) (b: 'b -> 'c Result): 'a -> 'c Result =
         (fun _a -> (a _a ?=> b))
 
     /// <summary>
@@ -99,7 +99,7 @@ module Errors =
     /// </summary>
     /// <param name='msg'> the message to be display upon encountering this <c>MathError</c> </param>
     /// <returns> a <c>MathError</c> wrapped in an <c>Error</c> case </returns>
-    let inline internal MathError<'a> (msg: string): 'a Result =
+    let inline MathError<'a> (msg: string): 'a Result =
         msg |> (MathError >> Error)
 
     /// <summary>
@@ -110,7 +110,7 @@ module Errors =
     /// <param name='msg'> the message to be display upon encountering this <c>SyntaxError</c> </param>
     /// <typeparam name="'a"> the inferred type the <c>Result</c> should be bound to </typeparam>
     /// <returns> a <c>SyntaxError</c> wrapped in a <c>Error</c> case </returns>
-    let inline internal SyntaxError<'a> (msg: string): 'a Result =
+    let inline SyntaxError<'a> (msg: string): 'a Result =
         msg |> (SyntaxError >> Error)
 
     /// <summary>
@@ -120,7 +120,7 @@ module Errors =
     /// <param name='result'> the <c>Result</c> </param>
     /// <typeparam name="'a"> the inferred type the <c>Result</c> should be bound to </typeparam>
     /// <returns> <c>true</c> if <c>Ok</c>; <c>false</c> if an <c>Error</c> </returns>
-    let inline internal resultAsBool<'a> (result: 'a Result): bool =
+    let inline resultAsBool<'a> (result: 'a Result): bool =
         match result with Ok _ -> true | Error _ -> false
 
     /// <summary>
@@ -132,7 +132,7 @@ module Errors =
     /// <param name='alternative'> the alternative value to be returned if it was an <c>Error</c> </param>
     /// <typeparam name="'a"> the type of value that the supplied <c>Result</c> may contain </typeparam>
     /// <returns> either the value wrapped by the <c>Result</c> or the <c>alternative</c> value instead </returns>
-    let inline internal getOrElse<'a> (result: 'a Result) (alternative: 'a): 'a =
+    let inline getOrElse<'a> (result: 'a Result) (alternative: 'a): 'a =
         match result with Ok value -> value | Error _ -> alternative
 
     /// <summary>
@@ -143,7 +143,7 @@ module Errors =
     /// <param name='result'> the generic <c>Result</c> </param>
     /// <typeparam name="'a"> the type that the supplied <c>Result</c> may contain </typeparam>
     /// <returns> a nullified <c>Result</c> </returns>
-    let inline internal generalized<'a> (result: 'a Result): unit Result =
+    let inline generalized<'a> (result: 'a Result): unit Result =
         result ?=> (fun _ -> Ok ())
 
     /// <summary>
@@ -158,7 +158,7 @@ module Errors =
     /// <returns> the value stored within the <c>Result</c> if it was <c>Ok</c> </returns>
     /// <exception cref='System.Exception'> if the <c>Result</c> is an <c>Error</c> </exception>
     [<System.Obsolete("Do not use this - use getOrElse instead!")>]
-    let inline internal forceUnwrap<'a> (result: 'a Result): 'a =
+    let inline forceUnwrap<'a> (result: 'a Result): 'a =
         match result with
          | Error err   -> raise <| System.Exception $"Result failed{err}"
          | Ok    value -> value
