@@ -104,7 +104,7 @@ module Syntax =
     ///     <p>Any parameter without the domain definition operator defaults to <c>Real</c>.</p>
     ///     <p>Any function without the range definition operator defaults to <c>Real</c> also.</p>
     /// </summary>
-    let defaultNumberSet: NumberSet = NumberSet.Real
+    let DefaultNumberSet: NumberSet = NumberSet.Real
     
     /// <summary>
     ///     <p>A <c>TokenType</c> is an identifier type for a lexical <c>Token</c> in the <b>Diorite</b>.</p>
@@ -675,7 +675,7 @@ module Syntax =
     ///     <p>The default <c>FunctionMetadata</c> for a <b>Diorite</b> function.</p>
     ///     <p>If no metadata attributes are given, by default, all values are 'empty'.</p>
     /// </summary>
-    let defaultFunctionMetadata: FunctionMetadata = {
+    let DefaultFunctionMetadata: FunctionMetadata = {
         symbol   = None
         inlined  = false
         memoized = false
@@ -720,13 +720,13 @@ module Syntax =
         ///     <p>A statement that assigns an <c>Expression</c> on the right-hand side to a variable on the
         ///        left-hand side.
         ///     </p>
-        ///     <p><i>Example: y = 100;</i></p>
+        ///     <p><i>Example: <c>y = 100;</c></i></p>
         /// </summary>
         | Assignment         of VariableType * Expression
         /// <summary>
         ///     <p>A function definition.
         ///        Either composed of a single <c>Expression</c>, or a series of <c>PiecewiseOperation</c>s.
         ///     </p>
-        ///     <p><i>Example: f(x) = 2*x;</i></p>
+        ///     <p><i>Example: <c>f(x) = 2*x;</c> OR <c>f(x) = { -x if x &lt; 0; x otherwise; }</c></i></p>
         /// </summary>
         | FunctionDefinition of FunctionAttributes * FunctionBody
