@@ -26,7 +26,7 @@ module Functions =
      ///    <p>Gets the current version of <b>Diorite</b> this API exposes.</p>
      /// </summary>
      /// <returns> the version of <b>Diorite</b> this API exposes </returns>
-     let getVersion (): Properties.Version =
+     let GetVersion (): Properties.Version =
          Properties.languageVersion
 
      // val getVersion:  unit                  -> Properties.Version

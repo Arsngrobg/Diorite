@@ -28,6 +28,6 @@ module Main =
     /// <param name='argv'> the arguments provided to the executable </param>
     /// <returns> an exit code that describes the state of the CLI after exiting. </returns>
     [<EntryPoint>]
-    let main (argv: string array): int =
-        () |> (getVersion >> Diorite.Lang.Core.Properties.strVersion >> printf "%s\n")
+    let Main (argv: string array): int =
+        () |> (GetVersion >> Diorite.Lang.Core.Properties.strVersion >> printf "%s\n")
         0
