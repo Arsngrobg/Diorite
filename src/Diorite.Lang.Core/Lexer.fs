@@ -8,7 +8,7 @@
 // File:    Lexer.fs
 // Summary: The tokenising logic for the Diorite language
 // Author:  Arsngrobg, Borngle
-// Version: v1.5
+// Version: v1.9
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
