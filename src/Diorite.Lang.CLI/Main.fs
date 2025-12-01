@@ -16,6 +16,7 @@
 namespace Diorite.Lang.CLI
 
 open Diorite.Lang.API
+open Diorite.Lang.Core
 
 /// <summary>
 ///     <p>The primary module of the CLI.</p>
@@ -30,4 +31,5 @@ module Main =
     [<EntryPoint>]
     let Main (argv: string array): int =
         () |> (GetVersion >> Diorite.Lang.Core.Properties.strVersion >> printf "%s\n")
+        (printf "%A\n") (Lexer.Tokenise ("[symbol:factorial]D0(x) = {\nerror \"factorial of negative does not exist\" if x < 0;\nx if x < 2;\nx * f(x-1) otherwise;\n}\n"))
         0

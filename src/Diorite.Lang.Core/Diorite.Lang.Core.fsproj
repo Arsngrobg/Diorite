@@ -9,6 +9,7 @@
         <Compile Include="Properties.fs"   />
         <Compile Include="Errors.fs"       />
         <Compile Include="Syntax.fs"       />
+        <Compile Include="Lexer.fs"        />
     </ItemGroup>
 
 </Project>
