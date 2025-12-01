@@ -604,7 +604,7 @@ module Syntax =
     ///     </p>
     ///     <p>This models the <c>Expression otherwise</c> syntax using the <c>PiecewiseCondition</c> type.</p>
     /// </summary>
-    /// <param name='defaultExpression'> the default <c>Expression</c> to return </param>
+    /// <param name="defaultExpression"> the default <c>Expression</c> to return </param>
     /// <returns> a <c>PiecewiseCondition</c> that will always evaluate to <c>true</c> </returns>
     let PiecewiseBaseCase (defaultExpression: Expression): PiecewiseCondition = (
         defaultExpression,

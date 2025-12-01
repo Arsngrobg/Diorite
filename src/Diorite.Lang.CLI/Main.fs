@@ -25,7 +25,7 @@ module Main =
     /// <summary>
     ///     <p>The main function.</p>
     /// </summary>
-    /// <param name='argv'> the arguments provided to the executable </param>
+    /// <param name="argv"> the arguments provided to the executable </param>
     /// <returns> an exit code that describes the state of the CLI after exiting. </returns>
     [<EntryPoint>]
     let Main (argv: string array): int =
