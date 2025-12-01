@@ -314,6 +314,11 @@ module Syntax =
         /// </summary>
         | Bar
         /// <summary>
+        ///     <p>Any string literal wrapped within a pair of double quotes (<c>"</c>).</p>
+        ///     <p><i>Used in error messages</i></p>
+        /// </summary>
+        | StringLiteral
+        /// <summary>
         ///     <p>The character literal <c>';'</c>.</p>
         ///     <p>Denotes the end of a statement in <b>Diorite</b>.</p>
         /// </summary>
