@@ -46,6 +46,30 @@ module Syntax =
         | Undefined
 
     /// <summary>
+    ///     <p>The value of infinity.</p>
+    ///     <p><i>It is the constant wrapped as a <c>ValueType.Number</c></i>.</p>
+    /// </summary>
+    let ConstantInfinity: ValueType = infinity |> ValueType.Number
+
+    /// <summary>
+    ///     <p>The constant <c>Pi</c> (π).</p>
+    ///     <p><i>It is the constant wrapped as a <c>ValueType.Number</c>.</i></p>
+    /// </summary>
+    let ConstantPi: ValueType = System.Math.PI |> ValueType.Number
+
+    /// <summary>
+    ///     <p>The constant <c>Tau</c> (Τ).</p>
+    ///     <p><i>It is the constant wrapped as a <c>ValueType.Number</c>.</i></p>
+    /// </summary>
+    let ConstantTau: ValueType = System.Math.Tau |> ValueType.Number
+
+    /// <summary>
+    ///     <p>The constant <c>Euler</c> (e).</p>
+    ///     <p><i>It is the constant wrapped as a <c>ValueType.Number</c>.</i></p>
+    /// </summary>
+    let ConstantEuler: ValueType = System.Math.E |> ValueType.Number
+
+    /// <summary>
     ///     <p>The structured representation of a <c>Variable</c> in the <b>Diorite</b> mathematics language.</p>
     ///     <p><b>1.</b> The first value (<c>char</c>) is the character which is the variable name (e.g. 'x').</p>
     ///     <p><b>2.</b> The second value (<c>int</c>) is the encoded subscript of the variable - this value is
