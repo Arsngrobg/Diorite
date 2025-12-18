@@ -80,19 +80,6 @@ module Errors =
          | Ok    value -> fn value
 
     /// <summary>
-    ///     <p>The implementation of the <b>bind</b> operator for <c>Result</c>s.</p>
-    ///     <p>It binds two functions together to act as a single atomic unit of operation.</p>
-    /// </summary>
-    /// <param name='a'> the first function </param>
-    /// <param name='b'> the second function </param>
-    /// <typeparam name="'a"> the type accepted by the <c>a</c> function </typeparam>
-    /// <typeparam name="'b"> the type accepted by the <c>b</c> function </typeparam>
-    /// <typeparam name="'c"> the type returned by the <c>b</c> function </typeparam>
-    /// <returns> a function that accepts <c>'a</c>, and returns <c>'c Result</c> </returns>
-    let (>>=) (a: 'a -> 'b Result) (b: 'b -> 'c Result): 'a -> 'c Result =
-        (fun _a -> (a _a ?=> b))
-
-    /// <summary>
     ///     <p>A functional wrapper around a <c>Result</c> that contains a <c>MathError</c> with a meaningful message
     ///        of the error.
     ///     </p>
