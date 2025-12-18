@@ -105,7 +105,7 @@ module Lexer =
     /// <summary>
     ///     <p>A <c>Consumer</c> that consumes characters, given that they are newline.</p>
     /// </summary>
-    let ConsumeOnlyNewlines: Consumer = Consume (fun c -> c =  '\n')
+    let ConsumeOnlyNewlines: Consumer = Consume (fun c -> c = '\n')
     /// <summary>
     ///     <p>A <c>Consumer</c> that consumes characters, given that they are not blank.</p>
     /// </summary>
