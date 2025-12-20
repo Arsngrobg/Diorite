@@ -30,6 +30,8 @@ module Main =
     /// <returns> an exit code that describes the state of the CLI after exiting. </returns>
     [<EntryPoint>]
     let Main (argv: string array): int =
-        () |> (GetVersion >> Diorite.Lang.Core.Properties.strVersion >> printf "%s\n")
-        (printf "%A\n") (Lexer.Tokenise ("[symbol:factorial]D0(x) = {\nerror \"factorial of negative does not exist\" if x < 0;\nx if x < 2;\nx * f(x-1) otherwise;\n}\n"))
+        let source: string = "f(x)"
+        match (source |> (Lexer.Tokenise >> Parser.ExpressionParser)) with
+         | Error err   -> printf $"{err}\n"
+         | Ok    state -> printf $"{state}\n"
         0
