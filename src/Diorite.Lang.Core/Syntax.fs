@@ -541,7 +541,7 @@ module Syntax =
         | Value           of ValueType
         /// <summary>
         ///     <p>An atomic unit for an expression.</p>
-        ///     <p>Represents a reference to <c>ValueType</c> which the value is obtained when evaluating.</p>
+        ///     <p>Represents a reference to <c>ValueType</c> which the value is obtained during evaluation.</p>
         /// </summary>
         | Variable        of VariableType
         /// <summary>
@@ -559,33 +559,6 @@ module Syntax =
         ///     <p>It is a tuple which has the <c>FunctionReferenceType</c>, and its argument list.</p>
         /// </summary>
         | FunctionCall    of FunctionReferenceType * Expression list
-
-    /// <summary>
-    ///     <p>The structured representation of a plottable expression in the <b>Diorite</b> language.</p>
-    ///     <p>It is a subset of <c>Expression</c></p>
-    /// </summary>
-    [<RequireQualifiedAccess>]
-    type PlottableExpression =
-        /// <summary>
-        ///     <p>An atomic unit for a plottable expression.</p>
-        ///     <p>Represents a <c>ValueType</c>.</p>
-        /// </summary>
-        | Value             of ValueType
-        /// <summary>
-        ///     <p>An atomic unit for a plottable expression.</p>
-        ///     <p>Represents a reference to function to be plotted.</p>
-        /// </summary>
-        | FunctionReference of FunctionReferenceType
-        /// <summary>
-        ///     <p>A structured representation of a binary operation in <b>Diorite</b>.</p>
-        ///     <p>It is a tuple which has the left and right sub expressions and its <c>BinaryOperator</c>.</p>
-        /// </summary>
-        | BinaryOperation   of Expression * BinaryOperator * Expression
-        /// <summary>
-        ///     <p>A structured representation of a unary operation in <b>Diorite</b>.</p>
-        ///     <p>It is a tuple which has the operand and its <c>UnaryOperator</c>.</p>
-        /// </summary>
-        | UnaryOperation    of Expression * UnaryOperator
 
     /// <summary>
     ///     <p>A <c>FunctionResult</c> is exactly that, a result from a function that may be an <c>Expression</c>, or
@@ -744,7 +717,7 @@ module Syntax =
         ///     </p>
         ///     <p><i>Example: <c>plot f; # f(x)=2*x</c></i> OR <c>plot (2*x)</c></p>
         /// </summary>
-        | PlotFunction       of PlottableExpression
+        | PlotFunction       of Expression
         /// <summary>
         ///     <p>A statement that assigns an <c>Expression</c> on the right-hand side to a variable on the
         ///        left-hand side.
