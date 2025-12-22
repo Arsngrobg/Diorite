@@ -17,18 +17,32 @@ namespace Diorite.Lang.Core
 
 open Diorite.Lang.Core
 
-#nowarn 40 // for recursive value definitions
-
 /// <summary>
 ///     <p>The <c>Parser</c> module.</p>
 /// </summary>
 [<RequireQualifiedAccess>]
 module Parser =
+    /// <summary>
+    ///     <p>Tries to obtain the <c>TokenValue.Number</c> stored by the supplied <c>Token</c>.</p>
+    ///     <p>If the <c>Token</c> does not contain a value, or does not hold a <c>TokenValue.Number</c>, then this
+    ///        function will throw a fatal error.
+    ///     </p>
+    /// </summary>
+    /// <param name="token"> the <c>Token</c> to extract a number value from </param>
+    /// <returns> the number value held by this token </returns>
     let GetNumberValue (token: Token): ValueType =
         match token.value with
          | TokenValue.Number n -> ValueType.Number n
          | _                   -> failwith $"Lexer.GetNumberValue - getting Number value from {token.id}"
 
+    /// <summary>
+    ///     <p>Tries to obtain the <c>TokenValue.Variable</c> stored by the supplied <c>Token</c>.</p>
+    ///     <p>If the <c>Token</c> does not contain a value, or does not hold a <c>TokenValue.Variable</c>, then this
+    ///        function will throw a fatal error.
+    ///     </p>
+    /// </summary>
+    /// <param name="token"> the <c>Token</c> to extract a variable value from </param>
+    /// <returns> the variable value held by this token </returns>
     let GetVariableValue (token: Token): VariableType =
         match token.value with
          | TokenValue.Variable v -> v
@@ -36,10 +50,26 @@ module Parser =
 
     [<AutoOpen>]
     module DSL =
-        // domain types
-        type ParseState<'a>  = 'a * Lexer.TokenStream
-        type ParseResult<'a> = ParseState<'a> Result
-        type Parser<'a>      = Lexer.TokenStream -> ParseResult<'a>
+        /// <summary>
+        ///     <p>The value that a <c>Parser</c> produces upon successful evaluation of an arbitrary number of
+        ///        <c>Token</c>s.
+        ///     </p>
+        /// </summary>
+        type ParseState<'a>    = 'a * Lexer.TokenStream
+        /// <summary>
+        ///     <p>A <c>ParseResult</c> is a <c>Result</c> value that is produced from a <c>Parser</c>.</p>
+        /// </summary>
+        type ParseResult<'a>   = ParseState<'a> Result
+        /// <summary>
+        ///     <p>A chain of executable operations to apply a specific rule of the grammar.</p>
+        ///     <p>On Successful parse, it returns a <c>ParseState</c>, or a <c>SyntaxError</c> on failure.</p>
+        /// </summary>
+        type Parser<'a>        = Lexer.TokenStream -> ParseResult<'a>
+        /// <summary>
+        ///     <p>A special superset type of <c>Parser</c> that is lazily produced.</p>
+        ///     <p>This is to prevent recursive parsers from infinitely reproducing.</p>
+        /// </summary>
+        type DelayedParser<'a>  = unit -> Parser<'a>
 
         /// <summary>
         ///     <p>Produces a <c>Parser</c>, that returns <c>'a</c>.</p>
@@ -50,7 +80,9 @@ module Parser =
             (fun tokens -> Ok (a, tokens))
 
         /// <summary>
-        ///     <p>Produces a <c>Parser</c>, that accepts the <c>TokenType</c> at the head of the <c>TokenStream</c>.</p>
+        ///     <p>Produces a <c>Parser</c>, that accepts the <c>TokenType</c> at the head of the
+        ///        <c>TokenStream</c>.
+        ///     </p>
         /// </summary>
         /// <param name="id"> the <c>TokenType</c> to check at the head of the <c>TokenStream</c> </param>
         /// <returns> a <c>Parser</c> that attempts to consume </returns>
@@ -69,22 +101,24 @@ module Parser =
         /// </summary>
         /// <param name="parsers"> the list of one-or-more <c>Parser</c>s to evaluate </param>
         /// <returns> a <c>Parser</c> that evaluates the sequence of <c>Parser</c>s </returns>
-        let rec Choice (parsers: Parser<'a> list): Parser<'a> =
+        let rec Any (parsers: Parser<'a> list): Parser<'a> =
             (fun tokens ->
                 match parsers with
-                 | []           -> failwith "Cannot have a choice of an empty list of Parsers"
+                 | []           -> failwith "Cannot have a Any of an empty list of Parsers"
                  | [parser]     -> parser tokens
                  | head :: tail ->
                      match (head tokens) with
-                      | Error _ -> (Choice tail) tokens
+                      | Error _ -> (Any tail) tokens
                       | Ok    s -> Ok s
             )
 
         /// <summary>
-        ///     <p>Produces a <c>Parser</c>, that evaluates the first <c>Parser</c> and feeds the result to the next parser.</p>
+        ///     <p>Produces a <c>Parser</c>, that evaluates the first <c>Parser</c> and feeds the result to the next
+        ///        parser.
+        ///     </p>
         /// </summary>
         /// <param name="parser"> the <c>Parser</c> </param>
-        /// <param name="producer"> the function that produces a new <c>Parser</c> that curries the return value </param>
+        /// <param name="producer"> the function that produces a new <c>Parser</c> that curries the return val </param>
         /// <returns> a <c>Parser</c> that feeds the return value of the first <c>Parser</c> to the next one </returns>
         let Feed (parser: Parser<'a>) (producer: 'a -> Parser<'b>): Parser<'b> =
             (fun tokens ->
@@ -135,16 +169,27 @@ module Parser =
             )
 
         /// <summary>
-        ///     <p>Produces a parser which transforms the value of the <c>Parser</c> into another type.</p>
+        ///     <p>Produces a <c>Parser</c> which transforms the value of the <c>Parser</c> into another type.</p>
         /// </summary>
         /// <param name="mapper"> the mapping function that transforms the result of the previous <c>Parser</c> </param>
         /// <param name="parser"> the <c>Parser</c> </param>
-        /// <returns> a <c>Parser</c> that maps the return value of the original <c>Parser</c> to another type </returns>
+        /// <returns> a <c>Parser</c> that maps the return value of the original <c>Parser</c> to another </returns>
         let Map (mapper: 'a -> 'b) (parser: Parser<'a>): Parser<'b> =
             (fun tokens ->
                 (parser tokens) ?=> fun (a, remaining) ->
                     let b: 'b = mapper a
                     Ok (b, remaining)
+            )
+
+        /// <summary>
+        ///     <p>Produces a <c>Parser</c> that is supposed to fail.</p>
+        ///     <p>It returns a <c>SyntaxError</c> when invoked.</p>
+        /// </summary>
+        /// <param name="msg"> the message to be carried by the <c>SyntaxError</c> </param>
+        /// <returns> a <c>Parser</c> that specifically returns a <c>SyntaxError</c> with the <c>msg</c> </returns>
+        let Fail (msg: string): Parser<'a> =
+            (fun _ ->
+                SyntaxError msg
             )
 
     /// <summary>
@@ -174,9 +219,17 @@ module Parser =
 
     /// <summary>
     ///     <p>The <c>Parser</c> that accepts a <b>Diorite</b> value.</p>
+    ///     <code>
+    ///         &lt;Value&gt; ::= &lt;Undefined&gt;
+    ///                  |  &lt;Infinity&gt;
+    ///                  |  &lt;Pi&gt;
+    ///                  |  &lt;Tau&gt;
+    ///                  |  &lt;Euler&gt;
+    ///                  |  &lt;Number&gt;
+    ///     </code>
     /// </summary>
     let ValueParser: Parser<ValueType> =
-        Choice [
+        Any [
             UndefinedParser
             InfinityParser
             PiParser
@@ -184,6 +237,42 @@ module Parser =
             EulerParser
             NumberParser
         ]
+
+    /// <summary>
+    ///     <p>The <c>Parser</c> that accepts a <b>Diorite</b> variable.</p>
+    ///     <code>
+    ///         &lt;Variable&gt; ::= &lt;Letter&gt;
+    ///                     |  &lt;Letter&gt; &lt;Digit&gt;
+    ///     </code>
+    /// </summary>
+    let VariableParser: Parser<VariableType> = (Accept TokenType.Variable) |> Map GetVariableValue
+
+    /// <summary>
+    ///     <p>The <c>Parser</c> that accepts a <b>Diorite</b> number set.</p>
+    ///     <code>
+    ///         &lt;NumberSet&gt; ::= "N"
+    ///                      |  "Z"
+    ///                      |  "R"
+    ///                      |  "Q"
+    ///                      |  "I"
+    ///                      |  "C"
+    ///     </code>
+    /// </summary>
+    let NumberSetParser: Parser<NumberSet> =
+        // reuse the variable parsing logic as number sets are tokenised as variables
+        VariableParser |> Feed <| (fun (c, s) ->
+            if s <> 0uy then
+                Fail $"Expected a number set, got variable {c}{s-1uy} instead"
+            else
+                match c with
+                 | 'N' -> OfParser NumberSet.Natural
+                 | 'Z' -> OfParser NumberSet.Integer
+                 | 'R' -> OfParser NumberSet.Real
+                 | 'Q' -> OfParser NumberSet.Rational
+                 | 'I' -> OfParser NumberSet.Irrational
+                 | 'C' -> OfParser NumberSet.Complex
+                 |  c  -> Fail     $"Expected a number set, got variable {c} instead"
+        )
 
     /// <summary>
     ///     <p>The parser that accepts a <b>Diorite</b> expression.</p>
@@ -197,7 +286,7 @@ module Parser =
     let rec ExpressionParser: Parser<Expression> =
         // tail-end parser
         let rec Expression'Parser (head: Expression): Parser<Expression> =
-            Choice [
+            Any [
                 // <Expression'> ::= "+" <Term> <Expression'>
                 (((Accept TokenType.Plus) |> IgnoreThen <| TermParser) |> Map (
                     fun e -> Expression.BinaryOperation (head, BinaryOperator.Addition, e)
@@ -229,24 +318,24 @@ module Parser =
     and TermParser: Parser<Expression> =
         // tail-end parser
         let rec Term'Parser (head: Expression): Parser<Expression> =
-            Choice [
+            Any [
                 // <Term'> ::= "*" <Factor> <Term'>
-                (((Accept TokenType.Asterisk) |> IgnoreThen <| FactorParser) |> Map (
+                (((Accept TokenType.Asterisk) |> IgnoreThen <| (FactorParser ())) |> Map ( // TODO
                     fun e -> Expression.BinaryOperation (head, BinaryOperator.Multiplication, e)
                 ) |> Feed <| Term'Parser)
 
                 // <Term'> ::= "/" <Factor> <Term'>
-                (((Accept TokenType.ForwardSlash) |> IgnoreThen <| FactorParser) |> Map (
+                (((Accept TokenType.ForwardSlash) |> IgnoreThen <| (FactorParser ())) |> Map (
                     fun e -> Expression.BinaryOperation (head, BinaryOperator.Division, e)
                 ) |> Feed <| Term'Parser)
 
                 // <Term'> ::= "%" <Factor> <Term'>
-                (((Accept TokenType.Percentage) |> IgnoreThen <| FactorParser) |> Map (
+                (((Accept TokenType.Percentage) |> IgnoreThen <| (FactorParser ())) |> Map (
                     fun e -> Expression.BinaryOperation (head, BinaryOperator.Modulo, e)
                 ) |> Feed <| Term'Parser)
 
                 // <Term'> ::= "//" <Factor> <Term'>
-                (((Accept TokenType.DoubleForwardSlash) |> IgnoreThen <| FactorParser) |> Map (
+                (((Accept TokenType.DoubleForwardSlash) |> IgnoreThen <| (FactorParser ())) |> Map (
                     fun e -> Expression.BinaryOperation (head, BinaryOperator.FloorDivision, e)
                 ) |> Feed <| Term'Parser)
 
@@ -255,7 +344,7 @@ module Parser =
             ]
 
         // <Term'> ::= <Factor> <Term'>
-        (FactorParser |> Feed <| Term'Parser)
+        ((FactorParser ()) |> Feed <| Term'Parser)
 
     /// <summary>
     ///     <p>The <c>Parser</c> that accepts a <b>Diorite</b> factor.</p>
@@ -265,15 +354,15 @@ module Parser =
     ///                  |  "-" &lt;Factor&gt;
     ///     </code>
     /// </summary>
-    and FactorParser: Parser<Expression> =
-        Choice [
+    and FactorParser: DelayedParser<Expression> = fun () ->
+        Any [
             // <Factor> ::= "+" <Factor>
-            ((Accept TokenType.Plus) |> IgnoreThen <| (fun tokens -> FactorParser tokens)) |> Map (
+            ((Accept TokenType.Plus) |> IgnoreThen <| (FactorParser ())) |> Map (
                 fun e -> Expression.UnaryOperation (e, UnaryOperator.Positive)
             )
 
             // <Factor> ::= "-" <Factor>
-            ((Accept TokenType.Hyphen) |> IgnoreThen <| (fun tokens -> FactorParser tokens)) |> Map (
+            ((Accept TokenType.Hyphen) |> IgnoreThen <| (FactorParser ())) |> Map (
                 fun e -> Expression.UnaryOperation (e, UnaryOperator.Negative)
             )
 
@@ -289,7 +378,7 @@ module Parser =
     ///     </code>
     /// </summary>
     and ExponentParser: Parser<Expression> =
-        Choice [
+        Any [
             // <Exponent> ::= <Factorial> "^" <Factorial>
             (FactorialParser |> Then <| ((Accept TokenType.Hat) |> IgnoreThen <| FactorialParser)) |> Map (
                 fun (l, r) -> Expression.BinaryOperation (l, BinaryOperator.Exponent, r)
@@ -310,7 +399,7 @@ module Parser =
     and FactorialParser: Parser<Expression> =
         // tail-end parser
         let rec Factorial'Parser (head: Expression): Parser<Expression> =
-            Choice [
+            Any [
                 // <Factorial'> ::= "!" &lt;Factorial'>
                 (Accept TokenType.Exclamation) |> Map (
                     fun _ -> Expression.UnaryOperation (head, UnaryOperator.Factorial)
@@ -332,12 +421,52 @@ module Parser =
     ///     </code>
     /// </summary>
     and SubExpressionParser: Parser<Expression> =
-        Choice [
+        Any [
             // <SubExpression> ::= "(" <Expression> ")"
-            (Accept TokenType.LeftParenthesis |> IgnoreThen <| (fun tokens -> ExpressionParser tokens))
+            (Accept TokenType.LeftParenthesis |> IgnoreThen <|
+             ExpressionParser ())             |> ThenIgnore <|
+            (Accept TokenType.RightParenthesis)
+
+            // <SubExpression> ::= "|" <Expression> "|"
+            (Accept TokenType.Bar |> IgnoreThen <|
+             ExpressionParser ()) |> ThenIgnore <|
+            (Accept TokenType.Bar) |> Map (fun e -> Expression.UnaryOperation (e, UnaryOperator.Absolute))
 
             // <SubExpression> ::= <Value>
             ValueParser |> Map Expression.Value
+        ]
+
+    /// <summary>
+    ///     <p>The <c>Parser</c> that accepts a <b>Diorite</b> function parameter.</p>
+    ///     <code>
+    ///         &lt;Parameter&gt; ::= &lt;Letter&gt;
+    ///                      |  &lt;Letter&gt; &lt;NumberSet&gt;
+    ///     </code>
+    /// </summary>
+    let ParameterParser: Parser<FunctionParameter> =
+        Any [
+            // <Parameter> ::= <Letter> <NumberSet>
+            VariableParser |> Then <| (Accept TokenType.Colon |> IgnoreThen <| NumberSetParser)
+
+            // <Parameter> ::= <Letter>
+            VariableParser |> Map (fun v -> (v, DefaultNumberSet))
+        ]
+
+    /// <summary>
+    ///     <p>The <c>Parser</c> that accepts a sequence of <b>Diorite</b> function arguments.</p>
+    ///     <code>
+    ///        &lt;Args&gt; ::= &lt;Expression&gt;
+    ///                |  &lt;Expression&gt; "," &lt;Args&gt;
+    ///     </code>
+    /// </summary>
+    let rec ArgsParser: DelayedParser<Expression list> = fun () ->
+        Any [
+            // <Args> ::= <Expression> "," <Args>
+            (ExpressionParser ()) |> Then <| (Accept TokenType.Comma |> IgnoreThen <| (ArgsParser ())) |> Map (
+                fun (arg, args) -> arg :: args
+            )
+            // <Args> ::= <Expression>
+            (ExpressionParser ()) |> Map (fun e -> [e])
         ]
 
     /// <summary>
@@ -347,30 +476,13 @@ module Parser =
     ///                        |  &lt;Symbol&gt;   "(" &lt;Args&gt; ")"
     ///     </code>
     /// </summary>
-    let rec FunctionCallParser: Parser<Expression> =
-        Choice [
+    let FunctionCallParser: Parser<Expression> =
+        Any [
             (Accept TokenType.Symbol)   |> Map (fun t -> FunctionReferenceType.OfSymbol(t.lexeme))
             (Accept TokenType.Variable) |> Map (fun t -> FunctionReferenceType.OfVariable(GetVariableValue(t)))
         ] |> Then <|
         (
             (Accept TokenType.LeftParenthesis) |> IgnoreThen <|
-            ArgsParser                         |> ThenIgnore <|
+            (ArgsParser ())                    |> ThenIgnore <|
             (Accept TokenType.RightParenthesis)
         ) |> Map Expression.FunctionCall
-
-    /// <summary>
-    ///     <p>The <c>Parser</c> that accepts a sequence of <b>Diorite</b> function arguments.</p>
-    ///     <code>
-    ///        &lt;Args&gt; ::= &lt;Expression&gt;
-    ///                |  &lt;Expression&gt; "," &lt;Args&gt;
-    ///     </code>
-    /// </summary>
-    and ArgsParser: Parser<Expression list> =
-        Choice [
-            // <Args> ::= <Expression> "," <Args>
-            ExpressionParser |> Then <| (Accept TokenType.Comma |> IgnoreThen <| (fun t -> ArgsParser t)) |> Map (
-                fun (arg, args) -> arg :: args
-            )
-            // <Args> ::= <Expression>
-            ExpressionParser |> Map (fun e -> [e])
-        ]
