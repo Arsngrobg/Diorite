@@ -30,7 +30,7 @@ module Main =
     /// <returns> an exit code that describes the state of the CLI after exiting. </returns>
     [<EntryPoint>]
     let Main (argv: string array): int =
-        let source: string = "|x|"
+        let source: string = "2"
         match (source |> (Lexer.Tokenise >> Parser.ExpressionParser ())) with
          | Error err   -> printf $"{err}\n"
          | Ok    state -> printf $"{state}\n"
