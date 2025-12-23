@@ -71,7 +71,7 @@ module Parser =
         ///     <p>A special superset type of <c>Parser</c> that is lazily produced.</p>
         ///     <p>This is to prevent recursive parsers from infinitely reproducing.</p>
         /// </summary>
-        type DelayedParser<'a>  = unit -> Parser<'a>
+        type DeferredParser<'a>  = unit -> Parser<'a>
 
         /// <summary>
         ///     <p>Produces a <c>Parser</c>, that returns <c>'a</c>.</p>
@@ -183,7 +183,7 @@ module Parser =
                     Ok (b, remaining)
             )
 
-        let inline Delayed (parser: DelayedParser<'a>): Parser<'a> =
+        let inline Deferred (parser: DeferredParser<'a>): Parser<'a> =
             (fun tokens ->
                 (parser ()) tokens
             )
@@ -290,17 +290,17 @@ module Parser =
     ///                       |  "-" &lt;Term&gt; &lt;Expression'&gt;
     ///     </code>
     /// </summary>
-    let rec ExpressionParser: DelayedParser<Expression> = fun () ->
+    let rec ExpressionParser: DeferredParser<Expression> = fun () ->
         // tail-end parser
         let rec Expression'Parser (head: Expression): Parser<Expression> =
             Any [
                 // <Expression'> ::= "+" <Term> <Expression'>
-                (((Accept TokenType.Plus) |> IgnoreThen <| (Delayed TermParser)) |> Map (
+                (((Accept TokenType.Plus) |> IgnoreThen <| (Deferred TermParser)) |> Map (
                     fun e -> Expression.BinaryOperation (head, BinaryOperator.Addition, e)
                 ) |> Feed <| Expression'Parser)
 
                 // <Expression'> ::= "+" <Term> <Expression'>
-                (((Accept TokenType.Hyphen) |> IgnoreThen <| (Delayed TermParser)) |> Map (
+                (((Accept TokenType.Hyphen) |> IgnoreThen <| (Deferred TermParser)) |> Map (
                     fun e -> Expression.BinaryOperation (head, BinaryOperator.Subtraction, e)
                 ) |> Feed <| Expression'Parser)
 
@@ -309,7 +309,7 @@ module Parser =
             ]
 
         // <Expression> ::= <Term> <Expression'>
-        ((Delayed TermParser) |> Feed <| Expression'Parser)
+        ((Deferred TermParser) |> Feed <| Expression'Parser)
 
     /// <summary>
     ///     <p>The <c>Parser</c> that accepts a <b>Diorite</b> term.</p>
@@ -322,27 +322,27 @@ module Parser =
     ///                 |  "//" &lt;Factor&gt; &lt;Term'&gt;
     ///     </code>
     /// </summary>
-    and TermParser: DelayedParser<Expression> = fun () ->
+    and TermParser: DeferredParser<Expression> = fun () ->
         // tail-end parser
         let rec Term'Parser (head: Expression): Parser<Expression> =
             Any [
                 // <Term'> ::= "*" <Factor> <Term'>
-                (((Accept TokenType.Asterisk) |> IgnoreThen <| (Delayed FactorParser)) |> Map (
+                (((Accept TokenType.Asterisk) |> IgnoreThen <| (Deferred FactorParser)) |> Map (
                     fun e -> Expression.BinaryOperation (head, BinaryOperator.Multiplication, e)
                 ) |> Feed <| Term'Parser)
 
                 // <Term'> ::= "/" <Factor> <Term'>
-                (((Accept TokenType.ForwardSlash) |> IgnoreThen <| (Delayed FactorParser)) |> Map (
+                (((Accept TokenType.ForwardSlash) |> IgnoreThen <| (Deferred FactorParser)) |> Map (
                     fun e -> Expression.BinaryOperation (head, BinaryOperator.Division, e)
                 ) |> Feed <| Term'Parser)
 
                 // <Term'> ::= "%" <Factor> <Term'>
-                (((Accept TokenType.Percentage) |> IgnoreThen <| (Delayed FactorParser)) |> Map (
+                (((Accept TokenType.Percentage) |> IgnoreThen <| (Deferred FactorParser)) |> Map (
                     fun e -> Expression.BinaryOperation (head, BinaryOperator.Modulo, e)
                 ) |> Feed <| Term'Parser)
 
                 // <Term'> ::= "//" <Factor> <Term'>
-                (((Accept TokenType.DoubleForwardSlash) |> IgnoreThen <| (Delayed FactorParser)) |> Map (
+                (((Accept TokenType.DoubleForwardSlash) |> IgnoreThen <| (Deferred FactorParser)) |> Map (
                     fun e -> Expression.BinaryOperation (head, BinaryOperator.FloorDivision, e)
                 ) |> Feed <| Term'Parser)
 
@@ -351,7 +351,7 @@ module Parser =
             ]
 
         // <Term'> ::= <Factor> <Term'>
-        ((Delayed FactorParser) |> Feed <| Term'Parser)
+        ((Deferred FactorParser) |> Feed <| Term'Parser)
 
     /// <summary>
     ///     <p>The <c>Parser</c> that accepts a <b>Diorite</b> factor.</p>
@@ -361,20 +361,20 @@ module Parser =
     ///                  |  "-" &lt;Factor&gt;
     ///     </code>
     /// </summary>
-    and FactorParser: DelayedParser<Expression> = fun () ->
+    and FactorParser: DeferredParser<Expression> = fun () ->
         Any [
             // <Factor> ::= "+" <Factor>
-            ((Accept TokenType.Plus) |> IgnoreThen <| (Delayed FactorParser)) |> Map (
+            ((Accept TokenType.Plus) |> IgnoreThen <| (Deferred FactorParser)) |> Map (
                 fun e -> Expression.UnaryOperation (e, UnaryOperator.Positive)
             )
 
             // <Factor> ::= "-" <Factor>
-            ((Accept TokenType.Hyphen) |> IgnoreThen <| (Delayed FactorParser)) |> Map (
+            ((Accept TokenType.Hyphen) |> IgnoreThen <| (Deferred FactorParser)) |> Map (
                 fun e -> Expression.UnaryOperation (e, UnaryOperator.Negative)
             )
 
             // <Factor> ::= <Exponent>    
-            (Delayed ExponentParser)
+            (Deferred ExponentParser)
         ]
 
     /// <summary>
@@ -384,8 +384,8 @@ module Parser =
     ///                    |  &lt;Factorial&gt; "^" &lt;Factorial&gt;
     ///     </code>
     /// </summary>
-    and ExponentParser: DelayedParser<Expression> = fun () ->
-        let factorial: Parser<Expression> = Delayed FactorialParser
+    and ExponentParser: DeferredParser<Expression> = fun () ->
+        let factorial: Parser<Expression> = Deferred FactorialParser
 
         Any [
             // <Exponent> ::= <Factorial> "^" <Factorial>
@@ -394,7 +394,7 @@ module Parser =
             )
 
             // <Exponent> ::= <Factorial>
-            (Delayed FactorialParser)
+            (Deferred FactorialParser)
         ]
 
     /// <summary>
@@ -405,7 +405,7 @@ module Parser =
     ///                      |  "!" &lt;Factorial'&gt;
     ///     </code>
     /// </summary>
-    and FactorialParser: DelayedParser<Expression> = fun () ->
+    and FactorialParser: DeferredParser<Expression> = fun () ->
         // tail-end parser
         let rec Factorial'Parser (head: Expression): Parser<Expression> =
             Any [
@@ -419,7 +419,7 @@ module Parser =
             ]
 
         // <Factorial> ::= <SubExpression> <Factorial'>
-        ((Delayed SubExpressionParser) |> Feed <| Factorial'Parser)
+        ((Deferred SubExpressionParser) |> Feed <| Factorial'Parser)
 
     /// <summary>
     ///     <p>The <c>Parser</c> that accepts a <b>Diorite</b> subexpression.</p>
@@ -430,16 +430,19 @@ module Parser =
     ///                         |  &lt;FunctionCall&gt;
     ///     </code>
     /// </summary>
-    and SubExpressionParser: DelayedParser<Expression> = fun () ->
+    and SubExpressionParser: DeferredParser<Expression> = fun () ->
         Any [
+            // <SubExpression> ::= <FunctionCall>
+            (Deferred FunctionCallParser)
+
             // <SubExpression> ::= "(" <Expression> ")"
             (Accept TokenType.LeftParenthesis |> IgnoreThen <|
-            (Delayed ExpressionParser))       |> ThenIgnore <|
+            (Deferred ExpressionParser))       |> ThenIgnore <|
             (Accept TokenType.RightParenthesis)
 
             // <SubExpression> ::= "|" <Expression> "|"
             (Accept TokenType.Bar       |> IgnoreThen <|
-            (Delayed ExpressionParser)) |> ThenIgnore <|
+            (Deferred ExpressionParser)) |> ThenIgnore <|
             (Accept TokenType.Bar)      |> Map (fun e -> Expression.UnaryOperation (e, UnaryOperator.Absolute))
 
             // <SubExpression> ::= <Value>
@@ -453,14 +456,14 @@ module Parser =
     ///                        |  &lt;Symbol&gt;   "(" &lt;Args&gt; ")"
     ///     </code>
     /// </summary>
-    and FunctionCallParser: DelayedParser<Expression> = fun () ->
+    and FunctionCallParser: DeferredParser<Expression> = fun () ->
         Any [
             (Accept TokenType.Symbol)   |> Map (fun t -> FunctionReferenceType.OfSymbol(t.lexeme))
             (Accept TokenType.Variable) |> Map (fun t -> FunctionReferenceType.OfVariable(GetVariableValue(t)))
         ] |> Then <|
         (
             (Accept TokenType.LeftParenthesis) |> IgnoreThen <|
-            (Delayed ArgsParser)               |> ThenIgnore <|
+            (Deferred ArgsParser)               |> ThenIgnore <|
             (Accept TokenType.RightParenthesis)
         ) |> Map Expression.FunctionCall
 
@@ -471,19 +474,19 @@ module Parser =
     ///                |  &lt;Expression&gt; "," &lt;Args&gt;
     ///     </code>
     /// </summary>
-    and ArgsParser: DelayedParser<Expression list> = fun () ->
+    and ArgsParser: DeferredParser<Expression list> = fun () ->
         Any [
             // <Args> ::= <Expression> "," <Args>
-            ((Delayed ExpressionParser) |> Then <|
+            ((Deferred ExpressionParser) |> Then <|
              ((Accept TokenType.Comma) |> IgnoreThen <|
-              (Delayed ArgsParser)
+              (Deferred ArgsParser)
              ) |> Map (
                 fun (arg, args) -> arg :: args
              )
             )
 
             // <Args> ::= <Expression>
-            ((Delayed ExpressionParser) |> Map (fun e -> [e]))
+            ((Deferred ExpressionParser) |> Map (fun e -> [e]))
         ]
 
     /// <summary>

@@ -160,7 +160,7 @@ module Syntax =
         | Variable
         /// <summary>
         ///     <p>Any string literal that is not already reserved by the <b>Diorite</b> language.</p>
-        ///     <p>It is an alias for a <b>Diorite</b> function that </p>
+        ///     <p>It is an alias for a <b>Diorite</b> function that has been declared to have such name.</p>
         /// </summary>
         | Symbol
         /// <summary>
