@@ -511,6 +511,11 @@ module Lexer =
                  let tail: TokenStream = (tail |> ReadFrom) (line, column + (uint head.lexeme.Length))
                  head :: tail
 
+             // comments
+             | c :: tail when c = '#' ->
+                 let (consumed: char list), (remaining: char list) = ConsumeNonNewlines (tail)
+                 (remaining |> ReadFrom) (line, column + (uint consumed.Length))
+
              // newline
              | c :: tail when c = '\n' ->
                  let (consumed: char list), (remaining: char list) = ConsumeOnlyNewlines (c::tail)
