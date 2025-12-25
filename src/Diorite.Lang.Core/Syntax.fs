@@ -598,7 +598,7 @@ module Syntax =
     ///        </p>
     ///     </p>
     /// </summary>
-    type PiecewiseCondition = Expression * ComparisonOperation
+    type PiecewiseCondition = FunctionResult * ComparisonOperation
 
     /// <summary>
     ///     <p>A subtype of the <c>PiecewiseCondition</c> type where its <c>ComparisonOperation</c> will always evaluate
@@ -608,7 +608,7 @@ module Syntax =
     /// </summary>
     /// <param name="defaultExpression"> the default <c>Expression</c> to return </param>
     /// <returns> a <c>PiecewiseCondition</c> that will always evaluate to <c>true</c> </returns>
-    let PiecewiseBaseCase (defaultExpression: Expression): PiecewiseCondition = (
+    let PiecewiseBaseCase (defaultExpression: FunctionResult): PiecewiseCondition = (
         defaultExpression,
         (
             ValueType.Undefined |> Expression.Value,
@@ -705,7 +705,7 @@ module Syntax =
     ///     <p>The <c>AST</c> is the tree structure of a top-level <b>Diorite</b> statement.</p>
     /// </summary>
     [<RequireQualifiedAccess>]
-    type AST =
+    type ASTNode =
         /// <summary>
         ///     <p>A statement that is only an expression.</p>
         ///     <p><i>Example</i>: <c>2 + 3;</c></p>
@@ -732,3 +732,8 @@ module Syntax =
         ///     <p><i>Example: <c>f(x) = 2*x;</c> OR <c>f(x) = { -x if x &lt; 0; x otherwise; }</c></i></p>
         /// </summary>
         | FunctionDefinition of FunctionAttributes * FunctionBody
+
+    /// <summary>
+    ///     <p>The root type returned by a parse operation of <b>Diorite</b> code.</p>
+    /// </summary>
+    type AST = ASTNode list
