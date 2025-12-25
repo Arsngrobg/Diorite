@@ -493,13 +493,19 @@ module Parser =
     ///     <code>
     ///        &lt;SubExpression&gt; ::= &lt;Value&gt;
     ///                         |  &lt;Variable&gt;
-    ///                         |  "(" &lt;Expression&gt; ")"
-    ///                         |  "|" &lt;Expression&gt; "|"
+    ///                         |  "("  &lt;Expression&gt; ")"
+    ///                         |  "|"  &lt;Expression&gt; "|"
+    ///                         |  "im" &lt;Expression&gt;
     ///                         |  &lt;FunctionCall&gt;
     ///     </code>
     /// </summary>
     and SubExpressionParser: DeferredParser<Expression> = fun () ->
         Any [
+            // <SubExpression> ::= "im" <Expression>
+            ((Accept TokenType.Im) |> IgnoreThen <| (Deferred ExpressionParser)) |> Map (
+                fun e -> Expression.UnaryOperation (e, UnaryOperator.AsComplex)
+            )
+
             // <SubExpression> ::= <FunctionCall>
             (Deferred FunctionCallParser)
 

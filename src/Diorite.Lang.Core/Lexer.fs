@@ -211,6 +211,7 @@ module Lexer =
                   | characters, remaining ->
                       let word: string = characters |> System.String.Concat
                       let id: TokenType = match word with
+                                           | "im"               -> TokenType.Im
                                            | "if"               -> TokenType.If
                                            | "otherwise"        -> TokenType.Otherwise
                                            | "undefined"        -> TokenType.Undefined
