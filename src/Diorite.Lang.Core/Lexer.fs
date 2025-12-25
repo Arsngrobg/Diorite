@@ -279,7 +279,7 @@ module Lexer =
              | '!' :: '=' :: tail ->
                  let head: Token = {
                      lexeme = "!="
-                     id     = TokenType.Exclamation
+                     id     = TokenType.NotEqual
                      value  = TokenValue.None
                      line   = line
                      column = column
