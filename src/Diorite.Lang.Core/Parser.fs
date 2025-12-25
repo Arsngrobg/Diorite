@@ -79,7 +79,16 @@ module Parser =
         /// <param name="a"> the value the <c>Parser</c> will return </param>
         /// <returns> a <c>Parser</c> that returns <c>a</c> </returns>
         let OfParser (a: 'a): Parser<'a> =
-            (fun tokens -> Ok (a, tokens))
+            (fun tokens ->
+                Ok (a, tokens)
+            )
+
+        let IfEmpty (action: unit -> 'a): Parser<'a> =
+            (fun tokens ->
+                match tokens with
+                 | []     -> Ok (action (), [])
+                 | _ :: _ -> SyntaxError "Token stream is not empty when expected to be"
+            )
 
         /// <summary>
         ///     <p>Produces a <c>Parser</c>, that accepts the <c>TokenType</c> at the head of the
@@ -90,10 +99,15 @@ module Parser =
         /// <returns> a <c>Parser</c> that attempts to consume </returns>
         let Accept (id: TokenType): Parser<Token> =
             (fun tokens ->
+                let inline GetErrorMessage (token: Token option): string =
+                    match token with
+                     | Some t -> $"Expected {id} - got \"{t.lexeme}\" instead at line {t.line}, column {t.column}"
+                     | None   -> $"Expected {id}"
+
                 match tokens with
                  | head :: tail when head.id = id -> (head, tail) |> Ok
-                 | head :: _                      -> SyntaxError $"Expected {id} - got \"{head.lexeme}\" instead"
-                 | []                             -> SyntaxError $"Expected {id}"
+                 | head :: _                      -> head |> (Some >> GetErrorMessage >> SyntaxError)
+                 | []                             -> None |> (        GetErrorMessage >> SyntaxError)
             )
 
         /// <summary>
@@ -106,12 +120,38 @@ module Parser =
         let rec Any (parsers: Parser<'a> list): Parser<'a> =
             (fun tokens ->
                 match parsers with
-                 | []           -> failwith "Cannot have a Any of an empty list of Parsers"
+                 | []           -> failwith "Cannot have an Any of an empty list of Parsers"
                  | [parser]     -> parser tokens
                  | head :: tail ->
                      match (head tokens) with
                       | Error _ -> (Any tail) tokens
                       | Ok    s -> Ok s
+            )
+
+        let Optional (parser: Parser<'a>): Parser<'a option> =
+            (fun tokens ->
+                match (parser tokens) with
+                 | Ok    (a, remaining) -> Ok (Some a, remaining)
+                 | Error _              -> Ok (None,   tokens   )
+            )
+
+        /// <summary>
+        ///     <p>Produces a <c>Parser</c>, that tries to evaluate the supplied <c>Parser</c> one or more times.</p>
+        ///     <p>This returns a <c>Parser</c> that produces a list of the type of the input <c>Parser</c>.</p>
+        ///     <p><i>Be careful, as it nullifies any proper error messages that may be returned by sub parsers.</i></p>
+        /// </summary>
+        /// <param name="parser"> the <c>Parser</c> to evaluate one-or-more times </param>
+        /// <returns> a <c>Parser</c> that evaluates the supplied <c>Parser</c> one-or-more times </returns>
+        let ZeroOrMore (parser: Parser<'a>): Parser<'a list> =
+            let rec Accumulate (accum: 'a list): Parser<'a list> =
+                (fun tokens ->
+                    match (parser tokens) with
+                     | Ok    (a, remaining) -> (Accumulate (accum @ [a])) remaining
+                     | Error _              -> Ok (accum, tokens)
+                )
+
+            (fun tokens ->
+                (Accumulate []) tokens
             )
 
         /// <summary>
@@ -122,7 +162,7 @@ module Parser =
         /// <param name="parser"> the <c>Parser</c> </param>
         /// <param name="producer"> the function that produces a new <c>Parser</c> that curries the return val </param>
         /// <returns> a <c>Parser</c> that feeds the return value of the first <c>Parser</c> to the next one </returns>
-        let Feed (parser: Parser<'a>) (producer: 'a -> Parser<'b>): Parser<'b> =
+        let inline Feed (parser: Parser<'a>) (producer: 'a -> Parser<'b>): Parser<'b> =
             (fun tokens ->
                 (parser tokens) ?=> fun (l, tail) -> (producer l) tail
             )
@@ -135,7 +175,7 @@ module Parser =
         /// <param name="left"> the left <c>Parser</c> </param>
         /// <param name="right"> the right <c>Parser</c> </param>
         /// <returns> a <c>Parser</c> that evaluates and returns the result of both <c>Parser</c>s </returns>
-        let Then (left: Parser<'a>) (right: Parser<'b>): Parser<'a * 'b> =
+        let inline Then (left: Parser<'a>) (right: Parser<'b>): Parser<'a * 'b> =
             (fun tokens ->
                 (left  tokens) ?=> fun (a, tail     ) ->
                 (right tail  ) ?=> fun (b, remaining) ->
@@ -150,7 +190,7 @@ module Parser =
         /// <param name="left"> the left <c>Parser</c> <i>(ignored upon evaluation)</i> </param>
         /// <param name="right">the left <c>Parser</c> </param>
         /// <returns> a <c>Parser</c> that combines and returns the value of the right <c>Parser</c> </returns>
-        let IgnoreThen (left: Parser<'a>) (right: Parser<'b>): Parser<'b> =
+        let inline IgnoreThen (left: Parser<'a>) (right: Parser<'b>): Parser<'b> =
             (fun tokens ->
                 (left tokens) ?=> fun (_, tail) -> (right tail)
             )
@@ -163,7 +203,7 @@ module Parser =
         /// <param name="left"> the left <c>Parser</c> </param>
         /// <param name="right">the left <c>Parser</c> <i>(ignored upon evaluation)</i> </param>
         /// <returns> a <c>Parser</c> that combines and returns the value of the left <c>Parser</c> </returns>
-        let ThenIgnore (left: Parser<'a>) (right: Parser<'b>): Parser<'a> =
+        let inline ThenIgnore (left: Parser<'a>) (right: Parser<'b>): Parser<'a> =
             (fun tokens ->
                 (left  tokens) ?=> fun (l, tail     ) ->
                 (right tail  ) ?=> fun (_, remaining) ->
@@ -176,13 +216,35 @@ module Parser =
         /// <param name="mapper"> the mapping function that transforms the result of the previous <c>Parser</c> </param>
         /// <param name="parser"> the <c>Parser</c> </param>
         /// <returns> a <c>Parser</c> that maps the return value of the original <c>Parser</c> to another </returns>
-        let Map (mapper: 'a -> 'b) (parser: Parser<'a>): Parser<'b> =
+        let inline Map (mapper: 'a -> 'b) (parser: Parser<'a>): Parser<'b> =
             (fun tokens ->
                 (parser tokens) ?=> fun (a, remaining) ->
                     let b: 'b = mapper a
                     Ok (b, remaining)
             )
 
+        /// <summary>
+        ///     <p>Produces a <c>Parser</c> which returns the <c>value</c> upon successful parse.</p>
+        ///     <p>This is semantically the same as:
+        ///        <code>
+        ///           parser |> Map (fun _ -> value)
+        ///        </code>
+        ///     </p>
+        /// </summary>
+        /// <param name="value"> the value to return upon successful parse </param>
+        /// <param name="parser"> the <c>Parser</c> to evaluate </param>
+        /// <returns> a <c>Parser</c> that may return the <c>value</c> provided </returns>
+        let inline As (value: 'b) (parser: Parser<'a>): Parser<'b> =
+            parser |> Map (fun _ -> value)
+
+        /// <summary>
+        ///     <p>Produces a <c>Parser</c> derived from the <c>DeferredParser</c>.</p>
+        ///     <p>It also signals that the <c>DeferredParser</c> is to be evaluated later and not during initial
+        ///        evaluation of the parent/calling <c>Parser</c>.
+        ///     </p>
+        /// </summary>
+        /// <param name="parser"> the <c>DeferredParser</c> to translate into a <c>Parser</c> </param>
+        /// <returns> a <c>DeferredParser</c>, in the form of a <c>Parser</c> </returns>
         let inline Deferred (parser: DeferredParser<'a>): Parser<'a> =
             (fun tokens ->
                 (parser ()) tokens
@@ -200,25 +262,30 @@ module Parser =
             )
 
     /// <summary>
+    ///     <p>A <c>Parser</c> that accepts the enf-of-file token (<c>";"</c>).</p>
+    /// </summary>
+    let EOF: Parser<Token> = (Accept TokenType.SemiColon)
+
+    /// <summary>
     ///     <p>A <c>Parser</c> that accepts the token of type <c>Undefined</c>.</p>
     /// </summary>
-    let UndefinedParser: Parser<ValueType> = (Accept TokenType.Undefined) |> Map (fun _ -> ValueType.Undefined)
+    let UndefinedParser: Parser<ValueType> = (Accept TokenType.Undefined) |> As ValueType.Undefined
     /// <summary>
     ///     <p>A <c>Parser</c> that accepts the token of type <c>Infinity</c>.</p>
     /// </summary>
-    let InfinityParser: Parser<ValueType> = (Accept TokenType.Infinity) |> Map (fun _ -> ConstantInfinity)
+    let InfinityParser: Parser<ValueType> = (Accept TokenType.Infinity) |> As ConstantInfinity
     /// <summary>
     ///     <p>A <c>Parser</c> that accepts the token of type <c>Pi</c>.</p>
     /// </summary>
-    let PiParser: Parser<ValueType> = (Accept TokenType.Pi) |> Map (fun _ -> ConstantPi)
+    let PiParser: Parser<ValueType> = (Accept TokenType.Pi) |> As ConstantPi
     /// <summary>
     ///     <p>A <c>Parser</c> that accepts the token of type <c>Tau</c>.</p>
     /// </summary>
-    let TauParser: Parser<ValueType> = (Accept TokenType.Tau) |> Map (fun _ -> ConstantTau)
+    let TauParser: Parser<ValueType> = (Accept TokenType.Tau) |> As ConstantTau
     /// <summary>
     ///     <p>A <c>Parser</c> that accepts the token of type <c>Euler</c>.</p>
     /// </summary>
-    let EulerParser: Parser<ValueType> = (Accept TokenType.Euler) |> Map (fun _ -> ConstantEuler)
+    let EulerParser: Parser<ValueType> = (Accept TokenType.Euler) |> As ConstantEuler
     /// <summary>
     ///     <p>A <c>Parser</c> that accepts the token of type <c>Number</c>.</p>
     /// </summary>
@@ -425,6 +492,7 @@ module Parser =
     ///     <p>The <c>Parser</c> that accepts a <b>Diorite</b> subexpression.</p>
     ///     <code>
     ///        &lt;SubExpression&gt; ::= &lt;Value&gt;
+    ///                         |  &lt;Variable&gt;
     ///                         |  "(" &lt;Expression&gt; ")"
     ///                         |  "|" &lt;Expression&gt; "|"
     ///                         |  &lt;FunctionCall&gt;
@@ -436,14 +504,17 @@ module Parser =
             (Deferred FunctionCallParser)
 
             // <SubExpression> ::= "(" <Expression> ")"
-            (Accept TokenType.LeftParenthesis |> IgnoreThen <|
+            (Accept TokenType.LeftParenthesis  |> IgnoreThen <|
             (Deferred ExpressionParser))       |> ThenIgnore <|
             (Accept TokenType.RightParenthesis)
 
             // <SubExpression> ::= "|" <Expression> "|"
-            (Accept TokenType.Bar       |> IgnoreThen <|
+            (Accept TokenType.Bar        |> IgnoreThen <|
             (Deferred ExpressionParser)) |> ThenIgnore <|
-            (Accept TokenType.Bar)      |> Map (fun e -> Expression.UnaryOperation (e, UnaryOperator.Absolute))
+            (Accept TokenType.Bar) |> Map (fun e -> Expression.UnaryOperation (e, UnaryOperator.Absolute))
+
+            // <SubExpression> ::= <Variable>
+            (VariableParser |> Map Expression.Variable)
 
             // <SubExpression> ::= <Value>
             (ValueParser |> Map Expression.Value)
@@ -457,12 +528,15 @@ module Parser =
     ///     </code>
     /// </summary>
     and FunctionCallParser: DeferredParser<Expression> = fun () ->
+        // <FunctionCall> ::= <Variable> ...
+        //                 |  <Symbol>   ...
         Any [
             (Accept TokenType.Symbol)   |> Map (fun t -> FunctionReferenceType.OfSymbol(t.lexeme))
             (Accept TokenType.Variable) |> Map (fun t -> FunctionReferenceType.OfVariable(GetVariableValue(t)))
         ] |> Then <|
+        // <FunctionCall> ::= ... "(" <Args> ")"
         (
-            (Accept TokenType.LeftParenthesis) |> IgnoreThen <|
+            (Accept TokenType.LeftParenthesis)  |> IgnoreThen <|
             (Deferred ArgsParser)               |> ThenIgnore <|
             (Accept TokenType.RightParenthesis)
         ) |> Map Expression.FunctionCall
@@ -477,16 +551,133 @@ module Parser =
     and ArgsParser: DeferredParser<Expression list> = fun () ->
         Any [
             // <Args> ::= <Expression> "," <Args>
-            ((Deferred ExpressionParser) |> Then <|
-             ((Accept TokenType.Comma) |> IgnoreThen <|
-              (Deferred ArgsParser)
-             ) |> Map (
-                fun (arg, args) -> arg :: args
-             )
-            )
+            ((Deferred ExpressionParser) |> Then <| (
+                (Accept TokenType.Comma) |> IgnoreThen <| (Deferred ArgsParser)
+            )) |> Map (fun (arg, args) -> arg :: args)
 
             // <Args> ::= <Expression>
             ((Deferred ExpressionParser) |> Map (fun e -> [e]))
+        ]
+
+    /// <summary>
+    ///     <p>The <c>Parser</c> that accepts a <b>Diorite</b> assignment statement.</p>
+    ///     <code>
+    ///         &lt;Assignment&gt; ::= &lt;Variable&gt; "=" &lt;Expression&gt;
+    ///     </code>
+    /// </summary>
+    let AssignmentParser: Parser<ASTNode> =
+        (VariableParser |> Then <| (
+            (Accept TokenType.Equals) |> IgnoreThen <| (Deferred ExpressionParser)
+        )) |> Map ASTNode.Assignment
+
+    /// <summary>
+    ///     <p>The <c>Parser</c> that accepts a <b>Diorite</b> function result.</p>
+    ///     <code>
+    ///         &lt;FunctionResult&gt; ::= &lt;Expression&gt;
+    ///                           |  "error" &lt;DQString&gt;
+    ///                           |  "error"
+    ///     </code>
+    /// </summary>
+    let FunctionResultParser: Parser<FunctionResult> =
+        Any [
+            // <FunctionResult> ::= "error" <DQString>
+            (((Accept TokenType.Error) |> IgnoreThen <| (Accept TokenType.StringLiteral)) |> Map (
+                fun lit -> lit.lexeme |> (Some >> FunctionResult.Error)
+            ))
+
+            // <FunctionResult> ::= "error"
+            ((Accept TokenType.Error) |> Map (fun _ -> None |> FunctionResult.Error))
+
+            // <FunctionResult> ::= <Expression>
+            ((Deferred ExpressionParser) |> Map FunctionResult.Expression)
+        ]
+
+    /// <summary>
+    ///     <p>The <c>Parser</c> that accepts a <b>Diorite</b> condition operator.</p>
+    ///     <code>
+    ///         &lt;ComparisonOperator&gt; ::= "="
+    ///                               |  "!="
+    ///                               |  "&lt;"
+    ///                               |  "&lt;="
+    ///                               |  ">"
+    ///                               |  ">="
+    ///     </code>
+    /// </summary>
+    let ComparisonOperatorParser: Parser<ComparisonOperator> =
+        Any [
+            (Accept TokenType.Equals)             |> As ComparisonOperator.Equality
+            (Accept TokenType.NotEqual)           |> As ComparisonOperator.Inequality
+            (Accept TokenType.LessThan)           |> As ComparisonOperator.StrictLessThan
+            (Accept TokenType.LessThanOrEqual)    |> As ComparisonOperator.NonStrictLessThan
+            (Accept TokenType.GreaterThan)        |> As ComparisonOperator.StrictGreaterThan
+            (Accept TokenType.GreaterThanOrEqual) |> As ComparisonOperator.NonStrictGreaterThan
+        ]
+
+    /// <summary>
+    ///     <p>The <c>Parser</c> that accepts a <b>Diorite</b> comparison operation.</p>
+    ///     <code>
+    ///         &lt;ComparisonOperation&gt; ::= &lt;Expression&gt; &lt;ComparisonOperator&gt; &lt;Expression&gt;
+    ///     </code>
+    /// </summary>
+    let ComparisonOperationParser: Parser<ComparisonOperation> =
+        (Deferred ExpressionParser) |> Then <| ComparisonOperatorParser |> Then <| (Deferred ExpressionParser)
+        |> Map (fun ((lhs, op), rhs) -> (lhs, op, rhs))
+
+    /// <summary>
+    ///     <p>The <c>Parser</c> that accepts a <b>Diorite</b> piecewise if condition.</p>
+    ///     <code>
+    ///         &lt;PiecewiseIf&gt; ::= &lt;Expression&gt; "if" &lt;ComparisonOperation&gt;
+    ///     </code>
+    /// </summary>
+    let PiecewiseIfParser: Parser<PiecewiseCondition> =
+        (FunctionResultParser |> ThenIgnore <| (Accept TokenType.If)) |> Then <| ComparisonOperationParser
+
+    /// <summary>
+    ///     <p>The <c>Parser</c> that accepts a <b>Diorite</b> piecewise otherwise condition.</p>
+    ///     <code>
+    ///         &lt;PiecewiseOtherwise&gt; ::= &lt;Expression&gt; "otherwise"
+    ///     </code>
+    /// </summary>
+    let PiecewiseOtherwiseParser: Parser<PiecewiseCondition> =
+        (FunctionResultParser |> ThenIgnore <| (Accept TokenType.Otherwise)) |> Map PiecewiseBaseCase
+
+    /// <summary>
+    ///     <p>The <c>Parser</c> that accepts a <b>Diorite</b> piecewise operation sequence.</p>
+    ///     <code>
+    ///         &lt;PiecewiseConditions&gt; ::= &lt;PiecewiseIf&gt; ";" &lt;PiecewiseConditions&gt;
+    ///                                |  &lt;PiecewiseIf&gt; ";" &lt;PiecewiseOtherwise&gt;  ";"
+    ///     </code>
+    /// </summary>
+    let rec PiecewiseConditionsParser: DeferredParser<PiecewiseCondition list> = fun () ->
+        // <PiecewiseConditions> ::= <PiecewiseIf> ";" ...
+        (PiecewiseIfParser |> ThenIgnore <| EOF) |> Then <| (
+            Any [
+                // <PiecewiseConditions> ::= ... <PiecewiseOtherwise> ";"
+                ((PiecewiseOtherwiseParser |> ThenIgnore <| EOF) |> Map (
+                    fun pother -> [pother])
+                )
+                // <PiecewiseConditions> ::= ... <PiecewiseConditions>
+                (Deferred PiecewiseConditionsParser)
+            ]
+        ) |> Map (fun (pif, ps) -> pif :: ps)
+
+    /// <summary>
+    ///     <p>The <c>Parser</c> that accepts a <b>Diorite</b> function body.</p>
+    ///     <code>
+    ///         &lt;FunctionBody&gt; ::= &lt;Expression&gt;
+    ///                         |  "{" &lt;PiecewiseConditions&gt; "}"
+    ///     </code>
+    /// </summary>
+    let FunctionBodyParser: Parser<FunctionBody> =
+        Any [
+            // <FunctionBody> ::= <Expression>
+            (Deferred ExpressionParser) |> Map FunctionBody.Expression
+    
+            // <FunctionBody> ::= "{" <PiecewiseConditions> "}"
+            ((Accept TokenType.LeftBrace)            |> IgnoreThen <|
+                (Deferred PiecewiseConditionsParser) |> ThenIgnore <|
+                    (Accept TokenType.RightBrace)
+            ) |> Map FunctionBody.PiecewiseConditions
         ]
 
     /// <summary>
@@ -499,8 +690,183 @@ module Parser =
     let ParameterParser: Parser<FunctionParameter> =
         Any [
             // <Parameter> ::= <Letter> <NumberSet>
-            (VariableParser |> Then <| (Accept TokenType.Colon |> IgnoreThen <| NumberSetParser))
+            (VariableParser |> Then <|
+                ((Accept TokenType.Colon) |> IgnoreThen <| NumberSetParser)
+            )
 
             // <Parameter> ::= <Letter>
             (VariableParser |> Map (fun v -> (v, DefaultNumberSet)))
         ]
+
+    /// <summary>
+    ///     <p>The <c>Parser</c> that accepts a sequence of <b>Diorite</b> parameters.</p>
+    ///     <code>
+    ///         &lt;Parameters&gt; ::= &lt;Parameter&gt; "," &lt;Parameters&gt;
+    ///                       |  &lt;Parameter&gt;
+    ///     </code>
+    /// </summary>
+    let rec ParametersParser: DeferredParser<FunctionParameter list> = fun () ->
+        Any [
+            // <Parameters> ::= <Parameter> "," <Parameters>
+            (ParameterParser |> Then <| (
+                (Accept TokenType.Comma) |> IgnoreThen <| (Deferred ParametersParser)
+            )) |> Map (fun (p, ps) -> p :: ps)
+
+            // <Parameters> ::= <Parameter>
+            (ParameterParser |> Map (fun p -> [p]))
+        ]
+
+    /// <summary>
+    ///     <p>The <c>Parser</c> that accepts an optional return set for a <b>Diorite</b> function.</p>
+    ///     <code>
+    ///         &lt;ReturnSet&gt; ::= ε
+    ///                      |  "->" &lt;NumberSet&gt;
+    ///     </code>
+    ///     <p><i>This parser returns <c>Syntax.DefaultNumberSet</c> if no match is found</i></p>
+    /// </summary>
+    let ReturnSetParser: Parser<NumberSet> =
+        Optional ((Accept TokenType.Arrow) |> IgnoreThen <| NumberSetParser) |> Map (fun ns -> match ns with Some ns -> ns | None -> DefaultNumberSet)
+
+    /// <summary>
+    ///     <p>The <c>Parser</c> that accepts an optional sequence of function metadata attributes for a <b>Diorite</b>
+    ///        function.
+    ///     </p>
+    ///     <code>
+    ///         &lt;FunctionMeta&gt; ::= "[" "symbol" ":" &lt;Letters&gt; "]" &lt;FunctionMeta&gt;
+    ///                         |  "[" "inline"               "]" &lt;FunctionMeta&gt;
+    ///                         |  "[" "memoized"             "]" &lt;FunctionMeta&gt;
+    ///     </code>
+    /// </summary>
+    let FunctionMetaParser: Parser<FunctionMetadata> =
+        ZeroOrMore (
+            (Accept TokenType.LeftBracket) |> IgnoreThen <|
+            (Accept TokenType.Symbol) |> Feed <| (fun sym ->
+                match sym.lexeme with
+                 | "symbol"   -> ((Accept TokenType.Colon) |> IgnoreThen <| (Accept TokenType.Symbol)) |> Map (
+                                     fun sym -> {
+                                         symbol   = Some sym.lexeme
+                                         inlined  = false
+                                         memoized = false
+                                     }
+                                 )
+                 | "inline"   -> OfParser {
+                                     symbol   = DefaultFunctionMetadata.symbol
+                                     inlined  = true
+                                     memoized = DefaultFunctionMetadata.memoized
+                                 }
+                 | "memoized" -> OfParser {
+                                     symbol   = DefaultFunctionMetadata.symbol
+                                     inlined  = DefaultFunctionMetadata.inlined
+                                     memoized = true
+                                 }
+                 | unknown -> Fail $"Unknown function meta attribute \"{unknown}\""
+            )|> ThenIgnore <|
+            (Accept TokenType.RightBracket)
+        ) |> Map (List.fold (fun accum elem -> {
+                 // since all values are separate applications of function metadata - they have to be unionised
+                 symbol   = match accum.symbol with Some sym -> Some sym | None -> elem.symbol
+                 inlined  = if accum.inlined  then accum.inlined  else elem.inlined
+                 memoized = if accum.memoized then accum.memoized else elem.memoized
+             }
+        ) DefaultFunctionMetadata)
+
+    /// <summary>
+    ///     <p>The <c>Parser</c> that accepts a <b>Diorite</b> function head.</p>
+    ///     <code>
+    ///         &lt;FunctionHead&gt; ::= &lt;Variable&gt; "(" &lt;Parameters&gt; ")" &lt;ReturnSet&gt;
+    ///     </code>
+    /// </summary>
+    let FunctionHeadParser: Parser<FunctionAttributes> =
+        ((FunctionMetaParser |> Then <| VariableParser) |> Then <|
+         (
+          ((Accept TokenType.LeftParenthesis)  |> IgnoreThen <| (Deferred ParametersParser)) |> Then <|
+          ((Accept TokenType.RightParenthesis) |> IgnoreThen <| ReturnSetParser)
+         )
+        ) |> Map (fun ((meta, fnId), (domain, range)) -> {
+              identifier = fnId
+              parameters = domain
+              range      = range
+              metadata   = meta
+          }
+        )
+
+    /// <summary>
+    ///     <p>The <c>Parser</c> that accepts a <b>Diorite</b> function definition</p>
+    ///     <code>
+    ///         &lt;FunctionDefinition&gt; ::= &lt;FunctionHead&gt; "=" &lt;FunctionBody&gt;
+    ///     </code>
+    /// </summary>
+    let FunctionDefinitionParser: Parser<ASTNode> =
+        (FunctionHeadParser |> Then <| (Accept TokenType.Equals |> IgnoreThen <| FunctionBodyParser)) |> Map
+            ASTNode.FunctionDefinition
+
+    /// <summary>
+    ///     <p>The <c>Parser</c> that accepts a <b>Diorite</b> plot expression statement.</p>
+    ///     <code>
+    ///         &lt;PlotExpression&gt; ::= "plot" &lt;Expression&gt;
+    ///     </code>
+    /// </summary>
+    let PlotExpressionParser: Parser<ASTNode> =
+        ((Accept TokenType.Plot) |> IgnoreThen <| (Deferred ExpressionParser)) |> Map ASTNode.PlotFunction
+
+    /// <summary>
+    ///     <p>The <c>Parser</c> that accepts a <b>Diorite</b> statement.</p>
+    ///     <code>
+    ///         &lt;Statement&gt; ::= ε
+    ///                      |  ";"                      &lt;Statement&gt;
+    ///                      |  &lt;Expression&gt;         ";" &lt;Statement&gt;
+    ///                      |  &lt;PlotExpression&gt;     ";" &lt;Statement&gt;
+    ///                      |  &lt;Assignment&gt;         ";" &lt;Statement&gt;
+    ///                      |  &lt;FunctionDefinition&gt;     &lt;Statement&gt;
+    ///     </code>
+    /// </summary>
+    let rec StatementParser: DeferredParser<AST> = fun () ->
+        (Any [
+             (IfEmpty                                                   (fun _ -> None))
+             (EOF                                                |> Map (fun _ -> None))
+             (FunctionDefinitionParser                           |> Map Some)
+             ((AssignmentParser            |> ThenIgnore <| EOF) |> Map Some)
+             ((PlotExpressionParser        |> ThenIgnore <| EOF) |> Map Some)
+             (((Deferred ExpressionParser) |> ThenIgnore <| EOF) |> Map (ASTNode.Expression >> Some))
+         ] |> Feed <| (
+            fun s ->
+                // only retry statement parse if more tokens available
+                Any [
+                    IfEmpty                           (fun _  -> match s with Some s -> [s]     | None -> [])
+                    (Deferred StatementParser) |> Map (fun ss -> match s with Some s -> s :: ss | None -> ss)
+                ]
+        ))
+
+    /// <summary>
+    ///     <p>Parses the supplied <c>TokenStream</c>, and returns the error status. This may be a successful parse,
+    ///        which contains the resulting Abstract Syntax Tree (AST), or the relevant error message if the syntax is
+    ///        invalid.
+    ///     </p>
+    /// </summary>
+    /// <param name="tokens"> the <c>TokenStream</c> to parse </param>
+    /// <returns> a <c>Result</c>, which may, or may not, contain the resulting AST </returns>
+    let ParseTokens (tokens: Lexer.TokenStream): Result<AST> =
+        match (Deferred StatementParser) tokens with
+         | Ok    (root, []           ) -> Ok root
+         | Ok    (_,    trailing :: _) -> SyntaxError $"Unexpected trailing \"{trailing.lexeme}\" token"
+         | Error err                   -> Error err
+
+    /// <summary>
+    ///     <p>Parses the supplied <c>string</c>, which is interpreted as <b>Diorite</b> source code. It returns the
+    ///        error status. This may be a successful parse, which contains the resulting Abstract Syntax Tree (AST), or
+    ///        the relevant error message if the syntax is invalid.
+    ///     </p>
+    /// </summary>
+    /// <param name="str"> the <b>Diorite</b> source code to parse </param>
+    /// <returns> a <c>Result</c>, which may, or may not, contain the resulting AST </returns>
+    let ParseString (str: string): Result<AST> =
+        let rec ListErrors (errors: DioriteError list): string =
+            match errors with
+             | []           -> ""
+             | [err]        -> $"{match err  with SyntaxError err -> err | MathError err -> err}"
+             | head :: tail -> $"{match head with SyntaxError err -> err | MathError err -> err}; {ListErrors tail}"
+
+        let tokens: Lexer.TokenStream = Lexer.Tokenise str
+        match (Lexer.GetErrors tokens) with
+         | []     -> ParseTokens tokens
+         | errors -> errors |> (ListErrors >> MathError)
