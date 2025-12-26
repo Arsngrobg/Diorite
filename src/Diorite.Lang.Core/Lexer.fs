@@ -514,13 +514,13 @@ module Lexer =
 
              // comments
              | c :: tail when c = '#' ->
-                 let (consumed: char list), (remaining: char list) = ConsumeNonNewlines (tail)
+                 let (consumed: char list), (remaining: char list) = ConsumeNonNewlines (c::tail)
                  (remaining |> ReadFrom) (line, column + (uint consumed.Length))
 
              // newline
              | c :: tail when c = '\n' ->
                  let (consumed: char list), (remaining: char list) = ConsumeOnlyNewlines (c::tail)
-                 (remaining |> ReadFrom) (line + (uint consumed.Length), 0u)
+                 (remaining |> ReadFrom) (line + (uint consumed.Length), 1u)
 
              // whitespace
              | c :: tail when c |> System.Char.IsWhiteSpace ->
@@ -541,4 +541,4 @@ module Lexer =
                  illegal :: tail
             
         let sourceCharacters: char list = source.ToCharArray() |> List.ofArray
-        (sourceCharacters |> ReadFrom) (0u, 0u)
+        (sourceCharacters |> ReadFrom) (1u, 1u)
