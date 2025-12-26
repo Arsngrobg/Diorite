@@ -468,6 +468,11 @@ module Syntax =
         ///     <p><i>binds: N/A</i></p>
         /// </summary>
         | Absolute
+        /// <summary>
+        ///     <p>The unary operator for declaring a complex value (<c>im a</c>)</p>
+        ///     <p><i>binds: N/A</i></p>
+        /// </summary>
+        | AsComplex
 
     /// <summary>
     ///     <p>A <c>ComparisonOperator</c> is an operator that is used to compare to values either side of it.</p>
