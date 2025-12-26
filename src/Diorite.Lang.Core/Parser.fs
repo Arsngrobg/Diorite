@@ -128,6 +128,7 @@ module Parser =
                       | Ok    s -> Ok s
             )
 
+        
         let Optional (parser: Parser<'a>): Parser<'a option> =
             (fun tokens ->
                 match (parser tokens) with
@@ -502,7 +503,7 @@ module Parser =
     and SubExpressionParser: DeferredParser<Expression> = fun () ->
         Any [
             // <SubExpression> ::= "im" <Expression>
-            ((Accept TokenType.Im) |> IgnoreThen <| (Deferred ExpressionParser)) |> Map (
+            ((Accept TokenType.Im) |> IgnoreThen <| (Deferred SubExpressionParser)) |> Map (
                 fun e -> Expression.UnaryOperation (e, UnaryOperator.AsComplex)
             )
 
