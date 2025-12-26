@@ -731,7 +731,12 @@ module Parser =
     ///     <p><i>This parser returns <c>Syntax.DefaultNumberSet</c> if no match is found</i></p>
     /// </summary>
     let ReturnSetParser: Parser<NumberSet> =
-        Optional ((Accept TokenType.Arrow) |> IgnoreThen <| NumberSetParser) |> Map (fun ns -> match ns with Some ns -> ns | None -> DefaultNumberSet)
+        Optional ((Accept TokenType.Arrow) |> IgnoreThen <| NumberSetParser) |> Map (
+            fun ns ->
+                match ns with
+                 | Some ns -> ns
+                 | None    -> DefaultNumberSet
+        )
 
     /// <summary>
     ///     <p>The <c>Parser</c> that accepts an optional sequence of function metadata attributes for a <b>Diorite</b>
@@ -755,7 +760,7 @@ module Parser =
                                          memoized = false
                                      }
                                  )
-                 | "inline"   -> OfParser {
+                 | "inlined"  -> OfParser {
                                      symbol   = DefaultFunctionMetadata.symbol
                                      inlined  = true
                                      memoized = DefaultFunctionMetadata.memoized
