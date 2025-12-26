@@ -30,6 +30,13 @@ module Lexer =
     type TokenStream = Token list
 
     /// <summary>
+    ///     <p>The state returned by the <c>Tokenise</c> function.</p>
+    ///     <p><b>1.</b> The first value (<c>Token option</c>), which is the potential token.</p>
+    ///     <p><b>2.</b> The second value (<c>char list</c>), which are the remaining characters.</p>
+    /// </summary>
+    type LexerState = (Token * char list) option
+
+    /// <summary>
     ///     <p>Reads the current statement, as defined by the head of the <c>TokenStream</c>.</p>
     ///     <p>A statement, in the context of a <c>TokenStream</c>, is any number of tokens until a <c>SemiColon</c>
     ///        token is found.
@@ -97,7 +104,7 @@ module Lexer =
     /// <summary>
     ///     <p>A <c>Consumer</c> that consumes characters, given that they are blank.</p>
     /// </summary>
-    let ConsumeBlanks:       Consumer = Consume System.Char.IsWhiteSpace
+    let ConsumeBlanks:       Consumer = Consume (fun c -> c <> '\n' && System.Char.IsWhiteSpace c)
     /// <summary>
     ///     <p>A <c>Consumer</c> that consumes characters, given that they are non-newline.</p>
     /// </summary>
@@ -115,6 +122,382 @@ module Lexer =
     /// </summary>
     let ConsumeUntilQuotes:  Consumer = Consume (fun c -> c <> '"')
 
+    let rec GetNextToken (line: uint, column: uint) (substr: char list): LexerState =
+        match substr with
+         // empty string
+         | [] -> None
+
+         // numbers
+         | c :: tail when c |> System.Char.IsDigit ->
+             let (integer: char list), (tail: char list) = ConsumeDigits (c::tail)
+             match tail with
+              | '.' :: tail ->
+                  match (ConsumeDigits tail) with
+                   // ignore the '.' lexeme - which will get marked as illegal on next call
+                   | [], remaining ->
+                      let lexeme: string = integer |> System.String.Concat
+                      let token: Token = {
+                          lexeme = lexeme
+                          id     = TokenType.Number
+                          value  = TokenValue.Number (lexeme |> System.Double.Parse)
+                          line   = line
+                          column = column
+                      }
+                      Some (token, remaining)
+                   // x.y
+                   | decimal, remaining ->
+                      let lexeme: string = (integer @ ['.'] @ decimal) |> System.String.Concat
+                      let token: Token = {
+                          lexeme = lexeme
+                          id     = TokenType.Number
+                          value  = TokenValue.Number (lexeme |> System.Double.Parse)
+                          line   = line
+                          column = column
+                      }
+                      Some (token, remaining)
+              // x
+              | remaining ->
+                  let lexeme: string = integer |> System.String.Concat
+                  let token: Token = {
+                      lexeme = lexeme
+                      id     = TokenType.Number
+                      value  = TokenValue.Number (lexeme |> System.Double.Parse)
+                      line   = line
+                      column = column
+                  }
+                  Some (token, remaining)
+
+         // variables, constants, & symbols
+         | c :: tail when c |> System.Char.IsLetter ->
+             match (ConsumeLetters (c::tail)) with
+              // variable + subscript
+              | [character], d :: remaining when d |> System.Char.IsDigit ->
+                  let subscript: uint8 = (uint8 d) - (uint8 '0')
+                  let token: Token = {
+                      lexeme = $"{character}{subscript}"
+                      id     = TokenType.Variable
+                      value  = TokenValue.Variable (character, subscript + 1uy)
+                      line   = line
+                      column = column
+                  }
+                  Some (token, remaining)
+
+              // variable
+              | [character], remaining ->
+                  let token: Token = {
+                      lexeme = $"{character}"
+                      id     = TokenType.Variable
+                      value  = TokenValue.Variable (character, 0uy)
+                      line   = line
+                      column = column
+                  }
+                  Some (token, remaining)
+
+              // keywords
+              | characters, remaining ->
+                  let word: string = characters |> System.String.Concat
+                  let id: TokenType = match word with
+                                       | "im"               -> TokenType.Im
+                                       | "if"               -> TokenType.If
+                                       | "otherwise"        -> TokenType.Otherwise
+                                       | "undefined"        -> TokenType.Undefined
+                                       | "infinity" | "inf" -> TokenType.Infinity
+                                       | "plot"             -> TokenType.Plot
+                                       | "error"            -> TokenType.Error
+                                       | "pi"               -> TokenType.Pi
+                                       | "tau"              -> TokenType.Tau
+                                       | "euler"            -> TokenType.Euler
+                                       | _                  -> TokenType.Symbol
+                  let token: Token = {
+                      lexeme  = word
+                      id      = id
+                      value   = TokenValue.None
+                      line    = line
+                      column  = column
+                  }
+                  Some (token, remaining)
+
+         // args & params
+         | ',' :: remaining ->
+             let token: Token = {
+                 lexeme = ","
+                 id     = TokenType.Comma
+                 value  = TokenValue.None
+                 line   = line
+                 column = column
+             }
+             Some (token, remaining)
+
+         // set notation
+         | '-' :: '>' :: remaining ->
+             let token: Token = {
+                 lexeme = "->"
+                 id     = TokenType.Arrow
+                 value  = TokenValue.None
+                 line   = line
+                 column = column
+             }
+             Some (token, remaining)
+         | ':' :: remaining ->
+             let token: Token = {
+                 lexeme = ":"
+                 id     = TokenType.Colon
+                 value  = TokenValue.None
+                 line   = line
+                 column = column
+             }
+             Some (token, remaining)
+
+         // comparison operators
+         | '=' :: remaining ->
+             let token: Token = {
+                 lexeme = "="
+                 id     = TokenType.Equals
+                 value  = TokenValue.None
+                 line   = line
+                 column = column
+             }
+             Some (token, remaining)
+         | '!' :: '=' :: remaining ->
+             let token: Token = {
+                 lexeme = "!="
+                 id     = TokenType.NotEqual
+                 value  = TokenValue.None
+                 line   = line
+                 column = column
+             }
+             Some (token, remaining)
+         | '<' :: '=' :: remaining ->
+             let token: Token = {
+                 lexeme = "<="
+                 id     = TokenType.LessThanOrEqual
+                 value  = TokenValue.None
+                 line   = line
+                 column = column
+             }
+             Some (token, remaining)
+         | '>' :: '=' :: remaining ->
+             let token: Token = {
+                 lexeme = ">="
+                 id     = TokenType.GreaterThanOrEqual
+                 value  = TokenValue.None
+                 line   = line
+                 column = column
+             }
+             Some (token, remaining)
+         | '<' :: remaining ->
+             let token: Token = {
+                 lexeme = "<"
+                 id     = TokenType.LessThan
+                 value  = TokenValue.None
+                 line   = line
+                 column = column
+             }
+             Some (token, remaining)
+         | '>' :: remaining ->
+             let token: Token = {
+                 lexeme = ">"
+                 id     = TokenType.GreaterThan
+                 value  = TokenValue.None
+                 line   = line
+                 column = column
+             }
+             Some (token, remaining)
+
+         // arithmetic operators
+         | '+' :: remaining ->
+             let token: Token = {
+                 lexeme = "+"
+                 id     = TokenType.Plus
+                 value  = TokenValue.None
+                 line   = line
+                 column = column
+             }
+             Some (token, remaining)
+         | '-' :: remaining ->
+             let token: Token = {
+                 lexeme = "-"
+                 id     = TokenType.Hyphen
+                 value  = TokenValue.None
+                 line   = line
+                 column = column
+             }
+             Some (token, remaining)
+         | '*' :: remaining ->
+             let token: Token = {
+                 lexeme = "*"
+                 id     = TokenType.Asterisk
+                 value  = TokenValue.None
+                 line   = line
+                 column = column
+             }
+             Some (token, remaining)
+         | '/' :: '/' :: remaining ->
+             let token: Token = {
+                 lexeme = "//"
+                 id     = TokenType.DoubleForwardSlash
+                 value  = TokenValue.None
+                 line   = line
+                 column = column
+             }
+             Some (token, remaining)
+         | '/' :: remaining ->
+             let token: Token = {
+                 lexeme = "/"
+                 id     = TokenType.ForwardSlash
+                 value  = TokenValue.None
+                 line   = line
+                 column = column
+             }
+             Some (token, remaining)
+         | '%' :: remaining ->
+             let token: Token = {
+                 lexeme = "%"
+                 id     = TokenType.Percentage
+                 value  = TokenValue.None
+                 line   = line
+                 column = column
+             }
+             Some (token, remaining)
+         | '^' :: remaining ->
+             let token: Token = {
+                 lexeme = "^"
+                 id     = TokenType.Hat
+                 value  = TokenValue.None
+                 line   = line
+                 column = column
+             }
+             Some (token, remaining)
+         | '!' :: remaining ->
+             let token: Token = {
+                 lexeme = "!"
+                 id     = TokenType.Exclamation
+                 value  = TokenValue.None
+                 line   = line
+                 column = column
+             }
+             Some (token, remaining)
+
+         // wrapping characters
+         | '(' :: remaining ->
+             let token: Token = {
+                 lexeme = "("
+                 id     = TokenType.LeftParenthesis
+                 value  = TokenValue.None
+                 line   = line
+                 column = column
+             }
+             Some (token, remaining)
+         | ')' :: remaining ->
+             let token: Token = {
+                 lexeme = ")"
+                 id     = TokenType.RightParenthesis
+                 value  = TokenValue.None
+                 line   = line
+                 column = column
+             }
+             Some (token, remaining)
+         | '|' :: remaining ->
+             let token: Token = {
+                 lexeme = "|"
+                 id     = TokenType.Bar
+                 value  = TokenValue.None
+                 line   = line
+                 column = column
+             }
+             Some (token, remaining)
+         | '{' :: remaining ->
+             let token: Token = {
+                 lexeme = "{"
+                 id     = TokenType.LeftBrace
+                 value  = TokenValue.None
+                 line   = line
+                 column = column
+             }
+             Some (token, remaining)
+         | '}' :: remaining ->
+             let token: Token = {
+                 lexeme = "}"
+                 id     = TokenType.RightBrace
+                 value  = TokenValue.None
+                 line   = line
+                 column = column
+             }
+             Some (token, remaining)
+         | '[' :: remaining ->
+             let token: Token = {
+                 lexeme = "["
+                 id     = TokenType.LeftBracket
+                 value  = TokenValue.None
+                 line   = line
+                 column = column
+             }
+             Some (token, remaining)
+         | ']' :: remaining ->
+             let token: Token = {
+                 lexeme = "]"
+                 id     = TokenType.RightBracket
+                 value  = TokenValue.None
+                 line   = line
+                 column = column
+             }
+             Some (token, remaining)
+
+         // string literal
+         | '"' :: tail ->
+             let (consumed: char list), (tail: char list) = ConsumeUntilQuotes tail
+             let lexeme: string = $"{consumed |> System.String.Concat}"
+             let (id: TokenType), (remaining: char list) =
+                 match tail with
+                  | '"' :: remaining -> (TokenType.StringLiteral, remaining)
+                  | remaining        -> (TokenType.IllegalToken,  remaining)
+
+             let token: Token = {
+                 lexeme = lexeme
+                 id     = id
+                 value  = TokenValue.None
+                 line   = line
+                 column = column
+             }
+             Some (token, remaining)
+
+         // end-of-statement
+         | ';' :: remaining ->
+             let token: Token = {
+                 lexeme = ";"
+                 id     = TokenType.SemiColon
+                 value  = TokenValue.None
+                 line   = line
+                 column = column
+             }
+             Some (token, remaining)
+
+         // comments
+         | '#' :: tail ->
+             let (consumed: char list), (remaining: char list) = ConsumeNonNewlines tail
+             ((line, column + (uint consumed.Length) + 1u), remaining) ||> GetNextToken // +1 for '#'
+
+         | '\n' :: tail ->
+             let (consumed: char list), (remaining: char list) = ConsumeOnlyNewlines tail
+             ((line + (uint consumed.Length) + 1u, 1u), remaining) ||> GetNextToken // +1 for '\n'
+
+         // whitespace
+         | c :: tail when c |> System.Char.IsWhiteSpace ->
+             let (consumed: char list), (remaining: char list) = ConsumeBlanks tail
+             ((line, column + (uint consumed.Length) + 1u), remaining) ||> GetNextToken // +1 for ' '
+
+         // unrecognised token
+         | unknown ->
+             let (lexeme: char list), (remaining: char list) = ConsumeUntilBlank unknown
+             let illegal: Token = {
+                 lexeme = lexeme |> System.String.Concat
+                 id     = TokenType.IllegalToken
+                 value  = TokenValue.None
+                 line   = line
+                 column = column
+             }
+             Some (illegal, remaining)
+
     /// <summary>
     ///     <p>Tokenises the string in the local context of the string.</p>
     ///     <p><i>This just means that line and column position information is local to the string that <c>tokenise</c>
@@ -124,421 +507,19 @@ module Lexer =
     /// <param name="source"> the <b>Diorite</b> source code </param>
     /// <returns> the <c>source</c> code broken up into a <c>TokenStream</c> </returns>
     let Tokenise (source: string): TokenStream =
-        let rec ReadFrom (source: char list) (line: uint, column: uint): TokenStream =
-            match source with
-             // empty string
-             | [] -> []
-
-             // numbers
-             | c :: tail when c |> System.Char.IsDigit ->
-                 let (integer: char list), (tail: char list) = ConsumeDigits (c::tail)
-                 match tail with
-                  | '.' :: tail ->
-                      match (ConsumeDigits tail) with
-                       // mark the '.' as illegal and then proceed
-                       | [], remaining ->
-                          let lexeme: string = integer |> System.String.Concat
-                          let head: Token = {
-                              lexeme = lexeme
-                              id     = TokenType.Number
-                              value  = TokenValue.Number (lexeme |> System.Double.Parse)
-                              line   = line
-                              column = column
-                          }
-                          let illegal: Token = {
-                              lexeme = "."
-                              id     = TokenType.IllegalToken
-                              value  = TokenValue.None
-                              line   = line
-                              column = column + (uint head.lexeme.Length)
-                          }
-                          let tail: TokenStream = (remaining |> ReadFrom) (line, column + (uint head.lexeme.Length))
-                          head :: illegal :: tail
-                       // x.y
-                       | decimal, remaining ->
-                          let lexeme: string = (integer @ ['.'] @ decimal) |> System.String.Concat
-                          let head: Token = {
-                              lexeme = lexeme
-                              id     = TokenType.Number
-                              value  = TokenValue.Number (lexeme |> System.Double.Parse)
-                              line   = line
-                              column = column
-                          }
-                          let tail: TokenStream = (remaining |> ReadFrom) (line, column + (uint head.lexeme.Length))
-                          head :: tail
-                  // x
-                  | remaining ->
-                      let lexeme: string = integer |> System.String.Concat
-                      let head: Token = {
-                          lexeme = lexeme
-                          id     = TokenType.Number
-                          value  = TokenValue.Number (lexeme |> System.Double.Parse)
-                          line   = line
-                          column = column
-                      }
-                      let tail: TokenStream = (remaining |> ReadFrom) (line, column + (uint head.lexeme.Length))
-                      head :: tail
-
-             // variables, constants, & symbols
-             | c :: tail when c |> System.Char.IsLetter ->
-                 match (ConsumeLetters (c::tail)) with
-                  // variable + subscript
-                  | [character], d :: remaining when d |> System.Char.IsDigit ->
-                      let subscript: uint8 = (uint8 d) - (uint8 '0')
-                      let head: Token = {
-                          lexeme = $"{character}{subscript}"
-                          id     = TokenType.Variable
-                          value  = TokenValue.Variable (character, subscript + 1uy)
-                          line   = line
-                          column = column
-                      }
-                      let tail: TokenStream = (remaining |> ReadFrom) (line, column + (uint head.lexeme.Length))
-                      head :: tail
-
-                  // variable
-                  | [character], remaining ->
-                      let head: Token = {
-                          lexeme = $"{character}"
-                          id     = TokenType.Variable
-                          value  = TokenValue.Variable (character, 0uy)
-                          line   = line
-                          column = column
-                      }
-                      let tail: TokenStream = (remaining |> ReadFrom) (line, column + (uint head.lexeme.Length))
-                      head :: tail
-
-                  // keywords
-                  | characters, remaining ->
-                      let word: string = characters |> System.String.Concat
-                      let id: TokenType = match word with
-                                           | "im"               -> TokenType.Im
-                                           | "if"               -> TokenType.If
-                                           | "otherwise"        -> TokenType.Otherwise
-                                           | "undefined"        -> TokenType.Undefined
-                                           | "infinity" | "inf" -> TokenType.Infinity
-                                           | "plot"             -> TokenType.Plot
-                                           | "error"            -> TokenType.Error
-                                           | "pi"               -> TokenType.Pi
-                                           | "tau"              -> TokenType.Tau
-                                           | "euler"            -> TokenType.Euler
-                                           | _                  -> TokenType.Symbol
-                      let head: Token = {
-                          lexeme  = word
-                          id      = id
-                          value   = TokenValue.None
-                          line    = line
-                          column  = column
-                      }
-                      let tail: TokenStream = (remaining |> ReadFrom) (line, column + (uint word.Length))
-                      head :: tail
-
-             // args & params
-             | ',' :: tail ->
-                 let head: Token = {
-                     lexeme = ","
-                     id     = TokenType.Comma
-                     value  = TokenValue.None
-                     line   = line
-                     column = column
-                 }
-                 let tail: TokenStream = (tail |> ReadFrom) (line, column + (uint head.lexeme.Length))
-                 head :: tail
-
-             // set notation
-             | '-' :: '>' :: tail ->
-                 let head: Token = {
-                     lexeme = "->"
-                     id     = TokenType.Arrow
-                     value  = TokenValue.None
-                     line   = line
-                     column = column
-                 }
-                 let tail: TokenStream = (tail |> ReadFrom) (line, column + (uint head.lexeme.Length))
-                 head :: tail
-             | ':' :: tail ->
-                 let head: Token = {
-                     lexeme = ":"
-                     id     = TokenType.Colon
-                     value  = TokenValue.None
-                     line   = line
-                     column = column
-                 }
-                 let tail: TokenStream = (tail |> ReadFrom) (line, column + (uint head.lexeme.Length))
-                 head :: tail
-
-             // comparison operators
-             | '=' :: tail ->
-                 let head: Token = {
-                     lexeme = "="
-                     id     = TokenType.Equals
-                     value  = TokenValue.None
-                     line   = line
-                     column = column
-                 }
-                 let tail: TokenStream = (tail |> ReadFrom) (line, column + (uint head.lexeme.Length))
-                 head :: tail
-             | '!' :: '=' :: tail ->
-                 let head: Token = {
-                     lexeme = "!="
-                     id     = TokenType.NotEqual
-                     value  = TokenValue.None
-                     line   = line
-                     column = column
-                 }
-                 let tail: TokenStream = (tail |> ReadFrom) (line, column + (uint head.lexeme.Length))
-                 head :: tail
-             | '<' :: '=' :: tail ->
-                 let head: Token = {
-                     lexeme = "<="
-                     id     = TokenType.LessThanOrEqual
-                     value  = TokenValue.None
-                     line   = line
-                     column = column
-                 }
-                 let tail: TokenStream = (tail |> ReadFrom) (line, column + (uint head.lexeme.Length))
-                 head :: tail
-             | '>' :: '=' :: tail ->
-                 let head: Token = {
-                     lexeme = ">="
-                     id     = TokenType.GreaterThanOrEqual
-                     value  = TokenValue.None
-                     line   = line
-                     column = column
-                 }
-                 let tail: TokenStream = (tail |> ReadFrom) (line, column + (uint head.lexeme.Length))
-                 head :: tail
-             | '<' :: tail ->
-                 let head: Token = {
-                     lexeme = "<"
-                     id     = TokenType.LessThan
-                     value  = TokenValue.None
-                     line   = line
-                     column = column
-                 }
-                 let tail: TokenStream = (tail |> ReadFrom) (line, column + (uint head.lexeme.Length))
-                 head :: tail
-             | '>' :: tail ->
-                 let head: Token = {
-                     lexeme = ">"
-                     id     = TokenType.GreaterThan
-                     value  = TokenValue.None
-                     line   = line
-                     column = column
-                 }
-                 let tail: TokenStream = (tail |> ReadFrom) (line, column + (uint head.lexeme.Length))
-                 head :: tail
-
-             // arithmetic operators
-             | '+' :: tail ->
-                 let head: Token = {
-                     lexeme = "+"
-                     id     = TokenType.Plus
-                     value  = TokenValue.None
-                     line   = line
-                     column = column
-                 }
-                 let tail: TokenStream = (tail |> ReadFrom) (line, column + (uint head.lexeme.Length))
-                 head :: tail
-             | '-' :: tail ->
-                 let head: Token = {
-                     lexeme = "-"
-                     id     = TokenType.Hyphen
-                     value  = TokenValue.None
-                     line   = line
-                     column = column
-                 }
-                 let tail: TokenStream = (tail |> ReadFrom) (line, column + (uint head.lexeme.Length))
-                 head :: tail
-             | '*' :: tail ->
-                 let head: Token = {
-                     lexeme = "*"
-                     id     = TokenType.Asterisk
-                     value  = TokenValue.None
-                     line   = line
-                     column = column
-                 }
-                 let tail: TokenStream = (tail |> ReadFrom) (line, column + (uint head.lexeme.Length))
-                 head :: tail
-             | '/' :: '/' :: tail ->
-                 let head: Token = {
-                     lexeme = "//"
-                     id     = TokenType.DoubleForwardSlash
-                     value  = TokenValue.None
-                     line   = line
-                     column = column
-                 }
-                 let tail: TokenStream = (tail |> ReadFrom) (line, column + (uint head.lexeme.Length))
-                 head :: tail
-             | '/' :: tail ->
-                 let head: Token = {
-                     lexeme = "/"
-                     id     = TokenType.ForwardSlash
-                     value  = TokenValue.None
-                     line   = line
-                     column = column
-                 }
-                 let tail: TokenStream = (tail |> ReadFrom) (line, column + (uint head.lexeme.Length))
-                 head :: tail
-             | '%' :: tail ->
-                 let head: Token = {
-                     lexeme = "%"
-                     id     = TokenType.Percentage
-                     value  = TokenValue.None
-                     line   = line
-                     column = column
-                 }
-                 let tail: TokenStream = (tail |> ReadFrom) (line, column + (uint head.lexeme.Length))
-                 head :: tail
-             | '^' :: tail ->
-                 let head: Token = {
-                     lexeme = "^"
-                     id     = TokenType.Hat
-                     value  = TokenValue.None
-                     line   = line
-                     column = column
-                 }
-                 let tail: TokenStream = (tail |> ReadFrom) (line, column + (uint head.lexeme.Length))
-                 head :: tail
-             | '!' :: tail ->
-                 let head: Token = {
-                     lexeme = "!"
-                     id     = TokenType.Exclamation
-                     value  = TokenValue.None
-                     line   = line
-                     column = column
-                 }
-                 let tail: TokenStream = (tail |> ReadFrom) (line, column + (uint head.lexeme.Length))
-                 head :: tail
-
-             // wrapping characters
-             | '(' :: tail ->
-                 let head: Token = {
-                     lexeme = "("
-                     id     = TokenType.LeftParenthesis
-                     value  = TokenValue.None
-                     line   = line
-                     column = column
-                 }
-                 let tail: TokenStream = (tail |> ReadFrom) (line, column + (uint head.lexeme.Length))
-                 head :: tail
-             | ')' :: tail ->
-                 let head: Token = {
-                     lexeme = ")"
-                     id     = TokenType.RightParenthesis
-                     value  = TokenValue.None
-                     line   = line
-                     column = column
-                 }
-                 let tail: TokenStream = (tail |> ReadFrom) (line, column + (uint head.lexeme.Length))
-                 head :: tail
-             | '|' :: tail ->
-                 let head: Token = {
-                     lexeme = "|"
-                     id     = TokenType.Bar
-                     value  = TokenValue.None
-                     line   = line
-                     column = column
-                 }
-                 let tail: TokenStream = (tail |> ReadFrom) (line, column + (uint head.lexeme.Length))
-                 head :: tail
-             | '{' :: tail ->
-                 let head: Token = {
-                     lexeme = "{"
-                     id     = TokenType.LeftBrace
-                     value  = TokenValue.None
-                     line   = line
-                     column = column
-                 }
-                 let tail: TokenStream = (tail |> ReadFrom) (line, column + (uint head.lexeme.Length))
-                 head :: tail
-             | '}' :: tail ->
-                 let head: Token = {
-                     lexeme = "}"
-                     id     = TokenType.RightBrace
-                     value  = TokenValue.None
-                     line   = line
-                     column = column
-                 }
-                 let tail: TokenStream = (tail |> ReadFrom) (line, column + (uint head.lexeme.Length))
-                 head :: tail
-             | '[' :: tail ->
-                 let head: Token = {
-                     lexeme = "["
-                     id     = TokenType.LeftBracket
-                     value  = TokenValue.None
-                     line   = line
-                     column = column
-                 }
-                 let tail: TokenStream = (tail |> ReadFrom) (line, column + (uint head.lexeme.Length))
-                 head :: tail
-             | ']' :: tail ->
-                 let head: Token = {
-                     lexeme = "]"
-                     id     = TokenType.RightBracket
-                     value  = TokenValue.None
-                     line   = line
-                     column = column
-                 }
-                 let tail: TokenStream = (tail |> ReadFrom) (line, column + (uint head.lexeme.Length))
-                 head :: tail
-
-             // string literal
-             | '"' :: tail ->
-                 let (consumed: char list), (tail: char list) = ConsumeUntilQuotes tail
-                 let lexeme: string = $"{consumed |> System.String.Concat}"
-                 let (id: TokenType), (remaining: char list) =
-                     match tail with
-                      | '"' :: remaining -> (TokenType.StringLiteral, remaining)
-                      | remaining        -> (TokenType.IllegalToken,  remaining)
-                 let head: Token = {
-                     lexeme = lexeme
-                     id     = id
-                     value  = TokenValue.None
-                     line   = line
-                     column = column
-                 }
-                 let tail: TokenStream = (remaining |> ReadFrom) (line, column + (uint head.lexeme.Length))
-                 head :: tail
-
-             // end-of-statement
-             | ';' :: tail ->
-                 let head: Token = {
-                     lexeme = ";"
-                     id     = TokenType.SemiColon
-                     value  = TokenValue.None
-                     line   = line
-                     column = column
-                 }
-                 let tail: TokenStream = (tail |> ReadFrom) (line, column + (uint head.lexeme.Length))
-                 head :: tail
-
-             // comments
-             | c :: tail when c = '#' ->
-                 let (consumed: char list), (remaining: char list) = ConsumeNonNewlines (c::tail)
-                 (remaining |> ReadFrom) (line, column + (uint consumed.Length))
-
-             // newline
-             | c :: tail when c = '\n' ->
-                 let (consumed: char list), (remaining: char list) = ConsumeOnlyNewlines (c::tail)
-                 (remaining |> ReadFrom) (line + (uint consumed.Length), 1u)
-
-             // whitespace
-             | c :: tail when c |> System.Char.IsWhiteSpace ->
-                 let (consumed: char list), (remaining: char list) = ConsumeBlanks (c::tail)
-                 (remaining |> ReadFrom) (line, column + (uint consumed.Length))
-
-             // unrecognised token
-             | trailing ->
-                 let (lexeme: char list), (remaining: char list) = ConsumeUntilBlank trailing
-                 let illegal: Token = {
-                     lexeme = lexeme |> System.String.Concat
-                     id     = TokenType.IllegalToken
-                     value  = TokenValue.None
-                     line   = line
-                     column = column
-                 }
-                 let tail: TokenStream = (remaining |> ReadFrom) (line, illegal.column + (uint illegal.lexeme.Length))
-                 illegal :: tail
-            
         let sourceCharacters: char list = source.ToCharArray() |> List.ofArray
-        (sourceCharacters |> ReadFrom) (1u, 1u)
+
+        let rec Accumulate (substr: char list) (accumulator: TokenStream): TokenStream =
+            let pos: uint * uint =
+                if accumulator.Length = 0 then
+                    (1u, 1u)
+                else
+                    let head: Token = accumulator.Head
+                    (head.line, head.column + (uint head.lexeme.Length))
+
+            match (GetNextToken pos substr) with
+             | Some (token, tail) -> (Accumulate tail) (token :: accumulator)
+             | None               -> List.rev accumulator
+
+        (Accumulate sourceCharacters) []
+        
