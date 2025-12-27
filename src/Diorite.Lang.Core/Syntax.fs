@@ -85,6 +85,16 @@ module Syntax =
     type VariableType = char * uint8
 
     /// <summary>
+    ///     <p>The maximum number of variables supported by <b>Diorite</b>.</p>
+    ///     <p>Breakdown:
+    ///        <p><b>1.</b> <c>26</c> lowercase + <c>26</c> uppercase characters</p>
+    ///        <p><b>2.</b> <c>1</c> character + <c>10</c> subscript variations of the same character.</p>
+    ///        <p>Therefore, <c>(26 + 26) * (1 + 10) = 572</c> unique variables.</p>
+    ///     </p>
+    /// </summary>
+    let MaxVariables: int = (26 + 26) * (1 + 10)
+
+    /// <summary>
     ///     <p>The number sets supported in the <b>Diorite</b> language.</p>
     ///     <p>These sets define the domain and/or range of a function.</p>
     /// </summary>
@@ -611,10 +621,10 @@ module Syntax =
     ///     </p>
     ///     <p>This models the <c>Expression otherwise</c> syntax using the <c>PiecewiseCondition</c> type.</p>
     /// </summary>
-    /// <param name="defaultExpression"> the default <c>Expression</c> to return </param>
+    /// <param name="defaultResult"> the default <c>Expression</c> to return </param>
     /// <returns> a <c>PiecewiseCondition</c> that will always evaluate to <c>true</c> </returns>
-    let PiecewiseBaseCase (defaultExpression: FunctionResult): PiecewiseCondition = (
-        defaultExpression,
+    let PiecewiseBaseCase (defaultResult: FunctionResult): PiecewiseCondition = (
+        defaultResult,
         (
             ValueType.Undefined |> Expression.Value,
             ComparisonOperator.Equality,
