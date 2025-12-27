@@ -20,15 +20,6 @@ namespace Diorite.Lang.API
 /// </summary>
 [<AutoOpen>]
 module Functions =
-     open Diorite.Lang.Core
-
-     /// <summary>
-     ///    <p>Gets the current version of <b>Diorite</b> this API exposes.</p>
-     /// </summary>
-     /// <returns> the version of <b>Diorite</b> this API exposes </returns>
-     let GetVersion (): Properties.Version =
-         Properties.languageVersion
-
      // val getVersion:  unit                  -> Properties.Version
      // val tokenStr:    Token                 -> string
      // val treeStr:     AST                   -> string
