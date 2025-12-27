@@ -91,8 +91,10 @@ module Parser =
         let IfEmpty (action: unit -> 'a): Parser<'a> =
             (fun tokens ->
                 match tokens with
-                 | []     -> Ok (action (), [])
-                 | _ :: _ -> SyntaxError "Token stream is not empty when expected to be"
+                 | []        -> Ok (action (), [])
+                 | head :: _ ->
+                     ("Token stream is not empty when expected to be", Some (head.line, head.column))
+                     ||> SyntaxError
             )
 
         /// <summary>
@@ -104,15 +106,15 @@ module Parser =
         /// <returns> a <c>Parser</c> that attempts to consume </returns>
         let Accept (id: TokenType): Parser<Token> =
             (fun tokens ->
-                let inline GetErrorMessage (token: Token option): string =
+                let inline GetErrorMessage (token: Token option): string * (uint * uint) option =
                     match token with
-                     | Some t -> $"Expected {id} - got \"{t.lexeme}\" instead at line {t.line}, column {t.column}"
-                     | None   -> $"Expected {id}"
+                     | Some t -> $"Expected {id} - got \"{t.lexeme}\" instead", Some (t.line, t.column)
+                     | None   -> $"Expected {id}", None
 
                 match tokens with
                  | head :: tail when head.id = id -> (head, tail) |> Ok
-                 | head :: _                      -> head |> (Some >> GetErrorMessage >> SyntaxError)
-                 | []                             -> None |> (        GetErrorMessage >> SyntaxError)
+                 | head :: _                      -> (head |> (Some >> GetErrorMessage)) ||> SyntaxError
+                 | []                             ->  None |>          GetErrorMessage   ||> SyntaxError
             )
 
         /// <summary>
@@ -268,20 +270,13 @@ module Parser =
         /// <returns> a <c>Parser</c> that specifically returns a <c>SyntaxError</c> with the <c>msg</c> </returns>
         let inline Fail (msg: string): Parser<'a> =
             (fun _ ->
-                SyntaxError msg
-            )
-
-        let inline OnFail (msg: string) (parser: Parser<'a>): Parser<'a> =
-            (fun tokens ->
-                match (parser tokens) with
-                 | Ok    state -> Ok state
-                 | Error _     -> SyntaxError msg
+                (msg, None) ||> SyntaxError
             )
 
     /// <summary>
     ///     <p>A <c>Parser</c> that accepts the end-of-file token (<c>";"</c>).</p>
     /// </summary>
-    let EOF: Parser<Token> = (Accept TokenType.SemiColon) |> OnFail "Yo! wtf!"
+    let EOF: Parser<Token> = (Accept TokenType.SemiColon)
 
     /// <summary>
     ///     <p>A <c>Parser</c> that accepts the token of type <c>Undefined</c>.</p>
@@ -876,7 +871,9 @@ module Parser =
     let ParseTokens (tokens: Lexer.TokenStream): Result<AST> =
         match (Deferred StatementParser) tokens with
          | Ok    (root, []           ) -> Ok root
-         | Ok    (_,    trailing :: _) -> SyntaxError $"Unexpected trailing \"{trailing.lexeme}\" token"
+         | Ok    (_,    trailing :: _) ->
+             ($"Unexpected trailing \"{trailing.lexeme}\" token", Some (trailing.line, trailing.column))
+             ||> SyntaxError
          | Error err                   -> Error err
 
     /// <summary>
@@ -891,10 +888,10 @@ module Parser =
         let rec ListErrors (errors: DioriteError list): string =
             match errors with
              | []           -> ""
-             | [err]        -> $"{match err  with SyntaxError err -> err | MathError err -> err}"
-             | head :: tail -> $"{match head with SyntaxError err -> err | MathError err -> err}; {ListErrors tail}"
+             | [err]        -> StrError err
+             | head :: tail -> $"{StrError head}; {ListErrors tail}"
 
         let tokens: Lexer.TokenStream = Lexer.Tokenise str
         match (Lexer.GetErrors tokens) with
          | []     -> ParseTokens tokens
-         | errors -> errors |> (ListErrors >> MathError)
+         | errors -> (errors |> ListErrors, None) ||> SyntaxError

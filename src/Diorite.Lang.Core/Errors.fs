@@ -41,7 +41,7 @@ module Errors =
         /// <summary>
         ///     <p>Caused by invalid syntax or incorrect sequence of tokens.</p>
         /// </summary>
-        | SyntaxError of string * (uint * uint)
+        | SyntaxError of string * (uint * uint) option
 
     /// <summary>
     ///     <p>Produces a <i>prettier</i> <c>string</c> representation of the supplied <c>DioriteError</c>.</p>
@@ -50,8 +50,9 @@ module Errors =
     /// <returns> the <c>string</c> representation of the supplied <c>DioriteError</c> </returns>
     let StrError (error: DioriteError): string =
         match error with
-         | MathError   (msg, input ) -> $"MathError: {msg} - input: {input}"
-         | SyntaxError (msg, (l, c)) -> $"SyntaxError: {msg} at line {l}, column {c}"
+         | MathError   (msg, input      ) -> $"MathError: {msg} - input: {input}"
+         | SyntaxError (msg, Some (l, c)) -> $"SyntaxError: {msg} at line {l}, column {c}"
+         | SyntaxError (msg, None       ) -> $"SyntaxError: {msg}"
 
     /// <summary>
     ///     <p>A stricter version of the standard <c>FSHarp.Core.Result</c> where its <c>Error</c> case is strictly
@@ -96,12 +97,11 @@ module Errors =
     ///     </p>
     /// </summary>
     /// <param name='msg'> the message to be display upon encountering this <c>SyntaxError</c> </param>
-    /// <param name='line'> the line number of the offending syntax </param>
-    /// <param name='column'> the column number of the offending syntax </param>
+    /// <param name='pos'> the optional position of the offending syntax </param>
     /// <typeparam name="'a"> the inferred type the <c>Result</c> should be bound to </typeparam>
     /// <returns> a <c>SyntaxError</c> wrapped in a <c>Error</c> case </returns>
-    let inline SyntaxError<'a> (msg: string) (line: uint, column: uint): 'a Result =
-        (msg, (line, column)) |> (SyntaxError >> Error)
+    let inline SyntaxError<'a> (msg: string) (pos: (uint * uint) option): 'a Result =
+        (msg, pos) |> (SyntaxError >> Error)
 
     /// <summary>
     ///     <p>Interprets the supplied generic <c>Result</c> as a <c>bool</c>.</p>

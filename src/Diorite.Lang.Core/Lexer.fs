@@ -64,7 +64,7 @@ module Lexer =
         // helper function for generating a descriptive message for the IllegalToken
         let AsSyntaxError (token: Token): DioriteError =
             let message: string = $"IllegalToken: \"{token.lexeme}\" at line {token.line}, column {token.column}"
-            DioriteError.SyntaxError(message)
+            DioriteError.SyntaxError(message, Some (token.line, token.column))
 
         match stream with
          | []                                       -> []
