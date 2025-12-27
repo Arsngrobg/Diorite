@@ -129,7 +129,7 @@ module Syntax =
     ///     <p>Any function without the range definition operator defaults to <c>Real</c> also.</p>
     /// </summary>
     let DefaultNumberSet: NumberSet = NumberSet.Real
-    
+
     /// <summary>
     ///     <p>A <c>TokenType</c> is an identifier type for a lexical <c>Token</c> in the <b>Diorite</b>.</p>
     ///     <p>These union types do not store metadata is it makes it easier to consume every type of token.</p>

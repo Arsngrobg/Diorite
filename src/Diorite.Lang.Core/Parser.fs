@@ -83,6 +83,11 @@ module Parser =
                 Ok (a, tokens)
             )
 
+        /// <summary>
+        ///     <p>Produces a <c>Parser</c>, that executes an <c>action</c> if all tokens are exhausted.</p>
+        /// </summary>
+        /// <param name="action"> the action to perform if no tokens are available </param>
+        /// <returns> a <c>Parser</c> that may execute this <c>action</c> </returns>
         let IfEmpty (action: unit -> 'a): Parser<'a> =
             (fun tokens ->
                 match tokens with
@@ -128,8 +133,12 @@ module Parser =
                       | Ok    s -> Ok s
             )
 
-        
-        let Optional (parser: Parser<'a>): Parser<'a option> =
+        /// <summary>
+        ///     <p>Produces a <c>Parser</c>, that is not required to parse the specific sequence of <c>Token</c>s.</p>
+        /// </summary>
+        /// <param name="parser"> the <c>Parser</c> to optionally execute </param>
+        /// <returns> a <c>Parser</c> that returns the <c>option</c> value of the original <c>Parser</c> type </returns>
+        let inline Optional (parser: Parser<'a>): Parser<'a option> =
             (fun tokens ->
                 match (parser tokens) with
                  | Ok    (a, remaining) -> Ok (Some a, remaining)
@@ -143,7 +152,7 @@ module Parser =
         /// </summary>
         /// <param name="parser"> the <c>Parser</c> to evaluate one-or-more times </param>
         /// <returns> a <c>Parser</c> that evaluates the supplied <c>Parser</c> one-or-more times </returns>
-        let ZeroOrMore (parser: Parser<'a>): Parser<'a list> =
+        let inline ZeroOrMore (parser: Parser<'a>): Parser<'a list> =
             let rec Accumulate (accum: 'a list): Parser<'a list> =
                 (fun tokens ->
                     match (parser tokens) with
@@ -262,10 +271,17 @@ module Parser =
                 SyntaxError msg
             )
 
+        let inline OnFail (msg: string) (parser: Parser<'a>): Parser<'a> =
+            (fun tokens ->
+                match (parser tokens) with
+                 | Ok    state -> Ok state
+                 | Error _     -> SyntaxError msg
+            )
+
     /// <summary>
-    ///     <p>A <c>Parser</c> that accepts the enf-of-file token (<c>";"</c>).</p>
+    ///     <p>A <c>Parser</c> that accepts the end-of-file token (<c>";"</c>).</p>
     /// </summary>
-    let EOF: Parser<Token> = (Accept TokenType.SemiColon)
+    let EOF: Parser<Token> = (Accept TokenType.SemiColon) |> OnFail "Yo! wtf!"
 
     /// <summary>
     ///     <p>A <c>Parser</c> that accepts the token of type <c>Undefined</c>.</p>
