@@ -163,7 +163,7 @@ module Parser =
         /// <param name="parser"> the <c>Parser</c> </param>
         /// <param name="producer"> the function that produces a new <c>Parser</c> that curries the return val </param>
         /// <returns> a <c>Parser</c> that feeds the return value of the first <c>Parser</c> to the next one </returns>
-        let inline Feed (parser: Parser<'a>) (producer: 'a -> Parser<'b>): Parser<'b> =
+        let inline Bind (parser: Parser<'a>) (producer: 'a -> Parser<'b>): Parser<'b> =
             (fun tokens ->
                 (parser tokens) ?=> fun (l, tail) -> (producer l) tail
             )
@@ -335,7 +335,7 @@ module Parser =
     /// </summary>
     let NumberSetParser: Parser<NumberSet> =
         // reuse the variable parsing logic as number sets are tokenised as variables
-        VariableParser |> Feed <| (fun (c, s) ->
+        VariableParser |> Bind <| (fun (c, s) ->
             if s <> 0uy then
                 Fail $"Expected a number set, got variable {c}{s-1uy} instead"
             else
@@ -365,19 +365,19 @@ module Parser =
                 // <Expression'> ::= "+" <Term> <Expression'>
                 (((Accept TokenType.Plus) |> IgnoreThen <| (Deferred TermParser)) |> Map (
                     fun e -> Expression.BinaryOperation (head, BinaryOperator.Addition, e)
-                ) |> Feed <| Expression'Parser)
+                ) |> Bind <| Expression'Parser)
 
                 // <Expression'> ::= "+" <Term> <Expression'>
                 (((Accept TokenType.Hyphen) |> IgnoreThen <| (Deferred TermParser)) |> Map (
                     fun e -> Expression.BinaryOperation (head, BinaryOperator.Subtraction, e)
-                ) |> Feed <| Expression'Parser)
+                ) |> Bind <| Expression'Parser)
 
                 // <Expression'> ::= ε
                 (OfParser head)
             ]
 
         // <Expression> ::= <Term> <Expression'>
-        ((Deferred TermParser) |> Feed <| Expression'Parser)
+        ((Deferred TermParser) |> Bind <| Expression'Parser)
 
     /// <summary>
     ///     <p>The <c>Parser</c> that accepts a <b>Diorite</b> term.</p>
@@ -397,29 +397,29 @@ module Parser =
                 // <Term'> ::= "*" <Factor> <Term'>
                 (((Accept TokenType.Asterisk) |> IgnoreThen <| (Deferred FactorParser)) |> Map (
                     fun e -> Expression.BinaryOperation (head, BinaryOperator.Multiplication, e)
-                ) |> Feed <| Term'Parser)
+                ) |> Bind <| Term'Parser)
 
                 // <Term'> ::= "/" <Factor> <Term'>
                 (((Accept TokenType.ForwardSlash) |> IgnoreThen <| (Deferred FactorParser)) |> Map (
                     fun e -> Expression.BinaryOperation (head, BinaryOperator.Division, e)
-                ) |> Feed <| Term'Parser)
+                ) |> Bind <| Term'Parser)
 
                 // <Term'> ::= "%" <Factor> <Term'>
                 (((Accept TokenType.Percentage) |> IgnoreThen <| (Deferred FactorParser)) |> Map (
                     fun e -> Expression.BinaryOperation (head, BinaryOperator.Modulo, e)
-                ) |> Feed <| Term'Parser)
+                ) |> Bind <| Term'Parser)
 
                 // <Term'> ::= "//" <Factor> <Term'>
                 (((Accept TokenType.DoubleForwardSlash) |> IgnoreThen <| (Deferred FactorParser)) |> Map (
                     fun e -> Expression.BinaryOperation (head, BinaryOperator.FloorDivision, e)
-                ) |> Feed <| Term'Parser)
+                ) |> Bind <| Term'Parser)
 
                 // <Term'> ::= ε
                 (OfParser head)
             ]
 
         // <Term'> ::= <Factor> <Term'>
-        ((Deferred FactorParser) |> Feed <| Term'Parser)
+        ((Deferred FactorParser) |> Bind <| Term'Parser)
 
     /// <summary>
     ///     <p>The <c>Parser</c> that accepts a <b>Diorite</b> factor.</p>
@@ -480,14 +480,14 @@ module Parser =
                 // <Factorial'> ::= "!" &lt;Factorial'>
                 (Accept TokenType.Exclamation) |> Map (
                     fun _ -> Expression.UnaryOperation (head, UnaryOperator.Factorial)
-                ) |> Feed <| Factorial'Parser
+                ) |> Bind <| Factorial'Parser
 
                 // <Factorial'> ::= ε
                 OfParser(head);
             ]
 
         // <Factorial> ::= <SubExpression> <Factorial'>
-        ((Deferred SubExpressionParser) |> Feed <| Factorial'Parser)
+        ((Deferred SubExpressionParser) |> Bind <| Factorial'Parser)
 
     /// <summary>
     ///     <p>The <c>Parser</c> that accepts a <b>Diorite</b> subexpression.</p>
@@ -539,7 +539,7 @@ module Parser =
         //                 |  <Symbol>   ...
         Any [
             (Accept TokenType.Symbol)   |> Map (fun t -> FunctionReferenceType.OfSymbol(t.lexeme))
-            (Accept TokenType.Variable) |> Map (fun t -> FunctionReferenceType.OfVariable(GetVariableValue(t)))
+            (Accept TokenType.Variable) |> Map (GetVariableValue >> FunctionReferenceType.OfVariable)
         ] |> Then <|
         // <FunctionCall> ::= ... "(" <Args> ")"
         (
@@ -752,7 +752,7 @@ module Parser =
     let FunctionMetaParser: Parser<FunctionMetadata> =
         ZeroOrMore (
             (Accept TokenType.LeftBracket) |> IgnoreThen <|
-            (Accept TokenType.Symbol) |> Feed <| (fun sym ->
+            (Accept TokenType.Symbol) |> Bind <| (fun sym ->
                 match sym.lexeme with
                  | "symbol"   -> ((Accept TokenType.Colon) |> IgnoreThen <| (Accept TokenType.Symbol)) |> Map (
                                      fun sym -> {
@@ -840,7 +840,7 @@ module Parser =
              ((AssignmentParser            |> ThenIgnore <| EOF) |> Map Some)
              ((PlotExpressionParser        |> ThenIgnore <| EOF) |> Map Some)
              (((Deferred ExpressionParser) |> ThenIgnore <| EOF) |> Map (ASTNode.Expression >> Some))
-         ] |> Feed <| (
+         ] |> Bind <| (
             fun s ->
                 // only retry statement parse if more tokens available
                 Any [
