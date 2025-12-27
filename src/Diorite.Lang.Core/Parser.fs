@@ -671,14 +671,14 @@ module Parser =
     /// <summary>
     ///     <p>The <c>Parser</c> that accepts a <b>Diorite</b> function body.</p>
     ///     <code>
-    ///         &lt;FunctionBody&gt; ::= &lt;Expression&gt;
+    ///         &lt;FunctionBody&gt; ::= &lt;Expression&gt; ";"
     ///                         |  "{" &lt;PiecewiseConditions&gt; "}"
     ///     </code>
     /// </summary>
     let FunctionBodyParser: Parser<FunctionBody> =
         Any [
-            // <FunctionBody> ::= <Expression>
-            (Deferred ExpressionParser) |> Map FunctionBody.Expression
+            // <FunctionBody> ::= <Expression> ";"
+            ((Deferred ExpressionParser) |> ThenIgnore <| EOF) |> Map FunctionBody.Expression
     
             // <FunctionBody> ::= "{" <PiecewiseConditions> "}"
             ((Accept TokenType.LeftBrace)            |> IgnoreThen <|
