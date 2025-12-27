@@ -37,7 +37,7 @@ module Errors =
         ///     <p>Caused by illegal math operations.</p>
         ///     <p><i>Example: division by zero</i></p>
         /// </summary>
-        | MathError   of string * ValueType
+        | MathError   of string option * ValueType
         /// <summary>
         ///     <p>Caused by invalid syntax or incorrect sequence of tokens.</p>
         /// </summary>
@@ -50,9 +50,10 @@ module Errors =
     /// <returns> the <c>string</c> representation of the supplied <c>DioriteError</c> </returns>
     let StrError (error: DioriteError): string =
         match error with
-         | MathError   (msg, input      ) -> $"MathError: {msg} - input: {input}"
-         | SyntaxError (msg, Some (l, c)) -> $"SyntaxError: {msg} at line {l}, column {c}"
-         | SyntaxError (msg, None       ) -> $"SyntaxError: {msg}"
+         | MathError   (Some msg, input      ) -> $"MathError: {msg} - input: {input}"
+         | MathError   (None,     input      ) -> $"MathError from input: {input}"
+         | SyntaxError (msg,      Some (l, c)) -> $"SyntaxError: {msg} at line {l}, column {c}"
+         | SyntaxError (msg,      None       ) -> $"SyntaxError: {msg}"
 
     /// <summary>
     ///     <p>A stricter version of the standard <c>FSHarp.Core.Result</c> where its <c>Error</c> case is strictly
@@ -81,14 +82,14 @@ module Errors =
          | Ok    value -> fn value
 
     /// <summary>
-    ///     <p>A functional wrapper around a <c>Result</c> that contains a <c>MathError</c> with a meaningful message
-    ///        of the error, and the <c>input</c> that caused the <c>MathError</c>.
+    ///     <p>A functional wrapper around a <c>Result</c> that contains a <c>MathError</c> with an optional and
+    ///        meaningful message of the error, and the <c>input</c> that caused the <c>MathError</c>.
     ///     </p>
     /// </summary>
-    /// <param name='msg'> the message to be display upon encountering this <c>MathError</c> </param>
+    /// <param name='msg'> the optional message to be display upon encountering this <c>MathError</c> </param>
     /// <param name='input'> the input value that caused this <c>MathError</c> </param>
     /// <returns> a <c>MathError</c> wrapped in an <c>Error</c> case </returns>
-    let inline MathError<'a> (msg: string) (input: ValueType): 'a Result =
+    let inline MathError<'a> (msg: string option) (input: ValueType): 'a Result =
         (msg, input) |> (MathError >> Error)
 
     /// <summary>
