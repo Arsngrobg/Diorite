@@ -185,13 +185,18 @@ module Syntax =
         /// </summary>
         | Infinity
         /// <summary>
+        ///     <p>The string literal <c>"complex"</c>.</p>
+        ///     <p>A constructor for a complex value.</p>
+        /// </summary>
+        | Complex
+        /// <summary>
         ///     <p>The string literal <c>"im"</c>.</p>
-        ///     <p>A constructor/deconstructor for an imaginary number, consumes subexpression on right-hand side.</p>
+        ///     <p>A destructor for a complex value, will extract the imaginary value from the complex value.</p>
         /// </summary>
         | Im
         /// <summary>
         ///     <p>The string literal <c>"re"</c>.</p>
-        ///     <p>A destructor for an imaginary number, will extract the real value from the complex value.</p>
+        ///     <p>A destructor for a complex value, will extract the real value from the complex value.</p>
         /// </summary>
         | Re
         /// <summary>
@@ -455,6 +460,11 @@ module Syntax =
         ///     <p><i>associativity: right associative</i></p>
         /// </summary>
         | Exponent
+        /// <summary>
+        ///     <p>The binary operator for declaring a complex value (<c>a + bi</c>).</p>
+        ///     <p><i>binds: N/A</i></p>
+        /// </summary>
+        | OfComplex
 
     /// <summary>
     ///     <p>A <c>UnaryOperator</c> is an operator that executes on a single operand on either side, depending on
@@ -485,12 +495,12 @@ module Syntax =
         /// </summary>
         | Absolute
         /// <summary>
-        ///     <p>The unary operator for declaring a complex value (<c>im a</c>)</p>
+        ///     <p>The unary operator for obtaining the imaginary component of a <c>Complex</c> value (<c>im b</c>).</p>
         ///     <p><i>binds: N/A</i></p>
         /// </summary>
         | GetImaginary
         /// <summary>
-        ///     <p>The unary operator for declaring a real value (<c>re a</c>)</p>
+        ///     <p>The unary operator for obtaining the real component of a <c>Complex</c> value (<c>re a</c>).</p>
         ///     <p><i>binds: N/A</i></p>
         /// </summary>
         | GetReal

@@ -509,11 +509,21 @@ module Parser =
     ///                         |  "|"  &lt;Expression&gt; "|"
     ///                         |  "im" &lt;SubExpression&gt;
     ///                         |  "re" &lt;SubExpression&gt;
+    ///                         |  "complex" "(" &lt;Expression&gt; "," &lt;Expression&gt; ")"
     ///                         |  &lt;FunctionCall&gt;
     ///     </code>
     /// </summary>
     and SubExpressionParser: DeferredParser<Expression> = fun () ->
         Any [
+            // <SubExpression> ::= "complex" "(" <Expression> "," <Expression> ")"
+            ((Accept TokenType.Complex) |> IgnoreThen <| (
+                (Accept TokenType.LeftParenthesis) |> IgnoreThen <| (Deferred ExpressionParser)
+            ) |> Then <| (
+                (Accept TokenType.Comma) |> IgnoreThen <| (
+                    (Deferred ExpressionParser) |> ThenIgnore <| (Accept TokenType.RightParenthesis)
+                )
+            )) |> Map (fun (a, b) -> Expression.BinaryOperation (a, BinaryOperator.OfComplex, b))
+
             // <SubExpression> ::= "im" <SubExpression>
             ((Accept TokenType.Im) |> IgnoreThen <| (Deferred SubExpressionParser)) |> Map (
                 fun e -> Expression.UnaryOperation (e, UnaryOperator.GetImaginary)

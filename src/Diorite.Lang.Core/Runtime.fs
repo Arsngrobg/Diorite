@@ -165,6 +165,21 @@ module Runtime =
              | ValueType.Number   a,     ValueType.Number   b     -> ValueType.Number (a ** b) |> Ok
              | a,                        b                        -> unsupported (a, b)
 
+        /// <summary>
+        ///     <p>The rule for binary complex constructor.</p>
+        /// </summary>
+        /// <param name="ab"> the operands </param>
+        let BinaryOfComplexRule: BinaryOperationRule = fun ab ->
+            let unsupported (offender: ValueType) (first: bool): ValueType Result =
+                let meta: string = if first then "a term" else "b coefficient"
+                let msg:  string = $"Complex constructor requires a pair of reals - offending argument is the {meta}"
+                (Some msg, offender) ||> MathError
+
+            match ab with
+             | ValueType.Number a, ValueType.Number b -> ValueType.Complex (a, b) |> Ok
+             | ValueType.Number _, b                  -> unsupported b false
+             | a,                  _                  -> unsupported a true
+
     /// <summary>
     ///     <p>The <c>UnaryOperationRules</c> module groups up the implementations of <c>UnaryOperationRule</c>s.</p>
     /// </summary>
@@ -231,18 +246,17 @@ module Runtime =
              | a                        -> unsupported a
 
         /// <summary>
-        ///     <p>The rule for unary <c>im(a)</c>.</p>
+        ///     <p>The rule for unary complex constructor.</p>
         /// </summary>
         /// <param name="a"> the operand </param>
         let UnaryGetImaginaryRule: UnaryOperationRule = fun a ->
             let unsupported: UnaryOperationRule = UnsupportedUnaryOperation UnaryOperator.GetImaginary
             match a with
-             | ValueType.Complex (_, b) -> ValueType.Number      b  |> Ok
-             | ValueType.Number   b     -> ValueType.Complex (0, b) |> Ok
+             | ValueType.Number   _     -> ValueType.Number 0 |> Ok
              | a                        -> unsupported a
 
         /// <summary>
-        ///     <p>The rule for unary <c>re(a)</c>.</p>
+        ///     <p>The rule for unary <c>re(z)</c>.</p>
         /// </summary>
         /// <param name="a"> the operand </param>
         let UnaryGetRealRule: UnaryOperationRule = fun a ->
