@@ -6,9 +6,10 @@
 //
 // ------------------------------------------------------------------------------------------------------------------
 // File:    Syntax.fs
-// Summary: The syntax definitions for the Diorite mathematics language
+// Summary: The syntax definitions for the Diorite mathematics language - for a better understanding, read from
+//          top-to-bottom as it builds the individual components of the language as you go down
 // Author:  Arsngrobg, Borngle
-// Version: v1.16
+// Version: v1.17
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
