@@ -740,7 +740,7 @@ module Syntax =
     /// <summary>
     ///     <p>The shorthand type abbreviation for a function in <b>Diorite</b>.</p>
     /// </summary>
-    type Function = FunctionAttributes * FunctionBody
+    type FunctionType = FunctionAttributes * FunctionBody
 
     /// <summary>
     ///     <p>The <c>AST</c> is the tree structure of a top-level <b>Diorite</b> statement.</p>
@@ -772,7 +772,7 @@ module Syntax =
         ///     </p>
         ///     <p><i>Example: <c>f(x) = 2*x;</c> OR <c>f(x) = { -x if x &lt; 0; x otherwise; }</c></i></p>
         /// </summary>
-        | FunctionDefinition of Function
+        | FunctionDefinition of FunctionType
 
     /// <summary>
     ///     <p>The root type returned by a parse operation of <b>Diorite</b> code.</p>
