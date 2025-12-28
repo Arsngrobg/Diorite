@@ -185,9 +185,14 @@ module Syntax =
         | Infinity
         /// <summary>
         ///     <p>The string literal <c>"im"</c>.</p>
-        ///     <p>A constructor for an imaginary number, consumes subexpression on right-hand side.</p>
+        ///     <p>A constructor/deconstructor for an imaginary number, consumes subexpression on right-hand side.</p>
         /// </summary>
         | Im
+        /// <summary>
+        ///     <p>The string literal <c>"re"</c>.</p>
+        ///     <p>A destructor for an imaginary number, will extract the real value from the complex value.</p>
+        /// </summary>
+        | Re
         /// <summary>
         ///     <p>The string literal <c>"plot"</c>.</p>
         ///     <p>Plots the function that is on the right-hand side of this token.</p>
@@ -482,7 +487,12 @@ module Syntax =
         ///     <p>The unary operator for declaring a complex value (<c>im a</c>)</p>
         ///     <p><i>binds: N/A</i></p>
         /// </summary>
-        | AsComplex
+        | GetImaginary
+        /// <summary>
+        ///     <p>The unary operator for declaring a real value (<c>re a</c>)</p>
+        ///     <p><i>binds: N/A</i></p>
+        /// </summary>
+        | GetReal
 
     /// <summary>
     ///     <p>A <c>ComparisonOperator</c> is an operator that is used to compare to values either side of it.</p>
