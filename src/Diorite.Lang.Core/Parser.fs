@@ -718,12 +718,12 @@ module Parser =
     ///     <p>The <c>Parser</c> that accepts a <b>Diorite</b> function parameter.</p>
     ///     <code>
     ///         &lt;Parameter&gt; ::= &lt;Letter&gt;
-    ///                      |  &lt;Letter&gt; &lt;NumberSet&gt;
+    ///                      |  &lt;Letter&gt; ":" &lt;NumberSet&gt;
     ///     </code>
     /// </summary>
     let ParameterParser: Parser<FunctionParameter> =
         Any [
-            // <Parameter> ::= <Letter> <NumberSet>
+            // <Parameter> ::= <Letter> ":" <NumberSet>
             (VariableParser |> Then <|
                 ((Accept TokenType.Colon) |> IgnoreThen <| NumberSetParser)
             )
@@ -818,7 +818,26 @@ module Parser =
     let FunctionHeadParser: Parser<FunctionAttributes> =
         ((FunctionMetaParser |> Then <| VariableParser) |> Then <|
          (
-          ((Accept TokenType.LeftParenthesis)  |> IgnoreThen <| (Deferred ParametersParser)) |> Then <|
+          (
+           (Accept TokenType.LeftParenthesis)  |> IgnoreThen <| (Deferred ParametersParser) |> Bind <|
+           // check duplicates
+           (fun ps ->
+               let duplicates: VariableType list =
+                   ps
+                   |> List.countBy fst
+                   |> List.filter (fun (_, c) -> c > 1)
+                   |> List.map fst
+               
+               match duplicates with
+                | []         -> OfParser ps
+                | duplicates ->
+                    let asStr: string =
+                        duplicates
+                        |> List.map strVariableType
+                        |> String.concat ", "
+                    Fail $"Duplicate parameter identifiers: [{asStr}]"
+           )
+          ) |> Then <|
           ((Accept TokenType.RightParenthesis) |> IgnoreThen <| ReturnSetParser)
          )
         ) |> Map (fun ((meta, fnId), (domain, range)) -> {
@@ -863,10 +882,10 @@ module Parser =
         (Any [
              (IfEmpty                                                   (fun _ -> None))
              (EOF                                                |> Map (fun _ -> None))
-             (FunctionDefinitionParser                           |> Map Some)
              ((AssignmentParser            |> ThenIgnore <| EOF) |> Map Some)
              ((PlotExpressionParser        |> ThenIgnore <| EOF) |> Map Some)
              (((Deferred ExpressionParser) |> ThenIgnore <| EOF) |> Map (ASTNode.Expression >> Some))
+             (FunctionDefinitionParser                           |> Map Some)
          ] |> Bind <| (
             fun s ->
                 // only retry statement parse if more tokens available
