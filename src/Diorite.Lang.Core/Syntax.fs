@@ -96,6 +96,15 @@ module Syntax =
     let MaxVariables: int = (26 + 26) * (1 + 10)
 
     /// <summary>
+    ///     <p>Produces the <c>string</c> representation of the supplied <c>VariableType</c>.</p>
+    /// </summary>
+    /// <param name="variableType"> the <c>VariableType</c> to obtain the <c>string</c> representation of </param>
+    /// <returns> the <c>string</c> representation of the supplied <c>VariableType</c> </returns>
+    let strVariableType (variableType: VariableType): string =
+        let (c: char), (s: uint8) = variableType
+        if s = 0uy then $"{c}" else $"{c}{s-1uy}"
+
+    /// <summary>
     ///     <p>The number sets supported in the <b>Diorite</b> language.</p>
     ///     <p>These sets define the domain and/or range of a function.</p>
     /// </summary>
