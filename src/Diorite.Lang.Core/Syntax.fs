@@ -152,7 +152,7 @@ module Syntax =
 
     /// <summary>
     ///     <p>A <c>TokenType</c> is an identifier type for a lexical <c>Token</c> in the <b>Diorite</b>.</p>
-    ///     <p>These union types do not store metadata is it makes it easier to consume every type of token.</p>
+    ///     <p>These union types do not store metadata as it makes it easier to consume every type of token.</p>
     /// </summary>
     [<RequireQualifiedAccess>]
     type TokenType =
@@ -328,7 +328,7 @@ module Syntax =
         /// <summary>
         ///     <p>The string literal <c>"otherwise"</c>.</p>
         ///     <p>Represents the fallback branch in a piecewise operation.
-        ///        This branch is selected only ig all previous conditions evaluate to <c>false</c>.
+        ///        This branch is selected only if all previous conditions evaluate to <c>false</c>.
         ///     </p>
         /// </summary>
         | Otherwise
