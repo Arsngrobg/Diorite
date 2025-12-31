@@ -33,7 +33,6 @@
 
     <ItemGroup>
         <Compile Include="Properties.fs" />
-        <Compile Include="Syntax.fs"     />
         <Compile Include="Errors.fs"     />
         <Compile Include="Lexer.fs"      />
         <Compile Include="Parser.fs"     />
