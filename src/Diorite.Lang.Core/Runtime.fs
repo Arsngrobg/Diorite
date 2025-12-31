@@ -15,6 +15,8 @@
 
 namespace Diorite.Lang.Core
 
+open Diorite.Lang.Core
+
 /// <summary>
 ///     <p>The <c>Runtime</c> module contains the live interpreter, and the virtual memory manager for the
 ///        <b>Diorite</b> mathematics processing language.
@@ -48,6 +50,14 @@ module Runtime =
          | a,                        b                        -> (a,                        b                       )
 
     /// <summary>
+    ///     <p>If the value of <c>x</c> is <c>nan</c>, it maps to <c>Undefined</c> or <c>Number</c> otherwise.</p>
+    /// </summary>
+    /// <param name="x"> the <c>decimal</c> number </param>
+    /// <returns> the <c>ValueType</c> of <c>x</c>, where <c>nan</c> is <c>Undefined</c> </returns>
+    let MaybeNaN (x: float): ValueType =
+        if x = nan then ValueType.Undefined else ValueType.Number x
+
+    /// <summary>
     ///     <p>The <c>BinaryOperationRules</c> module groups up the implementations of <c>BinaryOperationRule</c>s.</p>
     /// </summary>
     [<AutoOpen>]
@@ -72,7 +82,7 @@ module Runtime =
             let unsupported: BinaryOperationRule = UnsupportedBinaryOperation BinaryOperator.Addition
             match (Upcast ab) with
              | ValueType.Complex (a, b), ValueType.Complex (c, d) -> ValueType.Complex (a + b,  c + d) |> Ok
-             | ValueType.Number   a,     ValueType.Number   b     -> ValueType.Number  (  a   +   b  ) |> Ok
+             | ValueType.Number   a,     ValueType.Number   b     -> MaybeNaN          (  a   +   b  ) |> Ok
              | a,                        b                        -> unsupported (a, b)
 
         /// <summary>
@@ -83,7 +93,7 @@ module Runtime =
             let unsupported: BinaryOperationRule = UnsupportedBinaryOperation BinaryOperator.Subtraction
             match (Upcast ab) with
              | ValueType.Complex (a, b), ValueType.Complex (c, d) -> ValueType.Complex (a - b,  c - d) |> Ok
-             | ValueType.Number   a,     ValueType.Number   b     -> ValueType.Number  (  a   +   b  ) |> Ok
+             | ValueType.Number   a,     ValueType.Number   b     -> MaybeNaN          (  a   -   b  ) |> Ok
              | a,                        b                        -> unsupported (a, b)
 
         /// <summary>
@@ -94,7 +104,7 @@ module Runtime =
             let unsupported: BinaryOperationRule = UnsupportedBinaryOperation BinaryOperator.Multiplication
             match (Upcast ab) with
              | ValueType.Complex (a, b), ValueType.Complex (c, d) -> ValueType.Complex (a*c - b*d,  a*d + b*c) |> Ok
-             | ValueType.Number   a,     ValueType.Number   b     -> ValueType.Number  (    a     *     b    ) |> Ok
+             | ValueType.Number   a,     ValueType.Number   b     -> MaybeNaN          (    a     *     b    ) |> Ok
              | a,                        b                        -> unsupported (a, b)
 
         /// <summary>
@@ -113,7 +123,7 @@ module Runtime =
                      ValueType.Complex (a, b) |> Ok
              | ValueType.Number   a,     ValueType.Number   b     ->
                  if   b = 0 then (Some "Division by zero", ValueType.Number b) ||> MathError
-                 else ValueType.Number (a / b) |> Ok
+                 else MaybeNaN (a / b) |> Ok
              | a,                        b                        -> unsupported (a, b)
 
         /// <summary>
@@ -123,7 +133,7 @@ module Runtime =
         let BinaryModuloRule: BinaryOperationRule = fun ab ->
             let unsupported: BinaryOperationRule = UnsupportedBinaryOperation BinaryOperator.Modulo
             match ab with
-             | ValueType.Number a, ValueType.Number b -> ValueType.Number (a % b) |> Ok
+             | ValueType.Number a, ValueType.Number b -> MaybeNaN (a % b) |> Ok
              | a,                  b                  -> unsupported (a, b)
 
         /// <summary>
@@ -135,7 +145,7 @@ module Runtime =
             match ab with
              | ValueType.Number a, ValueType.Number b ->
                  if b = 0 then (Some "Division by zero", ValueType.Number b) ||> MathError
-                 else          (a / b) |> (System.Math.Floor >> ValueType.Number >> Ok)
+                 else          (a / b) |> (System.Math.Floor >> MaybeNaN >> Ok)
              | a,                  b                  -> unsupported (a, b)
 
         /// <summary>
@@ -162,7 +172,7 @@ module Runtime =
                  let reZW: float = magZPwrW * (System.Math.Cos argZPwrW)
                  let imZW: float = magZPwrW * (System.Math.Sin argZPwrW)
                  ValueType.Complex (reZW, imZW) |> Ok
-             | ValueType.Number   a,     ValueType.Number   b     -> ValueType.Number (a ** b) |> Ok
+             | ValueType.Number   a,     ValueType.Number   b     -> MaybeNaN (a ** b) |> Ok
              | a,                        b                        -> unsupported (a, b)
 
         /// <summary>
@@ -185,6 +195,18 @@ module Runtime =
     /// </summary>
     [<AutoOpen>]
     module UnaryOperationRules =
+        /// <summary>
+        ///     <p>This is the hard limit on the application of the <c>Factorial</c> operation in <b>Diorite</b>.
+        ///        This is the value that, beyond this input argument, the value of <c>x!</c> is too large to be
+        ///        represented by a 64-bit floating-point decimal. Hence, it optimises the call as a value of
+        ///        <c>inf</c>.
+        ///     </p>
+        ///     <p><i>This also prevents the <c>factorial</c> operation from easily exploding, which causes
+        ///           <c>StackOverflowError</c>s.
+        ///     </i></p>
+        /// </summary>
+        let FactorialLimit: int = 170
+
         /// <summary>
         ///     <p>Produces a <c>MathError</c> that has the appropriate error message for the given
         ///        <c>UnaryOperator</c>, and <c>ValueType</c>.
@@ -227,6 +249,7 @@ module Runtime =
             match a with
              | ValueType.Number   a     ->
                  if   (a |> System.Math.Truncate) <> a then ValueType.Undefined |> Ok
+                 elif  a > FactorialLimit              then ConstantInfinity    |> Ok // x! > Double.Max
                  elif  a < 0                           then ValueType.Undefined |> Ok
                  elif  a < 2                           then ValueType.Number 1  |> Ok
                  else (ValueType.Number (a - 1.0) |> UnaryFactorialRule) ?=> (fun b ->
@@ -290,7 +313,7 @@ module Runtime =
         /// </summary>
         /// <param name="ab"> the operands </param>
         let EqualityComparisonRule: ComparisonOperationRule = fun ab ->
-            match ab with
+            match (Upcast ab) with
              | ValueType.Complex (a, b), ValueType.Complex (c, d) -> (a = c && b = d) |> Ok
              | ValueType.Number   a,     ValueType.Number   b     -> (a = b)          |> Ok
              | ValueType.Undefined,      ValueType.Undefined      -> true             |> Ok
@@ -441,7 +464,7 @@ module Runtime =
         let IndexOf (var: VariableType): int =
             let (c: char), (s: uint8) = var
             assert (c |> System.Char.IsLetter)
-            let charIdx: int = if c |> System.Char.IsUpper then ((int 'Z') - (int c)) + 26 else (int 'Z') - (int c)
+            let charIdx: int = if c |> System.Char.IsUpper then ((int 'Z') - (int c)) + 26 else (int 'z') - (int c)
             let regionStart: int = charIdx * 11
             regionStart + (int s)
 
@@ -523,3 +546,156 @@ module Runtime =
         /// <returns> the <b>Diorite</b> function wrapped in an <c>option</c> type </returns>
         let GetFunctionFromSymbol (memory: Memory) (alias: string): FunctionType option =
             memory.symbols.TryFind alias
+
+    [<AutoOpen>]
+    module Interpreter =
+        /// <summary>
+        ///     <p>Gets the respective <c>BinaryOperationRule</c> for the supplied <c>BinaryOperator</c>.</p>
+        /// </summary>
+        let GetBinaryRule: BinaryOperator -> BinaryOperationRule = function
+         | BinaryOperator.Addition       -> BinaryAdditionRule
+         | BinaryOperator.Subtraction    -> BinarySubtractionRule
+         | BinaryOperator.Multiplication -> BinaryMultiplicationRule
+         | BinaryOperator.Division       -> BinaryDivisionRule
+         | BinaryOperator.Modulo         -> BinaryModuloRule
+         | BinaryOperator.FloorDivision  -> BinaryFloorDivisionRule
+         | BinaryOperator.Exponent       -> BinaryExponentRule
+         | BinaryOperator.OfComplex      -> BinaryOfComplexRule
+
+        /// <summary>
+        ///     <p>Gets the respective <c>UnaryOperationRule</c> for the supplied <c>UnaryOperator</c>.</p>
+        /// </summary>
+        let GetUnaryRule: UnaryOperator -> UnaryOperationRule = function
+            | UnaryOperator.Positive     -> UnaryPositiveRule
+            | UnaryOperator.Negative     -> UnaryNegativeRule
+            | UnaryOperator.Factorial    -> UnaryFactorialRule
+            | UnaryOperator.Absolute     -> UnaryAbsoluteRule
+            | UnaryOperator.GetImaginary -> UnaryGetImaginaryRule
+            | UnaryOperator.GetReal      -> UnaryGetRealRule
+
+        /// <summary>
+        ///     <p>Gets the respective <c>ComparisonOperationRule</c> for the supplied <c>ComparisonOperator</c>.</p>
+        /// </summary>
+        let GetComparisonRule: ComparisonOperator -> ComparisonOperationRule = function
+            | ComparisonOperator.Equality             -> EqualityComparisonRule
+            | ComparisonOperator.Inequality           -> InequalityComparisonRule
+            | ComparisonOperator.StrictLessThan       -> StrictLessThanComparisonRule
+            | ComparisonOperator.StrictGreaterThan    -> StrictGreaterThanComparisonRule
+            | ComparisonOperator.NonStrictLessThan    -> NonStrictLessThanComparisonRule
+            | ComparisonOperator.NonStrictGreaterThan -> NonStrictGreaterThanComparisonRule
+
+        /// <summary>
+        ///     <p>Tries to obtain the <c>FunctionType</c> that may be stored in memory via the supplied
+        ///        <c>FunctionReferenceType</c>. If the reference points to a variable, this function will return a
+        ///        <c>MathError</c>.
+        ///     </p>
+        /// </summary>
+        /// <param name="ref"> the <c>FunctionReferenceType</c> that may point to a <b>Diorite</b> function </param>
+        /// <param name="memory"> the <c>Memory</c> struct </param>
+        /// <returns> a <c>Result</c> that may contain  </returns>
+        let GetFunctionFromRef (ref: FunctionReferenceType) (memory: Memory): Result<FunctionType> =
+            match ref with
+             | FunctionReferenceType.OfSymbol sym ->
+                 match (GetFunctionFromSymbol memory sym) with
+                  | None    ->
+                      (Some $"Function with symbol \"{sym}\" does not exist", ValueType.Undefined)
+                      ||> MathError
+                  | Some fn -> fn |> Ok
+             | FunctionReferenceType.OfVariable var ->
+                 match (GetVariable memory var) with
+                  | CellData.OfValue v ->
+                      (Some $"Expected function - got value instead {strVariableType var}=({v})", v) ||> MathError
+                  | CellData.OfFunction f -> f |> Ok
+
+        type Evaluator<'a> = 'a -> Memory -> (ValueType * Memory) Result
+
+        let rec EvaluateExpression: Evaluator<Expression> = fun expression memory ->
+            match expression with
+             | Expression.Value    value                    -> EvaluateValue           value             memory
+             | Expression.Variable var                      -> EvaluateVariable        var               memory
+             | Expression.BinaryOperation (l, o, r)         -> EvaluateBinaryOperation (l, o, r)         memory
+             | Expression.UnaryOperation  (op, o)           -> EvaluateUnaryOperation  (op, o)           memory
+             | Expression.FunctionCall    (fnAttrs, fnBody) -> EvaluateFunctionCall    (fnAttrs, fnBody) memory
+
+        and EvaluateValue: Evaluator<ValueType> = fun value memory ->
+            (value, memory) |> Ok
+
+        and EvaluateVariable: Evaluator<VariableType> = fun value memory ->
+            match (GetVariable memory value) with
+             | CellData.OfValue    v -> (v,                   memory) |> Ok
+             | CellData.OfFunction _ -> (ValueType.Undefined, memory) |> Ok
+
+        and EvaluateBinaryOperation: Evaluator<Expression * BinaryOperator * Expression> = fun (l, o, r) memory ->
+            (EvaluateExpression l memory) ?=> fun (l, memory) ->
+            (EvaluateExpression r memory) ?=> fun (r, memory) ->
+                ((l, r) |> (GetBinaryRule o)) |> Result.map (fun value -> (value, memory))
+
+        and EvaluateUnaryOperation: Evaluator<Expression * UnaryOperator> = fun (op, o) memory ->
+            (EvaluateExpression op memory) ?=> fun (op, memory) ->
+                (op |> (GetUnaryRule o)) |> Result.map (fun value -> (value, memory))
+
+        and EvaluateFunctionCall: Evaluator<FunctionReferenceType * Expression list> = fun (fnRef, args) memory ->
+            (GetFunctionFromRef fnRef memory) ?=> fun (fnAttrs, fnBody) ->
+                let missingArgs: int = fnAttrs.parameters.Length - args.Length
+                if missingArgs < 0 then
+                    (Some $"Too many arguments supplied to function {strVariableType fnAttrs.identifier}",
+                     ValueType.Undefined
+                    ) ||> MathError
+                elif missingArgs > 0 then
+                    (Some $"Too few arguments supplied to function {strVariableType fnAttrs.identifier}",
+                     ValueType.Undefined
+                    ) ||> MathError
+                else
+                    let args: (VariableType * CellData) list Result =
+                        args
+                        |> List.map (fun e -> EvaluateExpression e memory) // evaluate all expressions
+                        |> List.map (Result.map fst)                       // reduce results down to only the ValueType
+                        |> List.fold (fun acc r ->                         // map into a Result of a *list of values*
+                               match (acc, r) with
+                                | Ok    vs, Ok    v -> Ok (v::vs)
+                                | Error e,  _
+                                | _,        Error e -> Error e
+                            )
+                            (Ok [])
+                        |> Result.map List.rev                             // reverse as fold builds list in reverse order
+                        |> Result.map (List.map CellData.OfValue)
+                        |> Result.map (List.zip (fnAttrs.parameters |> List.map fst))
+                    args ?=> fun a ->
+                        let state: Memory = SetVariables memory a
+                        EvaluateFunctionBody fnBody state
+
+        and EvaluateFunctionBody: Evaluator<FunctionBody> = fun fnBody memory ->
+            match fnBody with
+             | FunctionBody.Expression          e -> EvaluateExpression          e memory
+             | FunctionBody.PiecewiseConditions c -> EvaluatePiecewiseConditions c memory
+
+        and EvaluatePiecewiseConditions: Evaluator<PiecewiseCondition list> = fun conditions memory ->
+            match conditions with
+             | []                    -> failwith "No PiecewiseConditions found for function"
+             | [cond]                -> EvaluatePiecewiseCondition cond memory
+             | head :: tail          ->
+                 (EvaluatePiecewiseCondition head memory) ?=> fun (result, memory) ->
+                    match result with
+                     | ValueType.Number n when n = nan -> EvaluatePiecewiseConditions tail memory
+                     | result                          -> (result, memory) |> Ok
+
+        and EvaluatePiecewiseCondition: Evaluator<PiecewiseCondition> = fun (ifTrue, (l, o, r)) memory ->
+            (EvaluateExpression l memory) ?=> fun (l, memory) ->
+            (EvaluateExpression r memory) ?=> fun (r, memory) ->
+                ((l, r) |> (GetComparisonRule o)) ?=> fun b ->
+                    if not b then (ValueType.Number nan, memory) |> Ok
+                    else (EvaluateFunctionResult ifTrue memory)
+
+        and EvaluateFunctionResult: Evaluator<FunctionResult> = fun result memory ->
+            match result with
+             | FunctionResult.Expression e   -> EvaluateExpression e memory
+             | FunctionResult.Error      msg -> (msg, ValueType.Undefined) ||> MathError
+
+    let EvaluateASTNode: Evaluator<ASTNode> = fun node memory ->
+        match node with
+         | ASTNode.Expression       e  -> EvaluateExpression e memory
+         | ASTNode.PlotFunction     e  -> failwith "TODO" // TODO
+         | ASTNode.Assignment   (v, e) ->
+             (EvaluateExpression e) ?=> fun e ->
+                let newState: Memory = SetVariable memory (v, e)
+                (e, newState) |> Ok
