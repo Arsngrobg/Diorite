@@ -5,21 +5,21 @@
 //   |_____/|__||_____|__|  |__|____|_____|
 //
 // ------------------------------------------------------------------------------------------------------------------
-// File:    Syntax.fs
-// Summary: The syntax definitions for the Diorite mathematics language - for a better understanding, read from
-//          top-to-bottom as it builds the individual components of the language as you go down
-// Author:  Arsngrobg, Borngle
-// Version: v1.17
+// File:    FunctionParameter.fs
+// Summary: The type definition for the structured representation of a parameter in Diorite 
+// Author:  Arsngrobg
+// Version: v1.0
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
 
-namespace Diorite.Lang.Core
+namespace Diorite.Lang.Core.Syntax
 
 /// <summary>
-///     <p>The <c>Syntax</c> module contains all the definitions for the structure of the <b>Diorite</b> language.</p>
-///     <p>Ranging from the <c>Token</c>s or <c>TokenType</c>s to the Abstract Syntax Tree and <c>Expression</c>s.</p>
+///     <p>The <c>FunctionParameter</c> is a parameter in a function in <b>Diorite</b>.</p>
+///     <p><b>1.</b> The first value (<c>VariableType</c>), which is the identifier for the parameter.</p>
+///     <p><b>2.</b> The second value (<c>NumberSet</c>), which denotes the number set which the parameter must comply
+///        with in order for the function to accept it.
+///     </p>
 /// </summary>
-[<AutoOpen>]
-module Syntax =
-
+type FunctionParameter = VariableType * NumberSet

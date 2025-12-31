@@ -5,21 +5,17 @@
 //   |_____/|__||_____|__|  |__|____|_____|
 //
 // ------------------------------------------------------------------------------------------------------------------
-// File:    Syntax.fs
-// Summary: The syntax definitions for the Diorite mathematics language - for a better understanding, read from
-//          top-to-bottom as it builds the individual components of the language as you go down
-// Author:  Arsngrobg, Borngle
-// Version: v1.17
+// File:    AST.fs
+// Summary: The type definition for the AST type, which is the root type for the AST of parsed Diorite source code 
+// Author:  Arsngrobg
+// Version: v1.0
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
 
-namespace Diorite.Lang.Core
+namespace Diorite.Lang.Core.Syntax
 
 /// <summary>
-///     <p>The <c>Syntax</c> module contains all the definitions for the structure of the <b>Diorite</b> language.</p>
-///     <p>Ranging from the <c>Token</c>s or <c>TokenType</c>s to the Abstract Syntax Tree and <c>Expression</c>s.</p>
+///     <p>The root type returned by a parse operation of <b>Diorite</b> code.</p>
 /// </summary>
-[<AutoOpen>]
-module Syntax =
-
+type AST = ASTNode list

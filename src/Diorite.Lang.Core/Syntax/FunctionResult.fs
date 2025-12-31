@@ -5,21 +5,29 @@
 //   |_____/|__||_____|__|  |__|____|_____|
 //
 // ------------------------------------------------------------------------------------------------------------------
-// File:    Syntax.fs
-// Summary: The syntax definitions for the Diorite mathematics language - for a better understanding, read from
-//          top-to-bottom as it builds the individual components of the language as you go down
-// Author:  Arsngrobg, Borngle
-// Version: v1.17
+// File:    FunctionResult.fs
+// Summary: The type definition for the FunctionResult, which contains the different paths a return value of a
+//          Diorite function can take 
+// Author:  Arsngrobg
+// Version: v1.0
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
 
-namespace Diorite.Lang.Core
+namespace Diorite.Lang.Core.Syntax
 
 /// <summary>
-///     <p>The <c>Syntax</c> module contains all the definitions for the structure of the <b>Diorite</b> language.</p>
-///     <p>Ranging from the <c>Token</c>s or <c>TokenType</c>s to the Abstract Syntax Tree and <c>Expression</c>s.</p>
+///     <p>A <c>FunctionResult</c> is exactly that, a result from a function that may be an <c>Expression</c>, or an
+///        error with an optional error message.
+///     </p>
 /// </summary>
-[<AutoOpen>]
-module Syntax =
-
+[<RequireQualifiedAccess>]
+type FunctionResult =
+    /// <summary>
+    ///     <p>An <c>Expression</c> returned by the function.</p>
+    /// </summary>
+    | Expression of Expression
+    /// <summary>
+    ///     <p>An error thrown by the function.</p>
+    /// </summary>
+    | Error      of string option

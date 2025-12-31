@@ -5,21 +5,22 @@
 //   |_____/|__||_____|__|  |__|____|_____|
 //
 // ------------------------------------------------------------------------------------------------------------------
-// File:    Syntax.fs
-// Summary: The syntax definitions for the Diorite mathematics language - for a better understanding, read from
-//          top-to-bottom as it builds the individual components of the language as you go down
-// Author:  Arsngrobg, Borngle
-// Version: v1.17
+// File:    ComparisonOperation.fs
+// Summary: Contains the shorthand type definition for the structure of a ComparisonOperation in Diorite 
+// Author:  Arsngrobg
+// Version: v1.0
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
 
-namespace Diorite.Lang.Core
+namespace Diorite.Lang.Core.Syntax
 
 /// <summary>
-///     <p>The <c>Syntax</c> module contains all the definitions for the structure of the <b>Diorite</b> language.</p>
-///     <p>Ranging from the <c>Token</c>s or <c>TokenType</c>s to the Abstract Syntax Tree and <c>Expression</c>s.</p>
+///     <p>A tuple which represents the structure of a comparison operation in <b>Diorite</b>.</p>
+///     <p>It consist of:
+///        <p><b>1.</b> the left-hand side <c>Expression</c>.</p>
+///        <p><b>2.</b> the <c>ComparisonOperator</c>.</p>
+///        <p><b>3.</b> the right-hand side <c>Expression</c>.</p>
+///     </p>
 /// </summary>
-[<AutoOpen>]
-module Syntax =
-
+type ComparisonOperation = Expression * ComparisonOperator * Expression
