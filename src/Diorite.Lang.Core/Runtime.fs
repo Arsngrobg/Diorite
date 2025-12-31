@@ -81,7 +81,7 @@ module Runtime =
         let BinaryAdditionRule: BinaryOperationRule = fun ab ->
             let unsupported: BinaryOperationRule = UnsupportedBinaryOperation BinaryOperator.Addition
             match (Upcast ab) with
-             | ValueType.Complex (a, b), ValueType.Complex (c, d) -> ValueType.Complex (a + b,  c + d) |> Ok
+             | ValueType.Complex (a, b), ValueType.Complex (c, d) -> ValueType.Complex (a + c,  b + d) |> Ok
              | ValueType.Number   a,     ValueType.Number   b     -> MaybeNaN          (  a   +   b  ) |> Ok
              | a,                        b                        -> unsupported (a, b)
 
@@ -92,7 +92,7 @@ module Runtime =
         let BinarySubtractionRule: BinaryOperationRule = fun ab ->
             let unsupported: BinaryOperationRule = UnsupportedBinaryOperation BinaryOperator.Subtraction
             match (Upcast ab) with
-             | ValueType.Complex (a, b), ValueType.Complex (c, d) -> ValueType.Complex (a - b,  c - d) |> Ok
+             | ValueType.Complex (a, b), ValueType.Complex (c, d) -> ValueType.Complex (a - c,  b - d) |> Ok
              | ValueType.Number   a,     ValueType.Number   b     -> MaybeNaN          (  a   -   b  ) |> Ok
              | a,                        b                        -> unsupported (a, b)
 
