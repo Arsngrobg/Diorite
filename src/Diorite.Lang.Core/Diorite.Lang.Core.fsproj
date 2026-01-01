@@ -58,6 +58,7 @@
     <ItemGroup>
         <Compile Include="Properties\Version.fs"   />
         <Compile Include="Properties\Constants.fs" />
+        <Compile Include="Runtime\Runtime.fs" />
     </ItemGroup>
 
 </Project>

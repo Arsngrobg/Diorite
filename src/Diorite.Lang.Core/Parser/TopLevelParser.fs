@@ -13,11 +13,7 @@
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
 
-/// <summary>
-///     <p>The submodule for the top-level parsing functions for <B>Diorite</b>.</p>
-/// </summary>
-[<AutoOpen>]
-module Diorite.Lang.Core.Parser.TopLevelParser
+module Diorite.Lang.Core.Parser
 
 open Diorite.Lang.Core.Syntax
 open Diorite.Lang.Core.Errors
@@ -27,37 +23,42 @@ open Diorite.Lang.Core.Lexer
 open Diorite.Lang.Core.Lexer.Tokenizer
 
 /// <summary>
-///     <p>Parses the supplied <c>TokenStream</c>, and returns the error status. This may be a successful parse,
-///        which contains the resulting Abstract Syntax Tree (AST), or the relevant error message if the syntax is
-///        invalid.
-///     </p>
+///     <p>The submodule for the top-level parsing functions for <b>Diorite</b>.</p>
 /// </summary>
-/// <param name="tokens"> the <c>TokenStream</c> to parse </param>
-/// <returns> a <c>Result</c>, which may, or may not, contain the resulting AST </returns>
-let ParseTokens (tokens: TokenStream): Result<AST> =
-    match (Deferred StatementParser) tokens with
-     | Ok    (root, []           ) -> Ok root
-     | Ok    (_,    trailing :: _) ->
-         ($"Unexpected trailing \"{trailing.lexeme}\" token", Some (trailing.line, trailing.column))
-         ||> SyntaxError
-     | Error err                   -> Error err
+[<AutoOpen>]
+module TopLevelParser =
+    /// <summary>
+    ///     <p>Parses the supplied <c>TokenStream</c>, and returns the error status. This may be a successful parse,
+    ///        which contains the resulting Abstract Syntax Tree (AST), or the relevant error message if the syntax is
+    ///        invalid.
+    ///     </p>
+    /// </summary>
+    /// <param name="tokens"> the <c>TokenStream</c> to parse </param>
+    /// <returns> a <c>Result</c>, which may, or may not, contain the resulting AST </returns>
+    let ParseTokens (tokens: TokenStream): Result<AST> =
+        match (Deferred StatementParser) tokens with
+         | Ok    (root, []           ) -> Ok root
+         | Ok    (_,    trailing :: _) ->
+             ($"Unexpected trailing \"{trailing.lexeme}\" token", Some (trailing.line, trailing.column))
+             ||> SyntaxError
+         | Error err                   -> Error err
 
-/// <summary>
-///     <p>Parses the supplied <c>string</c>, which is interpreted as <b>Diorite</b> source code. It returns the
-///        error status. This may be a successful parse, which contains the resulting Abstract Syntax Tree (AST), or
-///        the relevant error message if the syntax is invalid.
-///     </p>
-/// </summary>
-/// <param name="str"> the <b>Diorite</b> source code to parse </param>
-/// <returns> a <c>Result</c>, which may, or may not, contain the resulting AST </returns>
-let ParseString (str: string): Result<AST> =
-    let rec ListErrors (errors: DioriteError list): string =
-        match errors with
-         | []           -> ""
-         | [err]        -> StrError err
-         | head :: tail -> $"{StrError head}; {ListErrors tail}"
+    /// <summary>
+    ///     <p>Parses the supplied <c>string</c>, which is interpreted as <b>Diorite</b> source code. It returns the
+    ///        error status. This may be a successful parse, which contains the resulting Abstract Syntax Tree (AST), or
+    ///        the relevant error message if the syntax is invalid.
+    ///     </p>
+    /// </summary>
+    /// <param name="str"> the <b>Diorite</b> source code to parse </param>
+    /// <returns> a <c>Result</c>, which may, or may not, contain the resulting AST </returns>
+    let ParseString (str: string): Result<AST> =
+        let rec ListErrors (errors: DioriteError list): string =
+            match errors with
+             | []           -> ""
+             | [err]        -> StrError err
+             | head :: tail -> $"{StrError head}; {ListErrors tail}"
 
-    let tokens: TokenStream = Tokenise str
-    match (GetTokenizerErrors tokens) with
-     | []     -> ParseTokens tokens
-     | errors -> (errors |> ListErrors, None) ||> SyntaxError
+        let tokens: TokenStream = Tokenise str
+        match (GetTokenizerErrors tokens) with
+         | []     -> ParseTokens tokens
+         | errors -> (errors |> ListErrors, None) ||> SyntaxError
