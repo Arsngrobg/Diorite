@@ -31,11 +31,33 @@
         <Compile Include="Syntax\Constants.fs"             />
     </ItemGroup>
 
+    <!-- Errors -->
     <ItemGroup>
-        <Compile Include="Properties.fs" />
-        <Compile Include="Errors.fs"     />
-        <Compile Include="Lexer.fs"      />
-        <Compile Include="Parser.fs"     />
+        <Compile Include="Errors\DioriteError.fs"   />
+        <Compile Include="Errors\Result.fs"         />
+        <Compile Include="Errors\ErrorUtilities.fs" />
+    </ItemGroup>
+
+    <!-- Lexer -->
+    <ItemGroup>
+        <Compile Include="Lexer\TokenStream.fs" />
+        <Compile Include="Lexer\LexerState.fs"  />
+        <Compile Include="Lexer\Consumer.fs"    />
+        <Compile Include="Lexer\Consumers.fs"   />
+        <Compile Include="Lexer\Tokenizer.fs"   />
+    </ItemGroup>
+
+    <!-- Parser -->
+    <ItemGroup>
+        <Compile Include="Parser\DSL.fs"            />
+        <Compile Include="Parser\Combinators.fs"    />
+        <Compile Include="Parser\TopLevelParser.fs" />
+    </ItemGroup>
+
+    <!-- Properties -->
+    <ItemGroup>
+        <Compile Include="Properties\Version.fs"   />
+        <Compile Include="Properties\Constants.fs" />
     </ItemGroup>
 
 </Project>
