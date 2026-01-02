@@ -178,7 +178,7 @@ module Evaluators =
          | Some sym ->
              let newState: Memory = UpdateSymbol newState (sym, (fnAttrs, fnBody))
              (ValueType.Undefined, newState) |> Ok
-         | None -> (ValueType.Undefined, memory) |> Ok
+         | None -> (ValueType.Undefined, newState) |> Ok
 
     /// <summary>
     ///     <p>The <c>Evaluator</c> for an <c>ASTNode</c>.</p>
@@ -198,6 +198,7 @@ module Evaluators =
              let result = ((head, memory) ||> ASTNodeEvaluator)
              match result with
               | Ok (result, memory) ->
-                  if head.IsPlotFunction then                           (EvaluateTree tail memory)
+                  if head.IsPlotFunction || head.IsFunctionDefinition then
+                                                                        (EvaluateTree tail memory)
                   else                        Ok    (result, memory) :: (EvaluateTree tail memory)
               | Error err ->                  Error err              :: (EvaluateTree tail memory)

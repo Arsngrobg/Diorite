@@ -113,7 +113,7 @@ module Tokenizer =
                                        | "undefined"        -> TokenType.Undefined
                                        | "infinity" | "inf" -> TokenType.Infinity
                                        | "plot"             -> TokenType.Plot
-                                       | "against"          -> TokenType.Against
+                                       | "using"            -> TokenType.Using
                                        | "error"            -> TokenType.Error
                                        | "pi"               -> TokenType.Pi
                                        | "tau"              -> TokenType.Tau

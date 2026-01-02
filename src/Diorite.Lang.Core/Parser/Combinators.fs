@@ -650,7 +650,7 @@ module Combinators =
             // <PlotExpression> ::= "plot" <Expression> "against" <Variable>
             ((Accept TokenType.Plot) |> IgnoreThen <| (Deferred ExpressionParser))
             |> Then <|
-            ((Accept TokenType.Against) |> IgnoreThen <| VariableParser)
+            ((Accept TokenType.Using) |> IgnoreThen <| VariableParser)
             |> Map (fun (exp, var) ->
                    ASTNode.PlotFunction {
                        parameter  = var

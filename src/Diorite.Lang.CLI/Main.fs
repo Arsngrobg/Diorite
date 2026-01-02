@@ -56,13 +56,21 @@ let Main (argv: string array): int =
 z = complex(1, 5);
 r = re(z);
 i = im(z);
+-z;
+
+[symbol:foo]
+f(x) = 2*x;
+plot x using x;
+f(2);
+fo(2);
 "
     match (source |> ParseString) with
      | Error err   -> printf $"{StrError err}\n"
      | Ok    state ->
          EvaluateTree state (Defaults (fun eval ->
-             let foo = eval (ValueType.Number 2)
-             printf $"{foo}\n"
+            for i = 0 to 5 do
+                let value = ValueType.Number i
+                printfn $"{eval(value)}\n"
          ))
          |> List.iter (fun i ->
                 match i with
