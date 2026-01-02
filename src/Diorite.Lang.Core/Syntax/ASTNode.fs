@@ -32,7 +32,7 @@ type ASTNode =
     ///     </p>
     ///     <p><i>Example: <c>plot f; # f(x)=2*x</c></i> OR <c>plot (2*x)</c></p>
     /// </summary>
-    | PlotFunction       of Expression
+    | PlotFunction       of AnonymousFunction
     /// <summary>
     ///     <p>A statement that assigns an <c>Expression</c> on the right-hand side to a variable on the
     ///        left-hand side.

@@ -79,6 +79,11 @@ type TokenType =
     /// </summary>
     | Plot
     /// <summary>
+    ///     <p>The string literal <c>"against"</c>.</p>
+    ///     <p>Defines the primary argument for the anonymous function using the <c>plot</c> syntax.</p>
+    /// </summary>
+    | Against
+    /// <summary>
     ///     <p>the string literal <c>"error"</c>.</p>
     ///     <p>Throws a <c>MathError</c> when encountered with the optional error message given to it.</p>
     /// </summary>
