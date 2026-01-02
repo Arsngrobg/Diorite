@@ -8,7 +8,7 @@
 // File:    Evaluators.fs
 // Summary: Implementations of the Evaluator type
 // Author:  Arsngrobg, Borngle
-// Version: v1.5
+// Version: v1.6
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
@@ -189,8 +189,13 @@ module Evaluators =
          | ASTNode.PlotFunction e                       -> (e,                 memory) ||> AnonymousFunctionEvaluator
          | ASTNode.Assignment   (v, e)                  -> ((v, e),            memory) ||> AssignmentEvaluator
          | ASTNode.FunctionDefinition (fnAttrs, fnBody) -> ((fnAttrs, fnBody), memory) ||> FunctionDefinitionEvaluator
-             
 
+    /// <summary>
+    ///     <p>The top-level function for evaluating an Abstract Syntax Tree.</p>
+    /// </summary>
+    /// <param name="tree"> the AST to evaluate </param>
+    /// <param name="memory"> the <c>Memory</c> state to use </param>
+    /// <returns> a sequence of <c>Result</c>s from each node evaluated </returns>
     let rec EvaluateTree (tree: AST) (memory: Memory): (ValueType * Memory) Result list =
         match tree with
          | []           -> []

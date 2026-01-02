@@ -70,6 +70,15 @@ module VirtualMemory =
     ///     </p>
     /// </summary>
     type SymbolRegister = Map<string, FunctionType>
+    
+    /// <summary>
+    ///     <p>The callback function that is called whenever the <c>plot &lt;Expression&gt;</c> syntax is evaluated.
+    ///        It accepts a function that takes in a parameter, and produces a value, only 1-dimensional functions
+    ///        are supported for plotting functions as the interpreter evaluates it as a <c>FunctionType</c> with a
+    ///        singular argument.
+    ///     </p>
+    /// </summary>
+    type PlotCallback = (ValueType -> ValueType) -> unit
 
     /// <summary>
     ///     <p>The <c>Memory</c> type is the primary storage type for <b>Diorite</b>.</p>
@@ -100,7 +109,7 @@ module VirtualMemory =
         ///        singular argument.
         ///     </p>
         /// </summary>
-        plotCallback: (ValueType -> ValueType) -> unit
+        plotCallback: PlotCallback
     }
 
     /// <summary>
@@ -110,7 +119,7 @@ module VirtualMemory =
     /// </summary>
     /// <param name="plotCallback"> the callback function for the <c>plot</c> syntax </param>
     /// <returns> a default <c>Memory</c> state </returns>
-    let Defaults (plotCallback: (ValueType -> ValueType) -> unit): Memory = {
+    let Defaults (plotCallback: PlotCallback): Memory = {
         variables    = (ValueType.Undefined |> CellData.OfValue) |> (Array.create MaxVariables)
         symbols      = Map.empty<string, FunctionType>
         plotCallback = plotCallback
