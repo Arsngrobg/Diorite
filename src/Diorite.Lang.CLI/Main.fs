@@ -16,6 +16,8 @@
 module Diorite.Lang.CLI
 
 open Diorite.Lang.Core.Errors
+open Diorite.Lang.Core.Runtime
+open Diorite.Lang.Core.Runtime.Evaluators
 open Diorite.Lang.Core.Syntax
 open Diorite.Lang.Core.Parser
 
@@ -51,10 +53,21 @@ let Main (argv: string array): int =
 # ------------------------------------------------------------------------------------------------------------------
 
 # value types
-1000!!!!!!;
+z = complex(1, 5);
+r = re(z);
+i = im(z);
 "
     match (source |> ParseString) with
      | Error err   -> printf $"{StrError err}\n"
      | Ok    state ->
+         EvaluateTree state (Defaults (fun eval ->
+             let foo = eval (ValueType.Number 2)
+             printf $"{foo}\n"
+         ))
+         |> List.iter (fun i ->
+                match i with
+                 | Ok (s, _) -> printf $"{s}\n"
+                 | Error err -> printf $"{StrError err}\n"
+            )
          printf $"[TranslationUnit]\n{state |> pretty}\n"
     0

@@ -26,6 +26,7 @@
         <Compile Include="Syntax\FunctionAttributes.fs"    />
         <Compile Include="Syntax\FunctionBody.fs"          />
         <Compile Include="Syntax\FunctionType.fs"          />
+        <Compile Include="Syntax\AnonymousFunction.fs"     />
         <Compile Include="Syntax\ASTNode.fs"               />
         <Compile Include="Syntax\AST.fs"                   />
         <Compile Include="Syntax\Constants.fs"             />
@@ -54,11 +55,26 @@
         <Compile Include="Parser\TopLevelParser.fs" />
     </ItemGroup>
 
+    <!-- Runtime -->
+    <ItemGroup>
+        <Compile Include="Runtime\BinaryOperationRule.fs"      />
+        <Compile Include="Runtime\UnaryOperationRule.fs"       />
+        <Compile Include="Runtime\ComparisonOperationRule.fs"  />
+        <Compile Include="Runtime\OperationRuleHelpers.fs"     />
+        <Compile Include="Runtime\BinaryOperationRules.fs"     />
+        <Compile Include="Runtime\UnaryOperationRules.fs"      />
+        <Compile Include="Runtime\ComparisonOperationRules.fs" />
+        <Compile Include="Runtime\RuleMappings.fs"             />
+        <Compile Include="Runtime\VirtualMemory.fs"            />
+        <Compile Include="Runtime\Evaluator.fs"                />
+        <Compile Include="Runtime\Evaluators.fs"               />
+        <Compile Include="Runtime\RuntimeConfiguration.fs"     />
+    </ItemGroup>
+
     <!-- Properties -->
     <ItemGroup>
         <Compile Include="Properties\Version.fs"   />
         <Compile Include="Properties\Constants.fs" />
-        <Compile Include="Runtime\Runtime.fs" />
     </ItemGroup>
 
 </Project>

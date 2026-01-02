@@ -13,7 +13,7 @@
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
 
-module Diorite.Lang.Core.Parser
+namespace Diorite.Lang.Core.Parser
 
 open Diorite.Lang.Core.Syntax
 open Diorite.Lang.Core.Errors

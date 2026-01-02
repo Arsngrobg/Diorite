@@ -41,6 +41,12 @@ let ConstantTau: ValueType = System.Math.Tau |> ValueType.Number
 let ConstantEuler: ValueType = System.Math.E |> ValueType.Number
 
 /// <summary>
+///     <p>The constant <c>NaN</c>.</p>
+///     <p><i>It is the constant wrapped as a <c>ValueType.Number</c>.</i></p>
+/// </summary>
+let ConstantNaN: ValueType = nan |> ValueType.Number
+
+/// <summary>
 ///     <p>The maximum number of variables supported by <b>Diorite</b>.</p>
 ///     <p>Breakdown:
 ///        <p><b>1.</b> <c>26</c> lowercase + <c>26</c> uppercase characters</p>
