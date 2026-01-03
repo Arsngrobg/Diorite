@@ -17,7 +17,7 @@ module Diorite.Lang.CLI
 
 open Diorite.Lang.Core.Errors
 open Diorite.Lang.Core.Runtime
-open Diorite.Lang.Core.Runtime.Evaluators
+open Diorite.Lang.Core.Runtime.Evaluation
 open Diorite.Lang.Core.Syntax
 open Diorite.Lang.Core.Parser
 
@@ -53,29 +53,31 @@ let Main (argv: string array): int =
 # ------------------------------------------------------------------------------------------------------------------
 
 # value types
-z = complex(1, 5);
+z = complex(0, 1);
+w = complex(1, 1);
 r = re(z);
 i = im(z);
--z;
+z*w;
 
-[symbol:foo]
 f(x) = 2*x;
-plot x using x;
-f(2);
-fo(2);
+f(x: R) -> R = 2*x;
+
+plot x/0 using x; # plot this anonymous function using x as the domain
 "
     match (source |> ParseString) with
      | Error err   -> printf $"{StrError err}\n"
      | Ok    state ->
-         EvaluateTree state (Defaults (fun eval ->
+         EvalTree state (Defaults (fun eval ->
             for i = 0 to 5 do
                 let value = ValueType.Number i
-                printfn $"{eval(value)}\n"
+                match (eval value) with
+                 | Ok    result -> printf $"{result}\n"
+                 | Error err    -> printf $"{StrError err}\n"
          ))
          |> List.iter (fun i ->
                 match i with
                  | Ok (s, _) -> printf $"{s}\n"
                  | Error err -> printf $"{StrError err}\n"
             )
-         printf $"[TranslationUnit]\n{state |> pretty}\n"
+         //printf $"[TranslationUnit]\n{state |> pretty}\n"
     0

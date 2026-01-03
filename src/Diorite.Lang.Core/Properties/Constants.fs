@@ -34,6 +34,6 @@ let fileExtension: string = ".diorite"
 ///     The current version of <b>Diorite</b>.
 /// </summary>
 let languageVersion: Version = {
-    major = 0 |> uint8
-    minor = 8 |> uint8
+    major = 0  |> uint8
+    minor = 14 |> uint8
 }

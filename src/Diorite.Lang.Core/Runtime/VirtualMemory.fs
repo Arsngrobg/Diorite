@@ -17,6 +17,7 @@
 namespace Diorite.Lang.Core.Runtime
 
 open Diorite.Lang.Core.Syntax
+open Diorite.Lang.Core.Errors
 
 /// <summary>
 ///     <p>The <c>VirtualMemory</c> module contains related bindings for managing the <b>Diorite</b> virtual memory.</p>
@@ -78,7 +79,7 @@ module VirtualMemory =
     ///        singular argument.
     ///     </p>
     /// </summary>
-    type PlotCallback = (ValueType -> ValueType) -> unit
+    type PlotCallback = (ValueType -> ValueType Result) -> unit
 
     /// <summary>
     ///     <p>The <c>Memory</c> type is the primary storage type for <b>Diorite</b>.</p>

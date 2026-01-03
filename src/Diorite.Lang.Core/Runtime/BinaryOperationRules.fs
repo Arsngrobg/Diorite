@@ -127,7 +127,7 @@ module BinaryOperationRules =
              // arg(z^w) = c*theta + d*ln(r)
              //   z^w    = |z^w| * (cos(arg(z^w)) + i*sin(arg(z^w))
 
-             let theta:    float = System.Math.Atan2 (b, a)
+             let theta:    float = System.Math.Atan2 (b, a) // ensures between [-pi ... pi] (principle)
              let r:        float = System.Math.Sqrt (a**2 + b**2)
              let magZPwrW: float = (r**c) * (System.Math.E**(-d*theta))
              let argZPwrW: float = c*theta + d*(System.Math.Log r)

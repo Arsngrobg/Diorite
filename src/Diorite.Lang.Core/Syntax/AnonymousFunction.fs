@@ -23,6 +23,7 @@ namespace Diorite.Lang.Core.Syntax
 type AnonymousFunction = {
     /// <summary>
     ///     <p>The single parameter type this function is bound to.</p>
+    ///     <p><i>This value cannot be restricted by the set hint feature.</i></p>
     /// </summary>
     parameter:  VariableType
     /// <summary>

@@ -29,7 +29,7 @@ type ValueType =
     /// </summary>
     | Number    of float
     /// <summary>
-    ///     <p>A complex number of the form <c>a + im(b)</c>.</p>
+    ///     <p>A complex number of the form <c>a + bi</c>.</p>
     ///     <p>Where <c>a</c> &amp; <c>b</c> are <c>Real</c> numbers.</p>
     /// </summary>
     | Complex   of float * float
