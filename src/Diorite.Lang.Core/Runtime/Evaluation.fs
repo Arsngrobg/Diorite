@@ -81,6 +81,86 @@ module Evaluation =
              (Some $"Expected ValueType got FunctionType instead ({functionStr})", []) ||> MathError
 
     /// <summary>
+    ///     <p>Evaluates the <c>ValueType</c> as if it has membership in the <c>Natural</c> number set.</p>
+    /// </summary>
+    /// <param name="value"> the <c>ValueType</c> to check for set membership </param>
+    /// <returns> a <c>ValueType</c> as a result of this evaluation </returns>
+    let EvalSetNatural (value: ValueType): ReadOnly =
+        match value with
+         | ValueType.Number x when (x = (System.Math.Truncate x)) && (x >= 0) ->
+             EvalValue (ValueType.Number x)
+         | _                                                                  ->
+             (Some "Expected Natural (N) number set membership", [value]) ||> MathError
+
+    /// <summary>
+    ///     <p>Evaluates the <c>ValueType</c> as if it has membership in the <c>Integer</c> number set.</p>
+    /// </summary>
+    /// <param name="value"> the <c>ValueType</c> to check for set membership </param>
+    /// <returns> a <c>ValueType</c> as a result of this evaluation </returns>
+    let EvalSetInteger (value: ValueType): ReadOnly =
+        match value with
+         | ValueType.Number x when (x = (System.Math.Truncate x)) ->
+             (ValueType.Number x) |> EvalValue
+         | _                                                      ->
+             (Some "Expected Integer (I) number set membership", [value]) ||> MathError
+
+    /// <summary>
+    ///     <p>Evaluates the <c>ValueType</c> as if it has membership in the <c>Real</c> number set.</p>
+    /// </summary>
+    /// <param name="value"> the <c>ValueType</c> to check for set membership </param>
+    /// <returns> a <c>ValueType</c> as a result of this evaluation </returns>
+    let EvalSetReal (value: ValueType): ReadOnly =
+        match value with
+         | ValueType.Number x ->
+             (ValueType.Number x) |> EvalValue
+         | _                  ->
+             (Some "Expected Real (R) number set membership", [value]) ||> MathError
+
+    /// <summary>
+    ///     <p>Evaluates the <c>ValueType</c> as if it has membership in the <c>Rational</c> number set.</p>
+    /// </summary>
+    /// <param name="value"> the <c>ValueType</c> to check for set membership </param>
+    /// <returns> a <c>ValueType</c> as a result of this evaluation </returns>
+    let EvalSetRational (value: ValueType): ReadOnly =
+        match value with
+         | ValueType.Number x ->
+             (ValueType.Number x) |> EvalValue
+         | _                  ->
+             (Some "Expected Rational (Q) number set membership", [value]) ||> MathError
+
+    /// <summary>
+    ///     <p>Evaluates the <c>ValueType</c> as if it has membership in the <c>Irrational</c> number set.</p>
+    /// </summary>
+    /// <param name="value"> the <c>ValueType</c> to check for set membership </param>
+    /// <returns> a <c>ValueType</c> as a result of this evaluation </returns>
+    let EvalSetIrrational (value: ValueType): ReadOnly =
+        // TODO: heuristic
+        (Some "Expected Irrational (I) number set membership", [value]) ||> MathError
+
+    /// <summary>
+    ///     <p>Evaluates the <c>ValueType</c> as if it has membership in the <c>Complex</c> number set.</p>
+    /// </summary>
+    /// <param name="value"> the <c>ValueType</c> to check for set membership </param>
+    /// <returns> a <c>ValueType</c> as a result of this evaluation </returns>
+    let EvalSetComplex (value: ValueType): ReadOnly =
+        value |> EvalValue // every value is complex
+
+    /// <summary>
+    ///     <p>Evaluates the structured pairing of a <c>VariableType</c> &amp; <c>NumberSet</c>.</p>
+    /// </summary>
+    /// <param name="value"> the <c>ValueType</c> to check for set membership </param>
+    /// <param name="set"> the <c>NumberSet</c> to chack <c>ValueType</c> against </param>
+    /// <returns> the <c>ValueType</c> upon successful validation of the set membership </returns>
+    let EvalSetMembership (value: ValueType, set: NumberSet): ReadOnly =
+        match set with
+         | NumberSet.Natural    -> value |> EvalSetNatural
+         | NumberSet.Integer    -> value |> EvalSetInteger
+         | NumberSet.Real       -> value |> EvalSetReal
+         | NumberSet.Rational   -> value |> EvalSetRational
+         | NumberSet.Irrational -> value |> EvalSetIrrational
+         | NumberSet.Complex    -> value |> EvalSetComplex
+
+    /// <summary>
     ///     <p>Evaluates the incoming a structured binary operation.</p>
     /// </summary>
     /// <param name="binOp"> the structured binary operation to evaluate </param>
@@ -119,8 +199,11 @@ module Evaluation =
                                       []
                                      ) ||> MathError
          | Some (fnAttrs, fnBody) ->
-             fnArgs
-             |> List.map    (fun exp -> (exp, memory) ||> EvalExpression) // evaluate all expressions
+             (fnArgs, List.map snd fnAttrs.parameters)
+             ||> List.map2  (fun exp set ->     // evaluate all expressions
+                     ((exp, memory) ||> EvalExpression)
+                     |> Result.bind (fun value -> (value, set) |> EvalSetMembership)
+                 )
              |> List.fold   (fun acc result ->                            // first occurrence of error - fail
                     match (acc, result) with
                      | Ok    vs, Ok    v -> Ok    (v::vs)
@@ -130,7 +213,7 @@ module Evaluation =
                 (Ok [])
              |> Result.map  List.rev                                      // reverse as fold produces reversed list
              |> Result.bind (fun fnArgs ->
-                    fnArgs
+                    fnArgs 
                     |> List.map CellData.OfValue
                     |> List.zip (List.map fst fnAttrs.parameters)         // pair up args to their variables
                     |> (fun pairs ->                                      // map args to each variable in memory
@@ -256,8 +339,12 @@ module Evaluation =
     /// <returns> a <c>ValueType</c> as a result of this evaluation &amp; the mutated memory state </returns>
     let EvalFnDef (fn: FunctionType) (memory: Memory): WriteOnly =
         let (fnAttrs: FunctionAttributes), _ = fn
-        let newState: Memory = (fnAttrs.identifier, CellData.OfFunction fn) |> (SetVariable memory)
-        newState
+        let newState: Memory = (fnAttrs.identifier,      CellData.OfFunction fn) |> (SetVariable  memory)
+        match fnAttrs.metadata.symbol with
+         | None     -> newState
+         | Some sym ->
+             let newState: Memory = (sym, fn) |> (UpdateSymbol newState)
+             newState
 
     /// <summary>
     ///     <p>Evaluates the incoming <c>ASTNode</c>.</p>
