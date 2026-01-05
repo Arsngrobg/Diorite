@@ -20,7 +20,6 @@ open Diorite.Lang.Core.Errors
 open Diorite.Lang.Core.Parser.DSL
 open Diorite.Lang.Core.Parser.Combinators
 open Diorite.Lang.Core.Lexer
-open Diorite.Lang.Core.Lexer.Tokenizer
 
 /// <summary>
 ///     <p>The submodule for the top-level parsing functions for <b>Diorite</b>.</p>

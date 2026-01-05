@@ -19,6 +19,10 @@ open Diorite.Lang.Core.Syntax
 open Diorite.Lang.Core.Errors
 open Diorite.Lang.Core.Lexer.Consumers
 
+/// <summary>
+///     <p>The <c>Tokenizer</c> module contains logic for tokenising <b>Diorite</b> source code.</p>
+/// </summary>
+[<AutoOpen>]
 module Tokenizer =
     /// <summary>
     ///     <p>Attempts to produce the next token from the supplied character list.</p>
@@ -441,7 +445,8 @@ module Tokenizer =
     /// </summary>
     /// <param name="stream"> the <c>TokenStream</c> </param>
     /// <returns> a list of <c>SyntaxError</c>s - may be empty </returns>
-    let GetTokenizerErrors (stream: TokenStream): DioriteError option =
+    let GetTokenizerError (stream: TokenStream): DioriteError option =
+        // helper function
         let rec CreateParagraph (stream: TokenStream): string list =
             match stream with
              | []                                       -> []

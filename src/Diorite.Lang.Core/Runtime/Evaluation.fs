@@ -16,6 +16,8 @@
 namespace Diorite.Lang.Core.Runtime
 
 open Diorite.Lang.Core.Errors
+open Diorite.Lang.Core.Lexer
+open Diorite.Lang.Core.Parser
 open Diorite.Lang.Core.Runtime
 open Diorite.Lang.Core.Syntax
 open Diorite.Lang.Core.Runtime.RuleMappings
@@ -385,3 +387,19 @@ module Evaluation =
               | Ok    (None,   memory) ->                        ((tail, memory) ||> EvalTree)
               | Ok    (Some v, memory) -> (Ok    (v, memory)) :: ((tail, memory) ||> EvalTree)
               | Error err              -> (Error err)         :: ((tail, memory) ||> EvalTree)
+
+    /// <summary>
+    ///     <p>Evaluates the incoming <c>string</c>.</p>
+    ///     <p>Applies the tokenisation and parsing pipelines to the input <c>string</c>.</p>
+    /// </summary>
+    /// <param name="source"> the <c>string</c> to evaluate. </param>
+    /// <param name="memory"> the stateful context to initially reference from (propagated through chain) </param>
+    /// <returns> a sequence of <c>(ValueType * Memory) Result</c>s - <c>None</c> results are ignored</returns>
+    let EvalString (source: string) (memory: Memory): DefiniteResult list =
+        let tokens: TokenStream = source |> Tokenise
+        match (GetTokenizerError tokens) with
+         | Some err -> [Error err]
+         | None     ->
+             match (ParseTokens tokens) with
+              | Error err  -> [Error err]
+              | Ok    tree -> (EvalTree tree memory)
