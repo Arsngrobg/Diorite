@@ -199,6 +199,12 @@ module Evaluation =
                                       []
                                      ) ||> MathError
          | Some (fnAttrs, fnBody) ->
+             let argDiff: int = fnAttrs.parameters.Length - fnArgs.Length
+             if argDiff < 0 then
+                 (Some $"Missing {-argDiff} position arguments for function: {fnRef}", []) ||> MathError
+             elif argDiff > 0 then
+                 (Some $"Too many arguments supplied to function: {fnRef}", []) ||> MathError
+             else
              (fnArgs, List.map snd fnAttrs.parameters)
              ||> List.map2  (fun exp set ->     // evaluate all expressions
                      ((exp, memory) ||> EvalExpression)
@@ -224,7 +230,8 @@ module Evaluation =
                                    | MathError (msg, _) -> (msg, fnArgs) |> DioriteError.MathError
                                    | err                -> err
                               )
-                       )
+                           |> Result.bind (fun value -> EvalSetMembership (value, fnAttrs.range))
+                        )
                 )
 
     /// <summary>
