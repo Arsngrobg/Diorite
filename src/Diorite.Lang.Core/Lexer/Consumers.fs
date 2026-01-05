@@ -47,3 +47,7 @@ module Consumers =
     ///     <p>A <c>Consumer</c> that consumes characters, given that it is not a double quote.</p>
     /// </summary>
     let ConsumeUntilQuotes:  Consumer = Consume (fun c -> c <> '"')
+    /// <summary>
+    ///     <p>A <c>Consumer</c> that consumes characters, given that it is part of a valid symbol name.</p>
+    /// </summary>
+    let ConsumeSymbol:       Consumer = Consume (fun c -> (System.Char.IsLetter c) || c = '_')

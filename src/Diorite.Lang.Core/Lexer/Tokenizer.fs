@@ -76,8 +76,8 @@ module Tokenizer =
                   Some (token, remaining)
 
          // variables, constants, & symbols
-         | c :: tail when c |> System.Char.IsLetter ->
-             match (ConsumeLetters (c::tail)) with
+         | c :: tail when (c |> System.Char.IsLetter) || (c = '_') ->
+             match (ConsumeSymbol (c::tail)) with
               // variable + subscript
               | [character], d :: remaining when d |> System.Char.IsDigit ->
                   let subscript: uint8 = (uint8 d) - (uint8 '0')
