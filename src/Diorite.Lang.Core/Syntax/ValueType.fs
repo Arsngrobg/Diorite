@@ -18,7 +18,7 @@ namespace Diorite.Lang.Core.Syntax
 /// <summary>
 ///     <p>The union type which describe the cases in which a <c>Value</c> is represented as in <b>Diorite</b>.</p>
 ///     <p><b>1.</b> <c>Number</c>: a 64-bit, floating-point decimal.</p>
-///     <p><b>2.</b> <c>Complex</c>: a pair of real values, <c>a + im(b)</c>, where <c>a</c> &amp; <c>b</c> are
+///     <p><b>2.</b> <c>Complex</c>: a pair of real values, <c>a + bi</c>, where <c>a</c> &amp; <c>b</c> are
 ///        <c>Real</c> numbers.
 ///     </p>
 ///     <p><b>3.</b> <c>Undefined</c>: denoting that a <b>variable</b> or operation is not properly defined.</p>
