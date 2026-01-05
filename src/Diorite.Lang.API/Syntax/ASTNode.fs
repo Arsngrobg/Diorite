@@ -14,7 +14,7 @@
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
 
-namespace Diorite.Lang.Core.Syntax
+namespace Diorite.Lang.API.Syntax
 
 /// <summary>
 ///     <p>The <c>AST</c> is the tree structure of a top-level <b>Diorite</b> statement.</p>
@@ -30,7 +30,7 @@ type ASTNode =
     ///     <p>A statement that requests the plot of an anonymouse function (special case of an <c>Expression</c>.</p>
     ///     <p><i>Example: <c>plot f; # f(x)=2*x</c></i> OR <c>plot (2*x)</c></p>
     /// </summary>
-    | PlotFunction       of AnonymousFunction
+    | PlotFunction       of Expression
     /// <summary>
     ///     <p>A statement that assigns an <c>Expression</c> on the right-hand side to a variable on the
     ///        left-hand side.

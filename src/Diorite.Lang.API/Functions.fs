@@ -21,8 +21,6 @@ namespace Diorite.Lang.API
 [<AutoOpen>]
 module Functions =
      // val getVersion:  unit                  -> Properties.Version
-     // val tokenStr:    Token                 -> string
-     // val treeStr:     AST                   -> string
      // val tokensOf:    string                -> TokenStream
      // val tokenErrors: TokenStream           -> DioriteError list
      // val treeOf:      string                -> Result<AST, DioriteError>

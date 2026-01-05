@@ -5,21 +5,18 @@
 //   |_____/|__||_____|__|  |__|____|_____|
 //
 // ------------------------------------------------------------------------------------------------------------------
-// File:    Main.fs
-// Summary: The entry point for Diorite when ran from the user's terminal
+// File:    FunctionType.fs
+// Summary: The type definition for the FunctionType, which is the structured representation of a function in
+//          Diorite, it is the combination of FunctionAttributes and FunctionBody 
 // Author:  Arsngrobg
-// Version: v1.1
+// Version: v1.0
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
 
-module Diorite.Lang.CLI
+namespace Diorite.Lang.API.Syntax
 
 /// <summary>
-///     <p>The main function.</p>
+///     <p>The shorthand type abbreviation for a function in <b>Diorite</b>.</p>
 /// </summary>
-/// <param name="argv"> the arguments provided to the executable </param>
-/// <returns> an exit code that describes the state of the CLI after exiting. </returns>
-[<EntryPoint>]
-let Main (argv: string array): int =
-    0
+type FunctionType = FunctionAttributes * FunctionBody

@@ -5,21 +5,17 @@
 //   |_____/|__||_____|__|  |__|____|_____|
 //
 // ------------------------------------------------------------------------------------------------------------------
-// File:    Main.fs
-// Summary: The entry point for Diorite when ran from the user's terminal
+// File:    AST.fs
+// Summary: The type definition for the AST type, which is the root type for the AST of parsed Diorite source code 
 // Author:  Arsngrobg
-// Version: v1.1
+// Version: v1.0
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
 
-module Diorite.Lang.CLI
+namespace Diorite.Lang.Core.Syntax
 
 /// <summary>
-///     <p>The main function.</p>
+///     <p>The root type returned by a parse operation of <b>Diorite</b> code.</p>
 /// </summary>
-/// <param name="argv"> the arguments provided to the executable </param>
-/// <returns> an exit code that describes the state of the CLI after exiting. </returns>
-[<EntryPoint>]
-let Main (argv: string array): int =
-    0
+type AST = ASTNode list

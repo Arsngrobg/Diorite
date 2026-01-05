@@ -13,7 +13,7 @@
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
 
-namespace Diorite.Lang.Core.Syntax
+namespace Diorite.Lang.API.Syntax
 
 /// <summary>
 ///     <p>The structured representation of a <c>Variable</c> in the <b>Diorite</b> mathematics language.</p>

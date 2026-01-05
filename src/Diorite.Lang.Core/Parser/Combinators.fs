@@ -613,7 +613,7 @@ module Combinators =
                 | duplicates ->
                     let asStr: string =
                         duplicates
-                        |> List.map strVariableType
+                        |> List.map (fun (c, s) -> if s = 0uy then $"{c}" else $"{c}{s-1uy}")
                         |> String.concat ", "
                     Fail $"Duplicate parameter identifiers: [{asStr}]"
            )
