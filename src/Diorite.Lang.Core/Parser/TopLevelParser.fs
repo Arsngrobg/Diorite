@@ -52,6 +52,6 @@ module TopLevelParser =
     /// <returns> a <c>Result</c>, which may, or may not, contain the resulting AST </returns>
     let ParseString (str: string): Result<AST> =
         let tokens: TokenStream = Tokenise str
-        match (GetTokenizerErrors tokens) with
+        match (GetTokenizerError tokens) with
          | None      -> ParseTokens tokens
          | Some errs -> Error errs

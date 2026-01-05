@@ -6,11 +6,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Diorite.Lang.API\Diorite.Lang.API.fsproj" />
+        <ProjectReference Include="..\Diorite.Lang.API\Diorite.Lang.API.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-        <Compile Include="Main.fs"          />
+        <Compile Include="Main.fs" />
     </ItemGroup>
 
 </Project>
