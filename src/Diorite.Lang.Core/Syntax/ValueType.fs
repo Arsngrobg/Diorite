@@ -5,7 +5,7 @@
 //   |_____/|__||_____|__|  |__|____|_____|
 //
 // ------------------------------------------------------------------------------------------------------------------
-// File:    Syntax.fs
+// File:    ValueType.fs
 // Summary: The definition for the ValueType, which is the fundamental (atomic) value in Diorite
 // Author:  Arsngrobg
 // Version: v1.4

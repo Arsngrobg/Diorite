@@ -67,7 +67,6 @@
         <Compile Include="Runtime\RuleMappings.fs"             />
         <Compile Include="Runtime\VirtualMemory.fs"            />
         <Compile Include="Runtime\Evaluation.fs"               />
-        <Compile Include="Runtime\RuntimeConfiguration.fs"     />
     </ItemGroup>
 
     <!-- Properties -->
