@@ -52,13 +52,7 @@ module TopLevelParser =
     /// <param name="str"> the <b>Diorite</b> source code to parse </param>
     /// <returns> a <c>Result</c>, which may, or may not, contain the resulting AST </returns>
     let ParseString (str: string): Result<AST> =
-        let rec ListErrors (errors: DioriteError list): string =
-            match errors with
-             | []           -> ""
-             | [err]        -> StrError err
-             | head :: tail -> $"{StrError head}; {ListErrors tail}"
-
         let tokens: TokenStream = Tokenise str
         match (GetTokenizerErrors tokens) with
-         | []     -> ParseTokens tokens
-         | errors -> (errors |> ListErrors, None) ||> SyntaxError
+         | None      -> ParseTokens tokens
+         | Some errs -> Error errs
