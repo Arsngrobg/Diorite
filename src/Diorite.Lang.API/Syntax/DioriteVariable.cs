@@ -5,13 +5,16 @@
 //   |_____/|__||_____|__|  |__|____|_____|
 //
 // ------------------------------------------------------------------------------------------------------------------
-// File:    VariableType.cs
-// Summary: The type definition for the VariableType type, which is the most basic form of storage in Diorite
+// File:    DioriteVariable.cs
+// Summary: The type definition for the DioriteVariable type, which is the most basic form of storage in Diorite - it
+//          maps to the VariableType in the core layer
 // Author:  Arsngrobg
 // Version: v1.0
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
+
+using Diorite.Lang.API.Traits;
 
 namespace Diorite.Lang.API.Syntax;
 
@@ -28,7 +31,7 @@ namespace Diorite.Lang.API.Syntax;
 ///        permutations, that means <b>Diorite</b> supports a total of <c>572</c> variables.
 ///     </p>
 /// </summary>
-public class VariableType
+public class DioriteVariable : IDioriteView<Tuple<char, byte>> // equivalent type definition for VariableType in Core
 {
     /// <summary>
     ///     <p>The maximum number of variables supported by <b>Diorite</b>.</p>
@@ -46,20 +49,21 @@ public class VariableType
     /// <summary>
     ///     <p>The constant value, denoting the maximum subscript possible for a <b>Diorite</b> variable.</p>
     /// </summary>
-    public const byte MaxSubscript = 10;
+    public const byte MaxSubscript = 9;
 
     /// <summary>
-    ///     <p>Creates a new <c>VariableType</c> object from the supplied alphabetical, upper-case or lower-case
+    ///     <p>Creates a new <c>DioriteVariable</c> object from the supplied alphabetical, upper-case or lower-case
     ///        <c>letter</c>.
     ///     </p>
     /// </summary>
     /// <param name="letter"> the alphabetical character </param>
     /// <returns> a new <c>VariableType</c> instance, provided that the <c>letter</c> is alphabetical </returns>
     /// <exception cref="ArgumentException"> if <c>letter</c> is not alphabetical </exception>
-    public static VariableType OfCharacter(char letter) => Subscriptable(letter, NoSubscript);
+    public static DioriteVariable OfCharacter(char letter) =>
+        Subscriptable(letter, NoSubscript);
 
     /// <summary>
-    ///     <p>Creates a new <c>VariableType</c> object from the supplied alphabetical, upper-case or lower-case
+    ///     <p>Creates a new <c>DioriteVariable</c> object from the supplied alphabetical, upper-case or lower-case
     ///        <c>letter</c> and unsigned, 8-bit integer <c>subscript</c>.
     ///     </p>
     /// </summary>
@@ -69,7 +73,7 @@ public class VariableType
     /// <exception cref="ArgumentException">
     ///     if <c>letter</c> is not alphabetical, or <c>subscript</c> is greater than <c>10</c>
     /// </exception>
-    public static VariableType Subscriptable(char letter, byte subscript)
+    public static DioriteVariable Subscriptable(char letter, byte subscript)
     {
         if (!char.IsUpper(letter) && !char.IsLower(letter))
             throw new ArgumentException(
@@ -83,7 +87,7 @@ public class VariableType
                 nameof(subscript)
             );
 
-        return new VariableType(letter, subscript);
+        return new DioriteVariable(letter, ++subscript);
     }
 
     /// <summary>
@@ -99,35 +103,22 @@ public class VariableType
     /// </summary>
     private byte Subscript { get; }
 
-    private VariableType(char letter, byte subscript)
+    private DioriteVariable(char letter, byte subscript)
     {
         Letter    = letter;
         Subscript = subscript;
     }
 
-    /// <summary>
-    ///     <p>Produces the representation of this <c>VariableType</c> as a <c>tuple</c>.</p>
-    ///     <p>Used for interop between the <b>API</b> and the <b>core</b> library.</p>
-    /// </summary>
-    /// <returns> the structured representation of this <c>VariableType</c> (<c>tuple</c> form) </returns>
-    public Tuple<char, byte> AsTuple()
-    {
-        return new Tuple<char, byte>(Letter, Subscript);
-    }
+    public Tuple<char, byte> AsCoreType() =>
+        new (Letter, Subscript);
 
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(Letter, Subscript);
-    }
+    public override int GetHashCode() =>
+        HashCode.Combine(Letter, Subscript);
 
-    public override bool Equals(object? obj)
-    {
-        if (obj is not VariableType other) return false;
-        return (Letter == other.Letter) && (Subscript == other.Subscript);
-    }
+    public override bool Equals(object? obj) =>
+        (obj is DioriteVariable other) &&
+        (Letter == other.Letter)       && (Subscript == other.Subscript);
 
-    public override string ToString()
-    {
-        return (Subscript == 0) ? $"{Letter}" : $"{Letter}{Subscript - 1}";
-    }
+    public override string ToString() =>
+        (Subscript == 0) ? $"{Letter}" : $"{Letter}{Subscript - 1}";
 }
