@@ -59,7 +59,7 @@ public class Variable : ICoreView<Tuple<char, byte>> // equivalent type definiti
     /// <returns> a new <c>VariableType</c> instance, provided that the <c>letter</c> is alphabetical </returns>
     /// <exception cref="ArgumentException"> if <c>letter</c> is not alphabetical </exception>
     public static Variable OfCharacter(char letter) =>
-        Subscriptable(letter, NoSubscript);
+        new (letter, NoSubscript);
 
     /// <summary>
     ///     <p>Creates a new <c>Variable</c> object from the supplied alphabetical, upper-case or lower-case
@@ -86,7 +86,7 @@ public class Variable : ICoreView<Tuple<char, byte>> // equivalent type definiti
                 nameof(subscript)
             );
 
-        return new Variable(letter, ++subscript);
+        return new Variable(letter, (byte) (subscript + 1));
     }
 
     /// <summary>
