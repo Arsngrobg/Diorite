@@ -5,24 +5,23 @@
 //   |_____/|__||_____|__|  |__|____|_____|
 //
 // ------------------------------------------------------------------------------------------------------------------
-// File:    DioriteUnaryOperator.cs
-// Summary: The type definition for the UnaryOperator in Diorite, an operation applied on a single ValueType - it
-//          maps to UnaryOperator in the core layer
+// File:    UnaryOperator.cs
+// Summary: The type definition for the UnaryOperator in Diorite, an operation applied on a single ValueType
 // Author:  Arsngrobg
 // Version: v1.0
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
 
-namespace Diorite.Lang.API.Syntax;
+namespace Diorite.Lang.API.Syntax.Structure;
 
 /// <summary>
-///     <p>A <c>DioriteUnaryOperator</c> is an operator that executes on a single operand on either side, depending on
+///     <p>A <c>UnaryOperator</c> is an operator that executes on a single operand on either side, depending on
 ///        which direction it binds.
 ///     </p>
 ///     <p><i>Literal pattern: <c>[UnaryOperator] a</c> | <c>a [UnaryOperator]</c></i></p>
 /// </summary>
-public enum DioriteUnaryOperator
+public enum UnaryOperator
 {
     /// <summary>
     ///     <p>The unary operator for positive (<c>+a</c>) - the identity operator.</p>

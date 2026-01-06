@@ -6,7 +6,7 @@
 //
 // ------------------------------------------------------------------------------------------------------------------
 // File:    NumberSet.fs
-// Summary: The type definition for the NumberSet in Diorite 
+// Summary: The type definition for the NumberSet in Diorite
 // Author:  Arsngrobg
 // Version: v1.0
 // ------------------------------------------------------------------------------------------------------------------
@@ -47,7 +47,7 @@ type NumberSet =
     /// </summary>
     | Irrational
     /// <summary>
-    ///     <p>The set of all numbers in the form <c>a + bi</c>, where <c>i</c> is the imaginary unit (sqrt(-1)),
+    ///     <p>The set of all numbers in the form <c>a + bi</c>, where <c>i</c> is the imaginary unit sqrt(-1),
     ///        and <c>i^2 = -1</c>. <c>a</c> and <c>b</c> are <c>Real</c> numbers.
     ///     </p>
     ///     <p><c>C = {a + bi | a, b are Real numbers}</c></p>

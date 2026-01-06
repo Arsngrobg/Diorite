@@ -162,7 +162,7 @@ type TokenType =
     ///     <p>The character literal <c>'='</c>.</p>
     ///     <p>The assignment/equality operator.</p>
     /// </summary>
-    | Equals
+    | Equal
     /// <summary>
     ///     <p>The string literal <c>"!="</c>.</p>
     ///     <p>The inequality operator.</p>

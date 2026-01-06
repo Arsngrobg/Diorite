@@ -167,7 +167,7 @@ module Tokenizer =
          | '=' :: remaining ->
              let token: Token = {
                  lexeme = "="
-                 id     = TokenType.Equals
+                 id     = TokenType.Equal
                  value  = TokenValue.None
                  line   = line
                  column = column

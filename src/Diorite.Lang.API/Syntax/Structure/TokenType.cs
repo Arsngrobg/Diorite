@@ -5,24 +5,22 @@
 //   |_____/|__||_____|__|  |__|____|_____|
 //
 // ------------------------------------------------------------------------------------------------------------------
-// File:    DioriteTokenType.cs
-// Summary: The type definition for the DioriteTokenType identifier value - it maps to the TokenType in the core
-//          layer
+// File:    TokenType.cs
+// Summary: The type definition for the TokenType identifier value
 // Author:  Arsngrobg, Borngle
 // Version: v1.0
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
 
-namespace Diorite.Lang.API.Syntax;
+namespace Diorite.Lang.API.Syntax.Structure;
 
 /// <summary>
-///     <p>The <c>DioriteTokenType</c> is an identifier type for a lexical <c>Token</c> in the <b>Diorite</b>
+///     <p>The <c>TokenType</c> is an identifier type for a lexical <c>Token</c> in the <b>Diorite</b>
 ///        language.
 ///     </p>
-///     <p>It is a 1:1 mapping of the <c>TokenType</c> in the core layer of <b>Diorite</b>.</p>
 /// </summary>
-public enum DioriteTokenType
+public enum TokenType
 {
     /// <summary>
     ///     <p>Any string literal that is not recognised by the <b>Diorite</b> language.</p>
@@ -165,7 +163,7 @@ public enum DioriteTokenType
     ///     <p>The character literal <c>'='</c>.</p>
     ///     <p>The assignment/equality operator.</p>
     /// </summary>
-    Equals,
+    Equal,
     /// <summary>
     ///     <p>The string literal <c>"!="</c>.</p>
     ///     <p>The inequality operator.</p>

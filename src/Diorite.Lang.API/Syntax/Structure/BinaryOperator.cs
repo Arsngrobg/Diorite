@@ -5,24 +5,23 @@
 //   |_____/|__||_____|__|  |__|____|_____|
 //
 // ------------------------------------------------------------------------------------------------------------------
-// File:    DioriteBinaryOperator.cs
-// Summary: The type definition for the BinaryOperator in Diorite, an operation applied on a pair ValueTypes - it
-//          maps to ValueType in the core layer
+// File:    BinaryOperator.cs
+// Summary: The type definition for the BinaryOperator in Diorite, an operation applied on a pair ValueTypes
 // Author:  Arsngrobg
 // Version: v1.0
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
 
-namespace Diorite.Lang.API.Syntax;
+namespace Diorite.Lang.API.Syntax.Structure;
 
 /// <summary>
-///     <p>A <c>DioriteBinaryOperator</c> is an operator that executes on two operands on either side
+///     <p>A <c>BinaryOperator</c> is an operator that executes on two operands on either side
 ///        (hence binary).
 ///     </p>
 ///     <p><i>Literal pattern: <c>a [BinaryOperator] b</c></i></p>
 /// </summary>
-public enum DioriteBinaryOperator
+public enum BinaryOperator
 {
     /// <summary>
     ///     <p>The binary operator for addition (<c>a + b</c>).</p>

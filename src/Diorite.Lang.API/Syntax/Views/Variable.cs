@@ -5,9 +5,8 @@
 //   |_____/|__||_____|__|  |__|____|_____|
 //
 // ------------------------------------------------------------------------------------------------------------------
-// File:    DioriteVariable.cs
-// Summary: The type definition for the DioriteVariable type, which is the most basic form of storage in Diorite - it
-//          maps to the VariableType in the core layer
+// File:    Variable.cs
+// Summary: The type definition for the Variable type, which is the most basic form of storage in Diorite
 // Author:  Arsngrobg
 // Version: v1.0
 // ------------------------------------------------------------------------------------------------------------------
@@ -16,7 +15,7 @@
 
 using Diorite.Lang.API.Traits;
 
-namespace Diorite.Lang.API.Syntax;
+namespace Diorite.Lang.API.Syntax.Views;
 
 /// <summary>
 ///     <p>The structured representation of a <c>Variable</c> in the <b>Diorite</b> mathematics language.</p>
@@ -31,7 +30,7 @@ namespace Diorite.Lang.API.Syntax;
 ///        permutations, that means <b>Diorite</b> supports a total of <c>572</c> variables.
 ///     </p>
 /// </summary>
-public class DioriteVariable : IDioriteView<Tuple<char, byte>> // equivalent type definition for VariableType in Core
+public class Variable : ICoreView<Tuple<char, byte>> // equivalent type definition for VariableType in Core
 {
     /// <summary>
     ///     <p>The maximum number of variables supported by <b>Diorite</b>.</p>
@@ -52,18 +51,18 @@ public class DioriteVariable : IDioriteView<Tuple<char, byte>> // equivalent typ
     public const byte MaxSubscript = 9;
 
     /// <summary>
-    ///     <p>Creates a new <c>DioriteVariable</c> object from the supplied alphabetical, upper-case or lower-case
+    ///     <p>Creates a new <c>Variable</c> object from the supplied alphabetical, upper-case or lower-case
     ///        <c>letter</c>.
     ///     </p>
     /// </summary>
     /// <param name="letter"> the alphabetical character </param>
     /// <returns> a new <c>VariableType</c> instance, provided that the <c>letter</c> is alphabetical </returns>
     /// <exception cref="ArgumentException"> if <c>letter</c> is not alphabetical </exception>
-    public static DioriteVariable OfCharacter(char letter) =>
+    public static Variable OfCharacter(char letter) =>
         Subscriptable(letter, NoSubscript);
 
     /// <summary>
-    ///     <p>Creates a new <c>DioriteVariable</c> object from the supplied alphabetical, upper-case or lower-case
+    ///     <p>Creates a new <c>Variable</c> object from the supplied alphabetical, upper-case or lower-case
     ///        <c>letter</c> and unsigned, 8-bit integer <c>subscript</c>.
     ///     </p>
     /// </summary>
@@ -73,7 +72,7 @@ public class DioriteVariable : IDioriteView<Tuple<char, byte>> // equivalent typ
     /// <exception cref="ArgumentException">
     ///     if <c>letter</c> is not alphabetical, or <c>subscript</c> is greater than <c>10</c>
     /// </exception>
-    public static DioriteVariable Subscriptable(char letter, byte subscript)
+    public static Variable Subscriptable(char letter, byte subscript)
     {
         if (!char.IsUpper(letter) && !char.IsLower(letter))
             throw new ArgumentException(
@@ -87,7 +86,7 @@ public class DioriteVariable : IDioriteView<Tuple<char, byte>> // equivalent typ
                 nameof(subscript)
             );
 
-        return new DioriteVariable(letter, ++subscript);
+        return new Variable(letter, ++subscript);
     }
 
     /// <summary>
@@ -103,7 +102,7 @@ public class DioriteVariable : IDioriteView<Tuple<char, byte>> // equivalent typ
     /// </summary>
     private byte Subscript { get; }
 
-    private DioriteVariable(char letter, byte subscript)
+    private Variable(char letter, byte subscript)
     {
         Letter    = letter;
         Subscript = subscript;
@@ -116,8 +115,8 @@ public class DioriteVariable : IDioriteView<Tuple<char, byte>> // equivalent typ
         HashCode.Combine(Letter, Subscript);
 
     public override bool Equals(object? obj) =>
-        (obj is DioriteVariable other) &&
-        (Letter == other.Letter)       && (Subscript == other.Subscript);
+        (obj is Variable other)  &&
+        (Letter == other.Letter) && (Subscript == other.Subscript);
 
     public override string ToString() =>
         (Subscript == 0) ? $"{Letter}" : $"{Letter}{Subscript - 1}";

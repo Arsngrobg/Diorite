@@ -5,21 +5,21 @@
 //   |_____/|__||_____|__|  |__|____|_____|
 //
 // ------------------------------------------------------------------------------------------------------------------
-// File:    DioriteNumberSet.cs
-// Summary: The type definition for the NumberSet in Diorite - maps to NumberSet in the core layer 
+// File:    NumberSet.cs
+// Summary: The type definition for the NumberSet in Diorite
 // Author:  Arsngrobg
 // Version: v1.0
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
 
-namespace Diorite.Lang.API.Syntax;
+namespace Diorite.Lang.API.Syntax.Structure;
 
 /// <summary>
 ///     <p>The number sets supported in the <b>Diorite</b> language.</p>
 ///     <p>These sets define the domain and/or range of a function.</p>
 /// </summary>
-public enum DioriteNumberSet
+public enum NumberSet
 {
     /// <summary>
     ///     <p>The set of all positive integers, including zero.</p>
@@ -47,7 +47,7 @@ public enum DioriteNumberSet
     /// </summary>
     Irrational,
     /// <summary>
-    ///     <p>The set of all numbers in the form <c>a + bi</c>, where <c>i</c> is the imaginary unit (sqrt(-1)),
+    ///     <p>The set of all numbers in the form <c>a + bi</c>, where <c>i</c> is the imaginary unit sqrt(-1),
     ///        and <c>i^2 = -1</c>. <c>a</c> and <c>b</c> are <c>Real</c> numbers.
     ///     </p>
     ///     <p><c>C = {a + bi | a, b are Real numbers}</c></p>

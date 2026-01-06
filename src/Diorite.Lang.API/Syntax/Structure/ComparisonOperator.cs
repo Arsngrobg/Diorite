@@ -7,14 +7,14 @@
 // ------------------------------------------------------------------------------------------------------------------
 // File:    DioriteComparisonOperator.cs
 // Summary: The type definition for the ComparisonOperator in Diorite, an operation applied on a pair of ValueTypes -
-//          it maps to ComparisonOperator in the core layer
+//          it is the same as Token in the core layer
 // Author:  Arsngrobg
 // Version: v1.0
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
 
-namespace Diorite.Lang.API.Syntax;
+namespace Diorite.Lang.API.Syntax.Structure;
 
 /// <summary>
 ///     <p>A <c>ComparisonOperator</c> is an operator that is used to compare to values either side of it.</p>

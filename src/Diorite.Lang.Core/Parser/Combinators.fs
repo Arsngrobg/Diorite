@@ -381,7 +381,7 @@ module Combinators =
     /// </summary>
     let AssignmentParser: Parser<ASTNode> =
         (VariableParser |> Then <| (
-            (Accept TokenType.Equals) |> IgnoreThen <| (Deferred ExpressionParser)
+            (Accept TokenType.Equal) |> IgnoreThen <| (Deferred ExpressionParser)
         )) |> Map ASTNode.Assignment
 
     /// <summary>
@@ -419,7 +419,7 @@ module Combinators =
     /// </summary>
     let ComparisonOperatorParser: Parser<ComparisonOperator> =
         Any [
-            (Accept TokenType.Equals)             |> As ComparisonOperator.Equality
+            (Accept TokenType.Equal)             |> As ComparisonOperator.Equality
             (Accept TokenType.NotEqual)           |> As ComparisonOperator.Inequality
             (Accept TokenType.LessThan)           |> As ComparisonOperator.StrictLessThan
             (Accept TokenType.LessThanOrEqual)    |> As ComparisonOperator.NonStrictLessThan
@@ -635,7 +635,7 @@ module Combinators =
     ///     </code>
     /// </summary>
     let FunctionDefinitionParser: Parser<ASTNode> =
-        (FunctionHeadParser |> Then <| (Accept TokenType.Equals |> IgnoreThen <| FunctionBodyParser)) |> Map
+        (FunctionHeadParser |> Then <| (Accept TokenType.Equal |> IgnoreThen <| FunctionBodyParser)) |> Map
             ASTNode.FunctionDefinition
 
     /// <summary>
