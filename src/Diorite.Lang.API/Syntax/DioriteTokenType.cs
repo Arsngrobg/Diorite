@@ -5,32 +5,35 @@
 //   |_____/|__||_____|__|  |__|____|_____|
 //
 // ------------------------------------------------------------------------------------------------------------------
-// File:    TokenType.fs
-// Summary: The type definition for the TokenType identifier value 
+// File:    DioriteTokenType.cs
+// Summary: The type definition for the DioriteTokenType identifier value - it maps to the TokenType in the core
+//          layer
 // Author:  Arsngrobg, Borngle
-// Version: v1.8
+// Version: v1.0
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
 
-namespace Diorite.Lang.Core.Syntax
+namespace Diorite.Lang.API.Syntax;
 
 /// <summary>
-///     <p>A <c>TokenType</c> is an identifier type for a lexical <c>Token</c> in the <b>Diorite</b> language.</p>
-///     <p>These union types do not store metadata as it makes it easier to consume every type of token.</p>
+///     <p>The <c>DioriteTokenType</c> is an identifier type for a lexical <c>Token</c> in the <b>Diorite</b>
+///        language.
+///     </p>
+///     <p>It is a 1:1 mapping of the <c>TokenType</c> in the core layer of <b>Diorite</b>.</p>
 /// </summary>
-[<RequireQualifiedAccess>]
-type TokenType =
+public enum DioriteTokenType
+{
     /// <summary>
     ///     <p>Any string literal that is not recognised by the <b>Diorite</b> language.</p>
     ///     <p>This indicates the lexer failed to recognise the lexeme, hence an error has occurred.</p>
     /// </summary>
-    | IllegalToken
+    IllegalToken,
     /// <summary>
     ///     <p>A floating-point decimal number.</p>
     ///     <p>Any integer or decimal representation.</p>
     /// </summary>
-    | Number
+    Number,
     /// <summary>
     ///     <p>A character followed by an optional encoded subscript.</p>
     ///     <p>A variable is a tuple consisting of the character that represents it, and the encoded subscript.
@@ -42,208 +45,209 @@ type TokenType =
     ///        interpreter's virtual memory, or the device's hardware memory when compiled.
     ///     </p>
     /// </summary>
-    | Variable
+    Variable,
     /// <summary>
     ///     <p>Any string literal that is not already reserved by the <b>Diorite</b> language.</p>
     ///     <p>It is an alias for a <b>Diorite</b> function that has been declared to have such name.</p>
     /// </summary>
-    | Symbol
+    Symbol,
     /// <summary>
     ///     <p>The string literal <c>"undefined"</c></p>
     ///     <p>The equivalent representation of the absence of a value.</p>
     /// </summary>
-    | Undefined
+    Undefined,
     /// <summary>
     ///     <p>The string literal <c>"infinity"</c>/<c>"inf"</c></p>
     ///     <p>The representation of an extremely large, positive-bound value.</p>
     /// </summary>
-    | Infinity
+    Infinity,
     /// <summary>
     ///     <p>The string literal <c>"complex"</c>.</p>
     ///     <p>A constructor for a complex value.</p>
     /// </summary>
-    | Complex
+    Complex,
     /// <summary>
     ///     <p>The string literal <c>"im"</c>.</p>
     ///     <p>A destructor for a complex value, will extract the imaginary value from the complex value.</p>
     /// </summary>
-    | Im
+    Im,
     /// <summary>
     ///     <p>The string literal <c>"re"</c>.</p>
     ///     <p>A destructor for a complex value, will extract the real value from the complex value.</p>
     /// </summary>
-    | Re
+    Re,
     /// <summary>
     ///     <p>The string literal <c>"plot"</c>.</p>
     ///     <p>Plots the function that is on the right-hand side of this token.</p>
     /// </summary>
-    | Plot
+    Plot,
     /// <summary>
     ///     <p>The string literal <c>"using"</c>.</p>
     ///     <p>Defines the primary argument for the anonymous function using the <c>plot</c> syntax.</p>
     /// </summary>
-    | Using
+    Using,
     /// <summary>
     ///     <p>the string literal <c>"error"</c>.</p>
     ///     <p>Throws a <c>MathError</c> when encountered with the optional error message given to it.</p>
     /// </summary>
-    | Error
+    Error,
     /// <summary>
     ///     <p>The string literal <c>"pi"</c>.</p>
     ///     <p>The constant value for pi (π).</p>
     /// </summary>
-    | Pi
+    Pi,
     /// <summary>
     ///     <p>The string literal <c>"tau"</c></p>
     ///     <p>The constant value for tau (τ).</p>
     /// </summary>
-    | Tau
+    Tau,
     /// <summary>
     ///     <p>The string literal <c>"euler"</c>.</p>
     ///     <p>The constant value for Euler's constant (e).</p>
     /// </summary>
-    | Euler
+    Euler,
     /// <summary>
     ///     <p>The character literal <c>':'</c></p>
     ///     <p>The delimiter for defining the domain for a function in <b>Diorite</b>.</p>
     /// </summary>
-    | Colon
+    Colon,
     /// <summary>
     ///     <p>The string literal <c>"->"</c>.</p>
     ///     <p>The delimiter for defining the range for a function in <b>Diorite</b>.</p>
     /// </summary>
-    | Arrow
+    Arrow,
     /// <summary>
     ///     <p>The character literal <c>','</c>.</p>
     ///     <p>The delimiter for sequencing parameters or arguments for a function in <b>Diorite</b>.</p>
     /// </summary>
-    | Comma
+    Comma,
     /// <summary>
     ///     <p>The character literal <c>'^'</c>.</p>
     ///     <p>The binary exponent operator.</p>
     /// </summary>
-    | Hat
+    Hat,
     /// <summary>
     ///     <p>The character literal <c>'!'</c>.</p>
     ///     <p>The unary factorial operator.</p>
     /// </summary>
-    | Exclamation
+    Exclamation,
     /// <summary>
     ///     <p>The character literal <c>'*'</c>.</p>
     ///     <p>The binary multiplication operator.</p>
     /// </summary>
-    | Asterisk
+    Asterisk,
     /// <summary>
     ///     <p>The character literal <c>'/'</c>.</p>
     ///     <p>The binary division operator.</p>
     /// </summary>
-    | ForwardSlash
+    ForwardSlash,
     /// <summary>
     ///     <p>The string literal <c>"//"</c>.</p>
     ///     <p>The binary floor division operator.</p>
     /// </summary>
-    | DoubleForwardSlash
+    DoubleForwardSlash,
     /// <summary>
     ///     <p>The character literal <c>'%'</c>.</p>
     ///     <p>The binary modulo operator.</p>
     /// </summary>
-    | Percentage
+    Percentage,
     /// <summary>
     ///     <p>The character literal <c>'+'</c>.</p>
     ///     <p>The binary addition operator.</p>
     /// </summary>
-    | Plus
+    Plus,
     /// <summary>
     ///     <p>The character literal <c>'-'</c>.</p>
     ///     <p>The binary subtraction operator.</p>
     /// </summary>
-    | Hyphen
+    Hyphen,
     /// <summary>
     ///     <p>The character literal <c>'='</c>.</p>
     ///     <p>The assignment/equality operator.</p>
     /// </summary>
-    | Equals
+    Equals,
     /// <summary>
     ///     <p>The string literal <c>"!="</c>.</p>
     ///     <p>The inequality operator.</p>
     /// </summary>
-    | NotEqual
+    NotEqual,
     /// <summary>
     ///     <p>The character literal <c>'&lt;'</c>.</p>
     ///     <p>The strict less-than inequality operator.</p>
     /// </summary>
-    | LessThan
+    LessThan,
     /// <summary>
     ///     <p>The character literal <c>'&gt;'</c>.</p>
     ///     <p>The strict greater-than inequality operator.</p>
     /// </summary>
-    | GreaterThan
+    GreaterThan,
     /// <summary>
     ///     <p>The string literal <c>'&lt;='</c>.</p>
     ///     <p>The non-strict less-than-or-equal inequality operator.</p>
     /// </summary>
-    | LessThanOrEqual
+    LessThanOrEqual,
     /// <summary>
     ///     <p>The string literal <c>'&gt;='</c>.</p>
     ///     <p>The non-strict greater-than-or-equal inequality operator.</p>
     /// </summary>
-    | GreaterThanOrEqual
+    GreaterThanOrEqual,
     /// <summary>
     ///     <p>The string literal <c>"if"</c>.</p>
     ///     <p>Represents a guard condition in a piecewise expression.
     ///        It selects the correct branch if the associated boolean expression evaluates to <c>true</c>.
     ///     </p>
     /// </summary>
-    | If
+    If,
     /// <summary>
     ///     <p>The string literal <c>"otherwise"</c>.</p>
     ///     <p>Represents the fallback branch in a piecewise operation.
     ///        This branch is selected only if all previous conditions evaluate to <c>false</c>.
     ///     </p>
     /// </summary>
-    | Otherwise
+    Otherwise,
     /// <summary>
     ///     <p>The character literal <c>'('</c>.</p>
     ///     <p>Denotes the beginning of a subexpression, a sequence of parameters or arguments.</p>
     /// </summary>
-    | LeftParenthesis
+    LeftParenthesis,
     /// <summary>
     ///     <p>The character literal <c>')'</c>.</p>
     ///     <p>Denotes the end of a subexpression, a sequence of parameters or arguments.</p>
     /// </summary>
-    | RightParenthesis
+    RightParenthesis,
     /// <summary>
     ///     <p>The character literal <c>'['</c>.</p>
     ///     <p>Denotes the beginning of a function metadata attribute.</p>
     /// </summary>
-    | LeftBracket
+    LeftBracket,
     /// <summary>
     ///     <p>The character literal <c>']'</c>.</p>
     ///     <p>Denotes the end of a function metadata attribute.</p>
     /// </summary>
-    | RightBracket
+    RightBracket,
     /// <summary>
     ///     <p>The character literal <c>'{'</c>.</p>
     ///     <p>Denotes the beginning of a function body.</p>
     /// </summary>
-    | LeftBrace
+    LeftBrace,
     /// <summary>
     ///     <p>The character literal <c>'}'</c>.</p>
     ///     <p>Denotes the end of a function body.</p>
     /// </summary>
-    | RightBrace
+    RightBrace,
     /// <summary>
     ///     <p>The character literal <c>'|'</c>.</p>
     ///     <p>States that the result of the expression they wrap should have the absolute operation.</p>
     /// </summary>
-    | Bar
+    Bar,
     /// <summary>
     ///     <p>Any string literal wrapped within a pair of double quotes (<c>"</c>).</p>
     ///     <p><i>Used in error messages</i></p>
     /// </summary>
-    | StringLiteral
+    StringLiteral,
     /// <summary>
     ///     <p>The character literal <c>';'</c>.</p>
     ///     <p>Denotes the end of a statement in <b>Diorite</b>.</p>
     /// </summary>
-    | SemiColon
+    SemiColon
+}
