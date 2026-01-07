@@ -1,5 +1,6 @@
 ﻿// testing file as the API is implemented
 
+using Diorite.Lang.API.Syntax.Structure;
 using Diorite.Lang.API.Syntax.Views;
 
 var variables = new [] {
@@ -19,7 +20,7 @@ var variables = new [] {
     Variable.Subscriptable('x', 6),
     Variable.Subscriptable('x', 7),
     Variable.Subscriptable('x', 8),
-    Variable.Subscriptable('x', 9),
+    Variable.Subscriptable('x', 9)
 };
 Console.WriteLine("Variables:");
 foreach (var variable in variables)
