@@ -17,6 +17,9 @@ namespace Diorite.Lang.API.Syntax.Structure;
 
 /// <summary>
 ///     <p>A <c>Token</c> is an atomic lexical unit in the <b>Diorite</b> language.</p>
+///     <p>It provides a rich set of methods for querying general structure, or use the embedded <c>Type</c> instance
+///        field to check for specific equality.
+///     </p>
 ///     <p><i>This is a <b>Read-Only</b> type, meaning they cannot and should not be instantiated outside of API
 ///           functions.
 ///     </i></p>
