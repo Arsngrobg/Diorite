@@ -24,16 +24,3 @@ type Version = {
     major: uint8
     minor: uint8
 }
-
-/// <summary>
-///     <p>A submodule, the utility functions for the <c>Version</c> type.</p>
-/// </summary>
-[<AutoOpen>]
-module VersionUtilities =
-    /// <summary>
-    ///     <p>Produces the <c>string</c> representation of the supplied <c>Version</c>.</p>
-    /// </summary>
-    /// <param name='version'> the <c>Version</c> </param>
-    /// <returns> the <c>string</c> representation of the <c>Version</c> </returns>
-    let strVersion (version: Version): string =
-        $"{version.major}.{version.minor}"
