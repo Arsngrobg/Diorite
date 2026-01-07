@@ -53,6 +53,34 @@ public abstract class Value : ICoreView<Core.Syntax.ValueType>
     public static readonly Value ImUnit    = new ComplexValue(0, 1);
 
     /// <summary>
+    ///     <p>Whether <c>NumberValue</c> produces a fractional representation over a decimal representation, wherever
+    ///        possible.
+    ///     </p>
+    ///     <p><i>Default: <c>false</c></i></p>
+    /// </summary>
+    public static bool FractionalRepresentation { get; set; } = false;
+
+    private const string DecimalFormat      = "G10"; // for string representations
+    private const double FractionResolution = 1e-10; // for determining fractional representation
+
+    /// <summary>
+    ///     <p>Helper method to check whether the supplied <c>Value</c> is a <c>ComplexValue</c>.</p>
+    /// </summary>
+    /// <param name="value"> the <c>Value</c> to validate </param>
+    /// <returns> <c>true</c> if <c>ComplexType</c>, <c>false</c> otherwise </returns>
+    public static bool IsComplex(Value value) =>
+        value is ComplexValue;
+
+    /// <summary>
+    ///     <p>Helper method to check whether the supplied <c>Value</c> is a <c>NumberType</c>.</p>
+    ///     <p>This also includes <c>ComplexValue</c>s with no imaginary component.</p>
+    /// </summary>
+    /// <param name="value"> the <c>Value</c> to validate </param>
+    /// <returns> <c>true</c> if <c>NumberType</c>, <c>false</c> otherwise </returns>
+    public static bool IsNumber(Value value) =>
+        value is NumberValue || (value is ComplexValue && value.Im().Equals(0));
+
+    /// <summary>
     ///     <p>Creates a <c>DioriteValue</c> that stores a numerical value.</p>
     ///     <p>It is not possible for a <c>DioriteValue.NumberValue</c> to store a value of <c>NaN</c> is it is required
     ///        for <c>PiecewiseCondition</c> evaluation.
@@ -91,62 +119,142 @@ public abstract class Value : ICoreView<Core.Syntax.ValueType>
 
         return new ComplexValue(real, imaginary);
     }
-
-    // for string representations
-    private const string DecimalFormat = "G8";
-
-    // A 64-bit, floating-point decimal
+    
+    /// <summary>
+    ///     <p>A 64-bit, floating-point decimal.</p>
+    /// </summary>
     private sealed class NumberValue : Value
     {
-        public double Value { get; }
+        /// <summary>
+        ///     <p>The value stored by this <c>NumberValue</c>.</p>
+        /// </summary>
+        private readonly double _value;
 
         internal NumberValue(double value) =>
-            Value = value;
+            _value = value;
+        
+        // https://en.wikipedia.org/wiki/Simple_continued_fraction
+        private string AsFractionString()
+        {
+            var unsigned = Math.Abs(Re());
+            
+            // a(0) = floor(x);
+            // r(0) = x - floor(x);
+            // h(n) = a(n) * h(n-1) + h(n-2)
+            // k(n) = a(n) * k(n-1) + k(n-2)
+            
+            // for h(0):
+            //     h(0) = a(0)
+            // ... h(0) = a(0) * h(n-1) + h(n-2)
+            // ... h(0) = a(0) * ( 1  ) + ( 0  )
+            // ... h(-1) = 1 & h(-2) = 0
+
+            // for k(0):
+            //     k(0) = 1
+            // ... k(0) = a(0) * k(n-1) + k(n-2)
+            // ... k(0) = a(0) * ( 0  ) + ( 1  )
+            // ... k(-1) = 0 & k(-2) = 0
+
+            var a = Math.Floor(unsigned);
+            var r = unsigned - a;
+
+            var h1 = a;
+            var k1 = 1.0;
+            var h2 = 1.0;
+            var k2 = 0.0;
+            
+            while (r >= FractionResolution)
+            {
+                var reciprocal = 1 / r;
+                var closest    = Math.Round(reciprocal);
+                a = (Math.Abs(reciprocal - closest) < FractionResolution)
+                    ? closest
+                    : Math.Floor(reciprocal);
+
+                r = reciprocal - a;
+
+                var hn = a * h1 + h2;
+                var kn = a * k1 + k2;
+                h2 = h1;
+                k2 = k1;
+                h1 = hn;
+                k1 = kn;
+            }
+
+            if (k1.Equals(1))
+                return $"{Re()}";
+
+            return (Re() < 0)
+                ? $"-{h1}/{k1}"
+                : $"{h1}/{k1}";
+        }
+
+        public override double Re() =>
+            _value;
+
+        public override double Im() =>
+            0;
 
         public override Core.Syntax.ValueType AsCoreType() =>
-            Core.Syntax.ValueType.NewNumber(Value);
+            Core.Syntax.ValueType.NewNumber(Re());
 
         public override int GetHashCode() =>
-            HashCode.Combine(Value, 0); // silent upcast to complex (value + 0i) to maintain safe hash
+            HashCode.Combine(Re(), Im()); // silent upcast to complex (value + 0i) to maintain safe hash
 
         public override bool Equals(object? obj) => obj switch
         {
-            ComplexValue z => Value.Equals(z.RealComponent) && z.ImaginaryComponent.Equals(0),
-            NumberValue  x => Value.Equals(x.Value),
+            ComplexValue z => Re().Equals(z.Re()) && z.Im().Equals(0),
+            NumberValue  x => Re().Equals(x.Re()),
             _              => false
         };
 
         public override string ToString()
         {
-            if (double.IsPositiveInfinity(Value))
+            if (double.IsPositiveInfinity(Re()))
                 return "inf";
-            return (double.IsNegativeInfinity(Value))
-                 ? "-inf"
-                 : Value.ToString(DecimalFormat);
+            if (double.IsNegativeInfinity(Re()))
+                return "-inf";
+            
+            return (FractionalRepresentation)
+                ? AsFractionString()
+                : Re().ToString(DecimalFormat);
         }
     }
 
     // A complex number of the form a + bi
     private sealed class ComplexValue : Value
     {
-        public double RealComponent      { get; }
-        public double ImaginaryComponent { get; }
+        /// <summary>
+        ///     <p>The real component of this <c>ComplexValue</c>.</p>
+        /// </summary>
+        private readonly double _realComponent;
+
+        /// <summary>
+        ///     <p>The imaginary component of this <c>ComplexValue</c>.</p>
+        /// </summary>
+        private readonly double _imaginaryComponent;
 
         internal ComplexValue(double real, double imaginary) =>
-            (RealComponent, ImaginaryComponent) = (real, imaginary);
+            (_realComponent, _imaginaryComponent) = (real, imaginary);
+
+        public override double Re() =>
+            _realComponent;
+
+        public override double Im() =>
+            _imaginaryComponent;
 
         public override Core.Syntax.ValueType AsCoreType() =>
-            Core.Syntax.ValueType.NewComplex(RealComponent, ImaginaryComponent);
+            Core.Syntax.ValueType.NewComplex(Re(), Im());
 
         public override int GetHashCode() =>
-            HashCode.Combine(RealComponent, ImaginaryComponent);
+            HashCode.Combine(Re(), Im());
 
         public override bool Equals(object? obj) => obj switch
         {
-            ComplexValue z => RealComponent.Equals(z.RealComponent)
-                              && ImaginaryComponent.Equals(z.ImaginaryComponent),
-            NumberValue  x => RealComponent.Equals(x.Value)
-                              && ImaginaryComponent.Equals(0),
+            ComplexValue z => Re().Equals(z.Re())
+                              && Im().Equals(z.Im()),
+            NumberValue  x => Re().Equals(x.Re())
+                              && Im().Equals(0),
             _              => false
         };
 
@@ -154,11 +262,11 @@ public abstract class Value : ICoreView<Core.Syntax.ValueType>
         {
             var stringBuilder = new System.Text.StringBuilder();
 
-            var shouldAddPlus = RealComponent != 0;
-            if (RealComponent != 0 || ImaginaryComponent == 0)
-                stringBuilder.Append(RealComponent.ToString(DecimalFormat));
+            var shouldAddPlus = Re() != 0;
+            if (Re() != 0 || Im() == 0)
+                stringBuilder.Append(Re().ToString(DecimalFormat));
 
-            switch (ImaginaryComponent)
+            switch (Im())
             {
                 case  1:
                     if (shouldAddPlus) stringBuilder.Append(" + ");
@@ -172,7 +280,7 @@ public abstract class Value : ICoreView<Core.Syntax.ValueType>
                     break;
                 default:
                     if (shouldAddPlus) stringBuilder.Append(" + ");
-                    stringBuilder.Append(ImaginaryComponent.ToString(DecimalFormat))
+                    stringBuilder.Append(Im().ToString(DecimalFormat))
                                  .Append('i');
                     break;
             }
@@ -184,6 +292,12 @@ public abstract class Value : ICoreView<Core.Syntax.ValueType>
     // An undetermined value - singleton
     private sealed class UndefinedValue : Value
     {
+        public override double Re() =>
+            throw new ArithmeticException("Undefined has no stateful value.");
+
+        public override double Im() =>
+            throw new ArithmeticException("Undefined has no stateful value.");
+
         public override Core.Syntax.ValueType AsCoreType() =>
             Core.Syntax.ValueType.Undefined;
 
@@ -198,6 +312,19 @@ public abstract class Value : ICoreView<Core.Syntax.ValueType>
     }
 
     private Value() {}
+
+    /// <summary>
+    ///     <p>Extracts the real component from this <c>Value</c>.</p>
+    /// </summary>
+    /// <returns> the real component of this <c>Value</c> </returns>
+    /// <exception cref="ArithmeticException"> if the <c>Value</c> is <c>UndefinedValue</c> </exception>
+    public abstract double Re();
+    /// <summary>
+    ///     <p>Extracts the imaginary component from this <c>Value</c>.</p>
+    /// </summary>
+    /// <returns> the imaginary component of this <c>Value</c> </returns>
+    /// <exception cref="ArithmeticException"> if the <c>Value</c> is <c>UndefinedValue</c> </exception>
+    public abstract double Im();
 
     public abstract Core.Syntax.ValueType AsCoreType();
 }

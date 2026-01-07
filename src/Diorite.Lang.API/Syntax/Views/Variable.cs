@@ -44,11 +44,11 @@ public class Variable : ICoreView<Tuple<char, byte>> // equivalent type definiti
     /// <summary>
     ///     <p>The constant value, denoting no subscript.</p>
     /// </summary>
-    public const byte NoSubscript  = 0;
+    private const byte NoSubscript  = 0;
     /// <summary>
     ///     <p>The constant value, denoting the maximum subscript possible for a <b>Diorite</b> variable.</p>
     /// </summary>
-    public const byte MaxSubscript = 9;
+    private const byte MaxSubscript = 9;
 
     /// <summary>
     ///     <p>Creates a new <c>Variable</c> object from the supplied alphabetical, upper-case or lower-case
