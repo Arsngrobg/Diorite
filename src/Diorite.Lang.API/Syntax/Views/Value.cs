@@ -167,7 +167,7 @@ public abstract class Value : ICoreView<Core.Syntax.ValueType>
             {
                 var reciprocal = 1 / r;
                 var closest    = Math.Round(reciprocal);
-                a = (Math.Abs(reciprocal - closest) < FractionResolution)
+                a = Math.Abs(reciprocal - closest) < FractionResolution
                     ? closest
                     : Math.Floor(reciprocal);
 
@@ -184,9 +184,9 @@ public abstract class Value : ICoreView<Core.Syntax.ValueType>
             if (k1.Equals(1))
                 return $"{Re()}";
 
-            return (Re() < 0)
-                ? $"-{h1}/{k1}"
-                : $"{h1}/{k1}";
+            return Re() < 0
+                   ? $"-{h1}/{k1}"
+                   : $"{h1}/{k1}";
         }
 
         public override double Re() =>
@@ -215,9 +215,9 @@ public abstract class Value : ICoreView<Core.Syntax.ValueType>
             if (double.IsNegativeInfinity(Re()))
                 return "-inf";
             
-            return (FractionalRepresentation)
-                ? AsFractionString()
-                : Re().ToString(DecimalFormat);
+            return FractionalRepresentation
+                   ? AsFractionString()
+                   : Re().ToString(DecimalFormat);
         }
     }
 
