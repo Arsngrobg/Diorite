@@ -24,7 +24,7 @@ namespace Diorite.Lang.API.Syntax.Structure;
 ///           functions.
 ///     </i></p>
 /// </summary>
-public class Token
+public sealed class Token
 {
     /// <summary>
     ///     <p>Produces a sequence of ordered <c>Token</c>s from the supplied <c>source</c> input.</p>

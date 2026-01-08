@@ -30,7 +30,7 @@ namespace Diorite.Lang.API.Syntax.Views;
 ///        permutations, that means <b>Diorite</b> supports a total of <c>572</c> variables.
 ///     </p>
 /// </summary>
-public class Variable : ICoreView<Tuple<char, byte>> // equivalent type definition for VariableType in Core
+public sealed class Variable : ICoreView<Tuple<char, byte>> // equivalent type definition for VariableType in Core
 {
     /// <summary>
     ///     <p>The maximum number of variables supported by <b>Diorite</b>.</p>
@@ -123,9 +123,11 @@ public class Variable : ICoreView<Tuple<char, byte>> // equivalent type definiti
         HashCode.Combine(Letter, Subscript);
 
     public override bool Equals(object? obj) =>
-        (obj is Variable other)  &&
-        (Letter == other.Letter) && (Subscript == other.Subscript);
+        obj is Variable other  &&
+        Letter == other.Letter && Subscript == other.Subscript;
 
     public override string ToString() =>
-        (Subscript == 0) ? $"{Letter}" : $"{Letter}{Subscript - 1}";
+        Subscript == 0
+        ? $"{Letter}"
+        : $"{Letter}{Subscript - 1}";
 }

@@ -1,4 +1,19 @@
-﻿using Microsoft.FSharp.Core;
+﻿// ------------------------------------------------------------------------------------------------------------------
+//    _____  __              __ __
+//   |     \|__|.-----.----.|__|  |_.-----.
+//   |  --  |  ||  _  |   _||  |   _|  -__|
+//   |_____/|__||_____|__|  |__|____|_____|
+//
+// ------------------------------------------------------------------------------------------------------------------
+// File:    FunctionMetadata.cs
+// Summary: The type definition for the FunctionMetadata type, which is additional data about a Diorite function
+// Author:  Arsngrobg
+// Version: v1.0
+// ------------------------------------------------------------------------------------------------------------------
+// Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
+// ------------------------------------------------------------------------------------------------------------------
+
+using Microsoft.FSharp.Core;
 
 namespace Diorite.Lang.API.Syntax.Data;
 
