@@ -68,11 +68,5 @@ foreach (var token in tokens)
     Console.WriteLine($"\t{token}");
 }
 
-var tree = Diorite.Lang.Core.Parser.TopLevelParser.ParseString("1 + 2;").ResultValue;
-if (tree.Head is ASTNode.Expression exp)
-{
-    var root = AstNode<object?>.OfCoreExpression(exp.Item);
-    Console.WriteLine(root);
-    Console.WriteLine(root.Children[0]);
-    Console.WriteLine(root.Children[1]);
-}
+var tree = Diorite.Lang.Core.Parser.TopLevelParser.ParseString("1 + 2 + 3;").ResultValue;
+Console.WriteLine(AstNode<object?>.OfCoreType(tree.Head));

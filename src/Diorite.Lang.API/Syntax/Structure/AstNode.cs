@@ -15,7 +15,9 @@
 // ------------------------------------------------------------------------------------------------------------------
 
 using System.Runtime;
+using Diorite.Lang.API.Syntax.Data;
 using Diorite.Lang.API.Syntax.Views;
+using Microsoft.FSharp.Core;
 
 namespace Diorite.Lang.API.Syntax.Structure;
 
@@ -25,18 +27,103 @@ namespace Diorite.Lang.API.Syntax.Structure;
 ///     <p>It provides a rich set of methods for querying the structure of the node itself or the subtree.</p>
 /// </summary>
 /// <typeparam name="T"> the type of the payload value this <c>AstNode</c> carries </typeparam>
-public class AstNode<T>
+public sealed class AstNode<T>
 {
-    // internal static AstNode<object?> OfCoreType(Core.Syntax.ASTNode coreNode)
-    // {
-    //     switch (coreNode)
-    //     {
-    //         case Core.Syntax.ASTNode.Expression exp:
-    //             return OfCoreExpression(exp.Item);
-    //         case Core.Syntax.ASTNode.PlotFunction pltFn:
-    //             break;
-    //     }
-    // }
+    internal static AstNode<object?> OfCoreType(Core.Syntax.ASTNode coreNode)
+    {
+        switch (coreNode)
+        {
+            case Core.Syntax.ASTNode.Expression exp:
+                return OfCoreExpression(exp.Item);
+            case Core.Syntax.ASTNode.PlotFunction pltFn:
+                var anonFn  = OfCoreExpression(pltFn.Item.expression);
+                var anonArg = new AstNode<object?>(
+                    AstNode<object?>.Kind.FunctionArguments,
+                    Variable.OfCoreType(pltFn.Item.parameter),
+                    []
+                );
+                return new AstNode<object?>(
+                    AstNode<object?>.Kind.PlotFunction,
+                    null,
+                    [anonFn, anonArg]
+                );
+            case Core.Syntax.ASTNode.Assignment assign:
+                var lValue = new AstNode<object?>(
+                    AstNode<object?>.Kind.Variable,
+                    Variable.OfCoreType(assign.Item1),
+                    []
+                );
+                var rValue = OfCoreExpression(assign.Item2);
+                return new AstNode<object?>(
+                    AstNode<object?>.Kind.Assignment,
+                    null,
+                    [lValue, rValue]
+                );
+            case Core.Syntax.ASTNode.FunctionDefinition fnDef:
+                var fnAttrs = FunctionAttributes.OfCoreType(fnDef.Item.Item1);
+                var fnBody  = OfCoreFunctionBody(fnDef.Item.Item2);
+                return new AstNode<object?>(
+                    AstNode<object?>.Kind.FunctionDefinition,
+                    fnAttrs,
+                    [fnBody]
+                );
+            default:
+                throw new AmbiguousImplementationException($"Missing mapping for {coreNode.GetType()}");
+        }
+    }
+
+    internal static AstNode<object?> OfCoreFunctionBody(Core.Syntax.FunctionBody coreBody)
+    {
+        switch (coreBody)
+        {
+            case Core.Syntax.FunctionBody.Expression exp:
+                return OfCoreExpression(exp.Item);
+            case Core.Syntax.FunctionBody.PiecewiseConditions piecewiseConditions:
+                var conditions = piecewiseConditions.Item.Select(pwc =>
+                {
+                    var resultNode = pwc.Item1 switch
+                    {
+                        Core.Syntax.FunctionResult.Error err =>
+                            new AstNode<object?>(
+                                AstNode<object?>.Kind.FunctionError,
+                                FSharpOption<string>.get_IsNone(err.Item) ? null : err.Item.Value,
+                                []
+                            ),
+                        Core.Syntax.FunctionResult.Expression exp =>
+                            OfCoreExpression(exp.Item),
+                        _ => throw new AmbiguousImplementationException($"Missing mapping for {pwc.Item1.GetType()}")
+                    };
+                    
+                    var left  = OfCoreExpression(pwc.Item2.Item1);
+                    var right = OfCoreExpression(pwc.Item2.Item3);
+                    var cmpOp = pwc.Item2.Item2;
+
+                    AstNode<object?>.Kind type;
+                    if      (cmpOp.IsEquality)             type = AstNode<object?>.Kind.EqualityComparison;
+                    else if (cmpOp.IsInequality)           type = AstNode<object?>.Kind.InequalityComparison;
+                    else if (cmpOp.IsStrictLessThan)       type = AstNode<object?>.Kind.StrictLessThanComparison;
+                    else if (cmpOp.IsStrictGreaterThan)    type = AstNode<object?>.Kind.StrictGreaterThanComparison;
+                    else if (cmpOp.IsNonStrictLessThan)    type = AstNode<object?>.Kind.NonStrictLessThanComparison;
+                    else if (cmpOp.IsNonStrictGreaterThan) type = AstNode<object?>.Kind.NonStrictGreaterThanComparison;
+                    else throw new AmbiguousImplementationException($"Missing {cmpOp} mapping");
+                    var comparisonNode = new AstNode<object?>(type, null, [left, right]);
+
+                    return new AstNode<object?>(
+                        AstNode<object?>.Kind.PiecewiseCondition,
+                        null,
+                        [resultNode, comparisonNode]
+                    );
+                }).ToArray();
+
+                return new AstNode<object?>(
+                    AstNode<object?>.Kind.PiecewiseConditions,
+                    null,
+                    conditions
+                );
+            default:
+                throw new AmbiguousImplementationException($"Missing mapping for {coreBody.GetType()}");
+        }
+    }
 
     internal static AstNode<object?> OfCoreExpression(Core.Syntax.Expression coreExpression)
     {
@@ -152,6 +239,7 @@ public class AstNode<T>
         ///     <p><i>Example: <c>f(x) = 2*x;</c> OR <c>f(x) = { -x if x &lt; 0; x otherwise; }</c></i></p>
         /// </summary>
         FunctionDefinition,
+        PiecewiseConditions,
         /// <summary>
         ///     <p>The structured representation of a piecewise condition in a <b>Diorite</b> function.</p>
         ///     <p>It's a tree with <c>2</c> children that hold:
