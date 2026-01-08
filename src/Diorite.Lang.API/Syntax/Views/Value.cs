@@ -81,13 +81,13 @@ public abstract class Value : ICoreView<Core.Syntax.ValueType>
         value is NumberValue || (value is ComplexValue && value.Im().Equals(0));
 
     /// <summary>
-    ///     <p>Creates a <c>DioriteValue</c> that stores a numerical value.</p>
+    ///     <p>Creates a <c>Value</c> that stores a numerical value.</p>
     ///     <p>It is not possible for a <c>DioriteValue.NumberValue</c> to store a value of <c>NaN</c> is it is required
     ///        for <c>PiecewiseCondition</c> evaluation.
     ///     </p>
     /// </summary>
     /// <param name="value"> the raw 64-bit decimal value </param>
-    /// <returns> a <c>DioriteValue</c>, if the supplied <c>value</c> is not <c>NaN</c> </returns>
+    /// <returns> a <c>Value</c>, if the supplied <c>value</c> is not <c>NaN</c> </returns>
     /// <exception cref="ArgumentException"> if <c>value</c> is <c>NaN</c> </exception>
     public static Value OfNumber(double value)
     {
@@ -102,13 +102,13 @@ public abstract class Value : ICoreView<Core.Syntax.ValueType>
     }
 
     /// <summary>
-    ///     <p>Creates a <c>DioriteValue</c> that stores a complex value.</p>
+    ///     <p>Creates a <c>Value</c> that stores a complex value.</p>
     ///     <p>A complex number of the form <c>a + bi</c>.</p>
     ///     <p>Where <c>a</c> &amp; <c>b</c> are <c>Real</c> numbers.</p>
     /// </summary>
     /// <param name="real"> the real component of the complex number </param>
     /// <param name="imaginary"> the imaginary component of the complex number </param>
-    /// <returns> a <c>DioriteValue</c> that stores a complex value </returns>
+    /// <returns> a <c>Value</c> that stores a complex value </returns>
     public static Value OfComplex(double real, double imaginary)
     {
         if (double.IsNaN(real) || double.IsNaN(imaginary))
@@ -119,6 +119,18 @@ public abstract class Value : ICoreView<Core.Syntax.ValueType>
 
         return new ComplexValue(real, imaginary);
     }
+
+    /// <summary>
+    ///     <p>Creates a new <c>Value</c> from its equivalent core type.</p>
+    /// </summary>
+    /// <param name="coreValueType"> the equivalent core type </param>
+    /// <returns> a new <c>Value</c>, derived from its equivalent core type </returns>
+    internal static Value OfCoreType(Core.Syntax.ValueType coreValueType) => coreValueType switch
+    {
+        Core.Syntax.ValueType.Number  x => OfNumber (x.Item),
+        Core.Syntax.ValueType.Complex z => OfComplex(z.Item1, z.Item2),
+        _                               => Undefined
+    };
     
     /// <summary>
     ///     <p>A 64-bit, floating-point decimal.</p>
@@ -133,6 +145,10 @@ public abstract class Value : ICoreView<Core.Syntax.ValueType>
         internal NumberValue(double value) =>
             _value = value;
         
+        /// <summary>
+        ///     <p>Returns</p>
+        /// </summary>
+        /// <returns></returns>
         // https://en.wikipedia.org/wiki/Simple_continued_fraction
         private string AsFractionString()
         {
@@ -165,6 +181,7 @@ public abstract class Value : ICoreView<Core.Syntax.ValueType>
             
             while (r >= FractionResolution)
             {
+                // handle error buildup
                 var reciprocal = 1 / r;
                 var closest    = Math.Round(reciprocal);
                 a = Math.Abs(reciprocal - closest) < FractionResolution

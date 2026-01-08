@@ -1,7 +1,12 @@
 ﻿// testing file as the API is implemented
 
-using Diorite.Lang.API.Syntax.Structure;
 using Diorite.Lang.API.Syntax.Views;
+using Diorite.Lang.API.Syntax.Structure;
+using Diorite.Lang.Core.Errors;
+using Diorite.Lang.Core.Syntax;
+using Microsoft.FSharp.Collections;
+using Microsoft.FSharp.Core;
+using Token = Diorite.Lang.API.Syntax.Structure.Token;
 
 var variables = new [] {
     Variable.OfCharacter  ('x'),
@@ -52,4 +57,22 @@ Console.WriteLine("\nValues:");
 foreach (var value in values)
 {
     Console.WriteLine($"\t{value} => {value.AsCoreType()}");
+    Console.WriteLine($"\t\tisComplex? => {Value.IsComplex(value)}");
+    Console.WriteLine($"\t\tisNumber?  => {Value.IsNumber(value)}");
+}
+
+var tokens = Token.TokensOf("x = 2;@");
+Console.WriteLine("\nTokens:");
+foreach (var token in tokens)
+{
+    Console.WriteLine($"\t{token}");
+}
+
+var tree = Diorite.Lang.Core.Parser.TopLevelParser.ParseString("1 + 2;").ResultValue;
+if (tree.Head is ASTNode.Expression exp)
+{
+    var root = AstNode<object?>.OfCoreExpression(exp.Item);
+    Console.WriteLine(root);
+    Console.WriteLine(root.Children[0]);
+    Console.WriteLine(root.Children[1]);
 }

@@ -44,12 +44,12 @@ type UnaryOperator =
     /// </summary>
     | Absolute
     /// <summary>
-    ///     <p>The unary operator for obtaining the imaginary component of a <c>Complex</c> value (<c>im b</c>).</p>
-    ///     <p><i>binds: N/A</i></p>
-    /// </summary>
-    | GetImaginary
-    /// <summary>
-    ///     <p>The unary operator for obtaining the real component of a <c>Complex</c> value (<c>re a</c>).</p>
+    ///     <p>The unary operator for obtaining the real component of a <c>Complex</c> value (<c>re(a)</c>).</p>
     ///     <p><i>binds: N/A</i></p>
     /// </summary>
     | GetReal
+    /// <summary>
+    ///     <p>The unary operator for obtaining the imaginary component of a <c>Complex</c> value (<c>im(b)</c>).</p>
+    ///     <p><i>binds: N/A</i></p>
+    /// </summary>
+    | GetImaginary

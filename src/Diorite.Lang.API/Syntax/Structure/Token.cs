@@ -27,18 +27,43 @@ namespace Diorite.Lang.API.Syntax.Structure;
 public class Token
 {
     /// <summary>
+    ///     <p>Produces a sequence of ordered <c>Token</c>s from the supplied <c>source</c> input.</p>
+    ///     <p>This invokes the <b>Diorite</b> tokeniser and return the sequence of tokens.</p>
+    ///     <p>If an <c>IllegalToken</c> is found in the <c>source</c> code, then it will silently fail, while trying to
+    ///        tokenise as much as it can from the remaining substring context.
+    ///     </p>
+    /// </summary>
+    /// <param name="src"> <b>Diorite</b> source code to tokenise </param>
+    /// <param name="failIfIllegal"> should this method throw an exception if any <c>InvalidToken</c>s found </param>
+    /// <returns> an ordered sequence of <c>Token</c>s </returns>
+    /// <exception cref="ArgumentException"> if <c>failIfIllegal</c> and <c>IllegalToken</c> is found </exception>
+    public static IReadOnlyList<Token> TokensOf(string src, bool failIfIllegal = false)
+    {
+        var tokens = Core.Lexer.Tokenizer.Tokenise(src);
+        if (failIfIllegal)
+        {
+            var error  = Core.Lexer.Tokenizer.GetTokenizerError(tokens);
+            if (error != null)
+                throw new ArgumentException(Core.Errors.ErrorUtilities.StrError(error.Value), nameof(src));
+        }
+
+        var apiTokens = tokens.Select(FromCoreType).ToArray();
+        return apiTokens;
+    }
+
+    /// <summary>
     ///     <p><i>For internal API usage only</i></p>
     ///     <p>Creates a new <c>Token</c> from the supplied core <c>token</c> value, by mapping its data to its
     ///        API type. The API <c>Token</c> type is lossy, as it does not contain the actual payload data the token
     ///        may have. It is a purely structured representation of the <c>Token</c>.
     ///     </p>
     /// </summary>
-    /// <param name="token"> the core <c>Token</c> to map to its API type </param>
+    /// <param name="coreToken"> the core <c>Token</c> to map to its API type </param>
     /// <returns> the core <c>Token</c> type mapped to its API <c>Token</c> type </returns>
-    internal static Token FromCoreType(Core.Syntax.Token token)
+    private static Token FromCoreType(Core.Syntax.Token coreToken)
     {
-        var type = (Kind) token.id.Tag; // STABLE AS LONG AS THE ABI IS ALSO STABLE
-        return new Token(token.lexeme, type, token.line, token.column);
+        var type = (Kind) coreToken.id.Tag; // STABLE AS LONG AS THE ABI IS ALSO STABLE
+        return new Token(coreToken.lexeme, type, coreToken.line, coreToken.column);
     }
 
     /// <summary>

@@ -90,6 +90,14 @@ public class Variable : ICoreView<Tuple<char, byte>> // equivalent type definiti
     }
 
     /// <summary>
+    ///     <p>Creates a new <c>Variable</c> from its equivalent core type.</p>
+    /// </summary>
+    /// <param name="coreVariableType"> the equivalent core type </param>
+    /// <returns> a new <c>Variable</c>, derived from its equivalent core type </returns>
+    internal static Variable OfCoreType(Tuple<char, byte> coreVariableType) =>
+        new (coreVariableType.Item1, coreVariableType.Item2);
+
+    /// <summary>
     ///     <p>The alphabetical character which denotes the variable name <i>(e.g. 'x')</i>.</p>
     /// </summary>
     private char Letter    { get; }

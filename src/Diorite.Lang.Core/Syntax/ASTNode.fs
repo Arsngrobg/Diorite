@@ -27,8 +27,8 @@ type ASTNode =
     /// </summary>
     | Expression         of Expression
     /// <summary>
-    ///     <p>A statement that requests the plot of an anonymouse function (special case of an <c>Expression</c>.</p>
-    ///     <p><i>Example: <c>plot f; # f(x)=2*x</c></i> OR <c>plot (2*x)</c></p>
+    ///     <p>A statement that requests the plot of an anonymous function (special case of an <c>Expression</c>).</p>
+    ///     <p><i>Example: <c>plot f(x); # f(x)=2*x</c></i> OR <c>plot (2*x)</c></p>
     /// </summary>
     | PlotFunction       of AnonymousFunction
     /// <summary>
