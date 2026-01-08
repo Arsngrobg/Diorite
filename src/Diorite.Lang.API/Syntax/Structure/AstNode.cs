@@ -8,7 +8,7 @@
 // File:    AstNode.cs
 // Summary: The type definition for the ASTNode type, which is a node in the Abstract Syntax Tree (AST) of a Diorite
 //          program
-// Author:  Arsngrobg
+// Author:  Arsngrobg, Borngle
 // Version: v1.0
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
@@ -492,4 +492,34 @@ public sealed class AstNode<T>
 
     public override string ToString() =>
         $"AstNode[Type: {Type}, Stores: {(Value == null ? "None" : Value.GetType().Name)}, Children: {Children.Count}]";
+    
+    /// <summary>
+    /// Parses <c>source</c> into a collection <see cref="AstNode{T}"/> objects.
+    /// </summary>
+    /// <param name="source"> <b>Diorite</b> source code to parse </param>
+    /// <returns> the AST </returns>
+    public static List<AstNode<object?>> TreeOf(string source) {
+        var tree = Core.Parser.TopLevelParser.ParseString(source).ResultValue;
+        var astNodes = new List<AstNode<object?>>();
+        foreach (var astNode in tree) {
+            var converted = AstNode<object?>.OfCoreType(astNode);
+            astNodes.Add(converted);
+        }
+        return astNodes;
+    }
+
+    /// <summary>
+    /// Converts an <see cref="AstNode{T}"/> into a string representation. Recurses down each child, incrementing the
+    /// level of indentation to match the tree depth.
+    /// </summary>
+    /// <param name="indentLevel"> the visible depth level </param>
+    /// <returns></returns>
+    public string TreeStr(int indentLevel = 0) {
+        string indent = new string(' ', indentLevel * 2);
+        string result = $"{indent}{this}\n";
+        foreach (var child in Children) {
+            result += child.TreeStr(indentLevel + 1);
+        }
+        return result;
+    }
 }

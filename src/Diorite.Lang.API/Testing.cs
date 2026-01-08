@@ -2,10 +2,6 @@
 
 using Diorite.Lang.API.Syntax.Views;
 using Diorite.Lang.API.Syntax.Structure;
-using Diorite.Lang.Core.Errors;
-using Diorite.Lang.Core.Syntax;
-using Microsoft.FSharp.Collections;
-using Microsoft.FSharp.Core;
 using Token = Diorite.Lang.API.Syntax.Structure.Token;
 
 var variables = new [] {
@@ -68,5 +64,10 @@ foreach (var token in tokens)
     Console.WriteLine($"\t{token}");
 }
 
-var tree = Diorite.Lang.Core.Parser.TopLevelParser.ParseString("1 + 2 + 3;").ResultValue;
-Console.WriteLine(AstNode<object?>.OfCoreType(tree.Head));
+Console.WriteLine("\nTrees:");
+var ast = AstNode<object?>.TreeOf("2 / 3; 3 + 3;");
+Console.WriteLine(ast.Count);
+foreach (var astNode in ast)
+{
+    Console.WriteLine(astNode.TreeStr());
+}
