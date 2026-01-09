@@ -26,11 +26,6 @@ namespace Diorite.Lang.API.Syntax.Data;
 /// </summary>
 public sealed class FunctionParameter
 {
-    /// <summary>
-    ///     <p>Creates a new <c>FunctionParameter</c> from its equivalent core type.</p>
-    /// </summary>
-    /// <param name="coreParameter"> the equivalent core type </param>
-    /// <returns> a new <c>FunctionParameter</c>, derived from its equivalent core type </returns>
     internal static FunctionParameter OfCoreType(Tuple<Tuple<char, byte>, Core.Syntax.NumberSet> coreParameter)
     {
         var variable  = Variable.OfCoreType(coreParameter.Item1);

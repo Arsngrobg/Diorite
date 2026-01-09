@@ -25,11 +25,6 @@ namespace Diorite.Lang.API.Syntax.Data;
 /// </summary>
 public class FunctionAttributes
 {
-    /// <summary>
-    ///     <p>Creates a new <c>FunctionAttributes</c> from its equivalent core type.</p>
-    /// </summary>
-    /// <param name="coreAttributes"> the equivalent core type </param>
-    /// <returns> a new <c>FunctionAttributes</c>, derived from its equivalent core type </returns>
     internal static FunctionAttributes OfCoreType(Core.Syntax.FunctionAttributes coreAttributes)
     {
         var identifier = Variable.OfCoreType(coreAttributes.identifier);

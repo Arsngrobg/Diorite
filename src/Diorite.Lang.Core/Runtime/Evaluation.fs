@@ -418,9 +418,9 @@ module Evaluation =
     /// <returns> a sequence of <c>(ValueType * Memory) Result</c>s - <c>None</c> results are ignored</returns>
     let EvalString (source: string) (memory: Memory): DefiniteResult list =
         let tokens: TokenStream = source |> Tokenise
-        match (GetTokenizerError tokens) with
-         | Some err -> [Error err]
-         | None     ->
+        match (GetTokenizerErrors tokens) with
+         | head :: _ -> [Error head]
+         | []        ->
              match (ParseTokens tokens) with
               | Error err  -> [Error err]
               | Ok    tree -> (EvalTree tree memory)

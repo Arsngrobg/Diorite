@@ -60,9 +60,16 @@ foreach (var value in values)
     Console.WriteLine($"\t\tisNumber?  => {Value.IsNumber(value)}");
 }
 
-var tokens = Token.TokensOf("x = 2;@");
+var tokens1 = Token.TokensOf("x = 2;@sakd @@ @", failIfIllegal: false);
 Console.WriteLine("\nTokens:");
-foreach (var token in tokens)
+foreach (var token in tokens1)
+{
+    Console.WriteLine($"\t{token}");
+}
+
+var tokens2 = Token.TokensOf("x = 2;");
+Console.WriteLine("\nTokens:");
+foreach (var token in tokens2)
 {
     Console.WriteLine($"\t{token}");
 }

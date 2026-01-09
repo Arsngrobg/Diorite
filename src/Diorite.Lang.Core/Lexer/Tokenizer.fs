@@ -439,20 +439,17 @@ module Tokenizer =
         (Accumulate sourceCharacters) []
 
     /// <summary>
-    ///     <p>Filters all <c>IllegalToken</c> tokens from the supplied <c>TokenStream</c>, and maps it to a
-    ///        <c>SyntaxError</c>.
+    ///     <p>Filters all <c>IllegalToken</c> tokens from the supplied <c>TokenStream</c>, maps it to a
+    ///        <c>SyntaxError</c>, and returns the list of errors.
     ///     </p>
     /// </summary>
     /// <param name="stream"> the <c>TokenStream</c> </param>
-    /// <returns> a list of <c>SyntaxError</c>s - may be empty </returns>
-    let GetTokenizerError (stream: TokenStream): DioriteError option =
-        // helper function
-        let rec CreateParagraph (stream: TokenStream): string list =
-            match stream with
-             | []                                       -> []
-             | {id=TokenType.IllegalToken} as t :: tail -> $"\n\tIllegalToken: \"{t.lexeme}\"" :: (CreateParagraph tail)
-             | _                                :: tail -> CreateParagraph tail
-
-        match (CreateParagraph stream) with
-         | []   -> None
-         | errs -> (String.concat "" errs, None) |> (DioriteError.SyntaxError >> Some)
+    /// <returns> a list of <c>SyntaxError</c>s - may be empty (no errors) </returns>
+    let rec GetTokenizerErrors (stream: TokenStream): DioriteError list =
+        match stream with
+         | [] -> []
+         | {id=TokenType.IllegalToken} as t :: tail -> DioriteError.SyntaxError (
+                                                           $"IllegalToken - \"{t.lexeme}\"",
+                                                           Some (t.line, t.column)
+                                                       ) :: GetTokenizerErrors tail
+         | _                                :: tail  -> GetTokenizerErrors tail

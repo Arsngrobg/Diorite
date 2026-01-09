@@ -22,11 +22,6 @@ namespace Diorite.Lang.API.Syntax.Data;
 /// </summary>
 public sealed class FunctionMetadata
 {
-    /// <summary>
-    ///     <p>Creates a new <c>FunctionMetadata</c> from its equivalent core type.</p>
-    /// </summary>
-    /// <param name="coreMetadata"> the equivalent core type </param>
-    /// <returns> a new <c>FunctionMetadata</c>, derived from its equivalent core type </returns>
     internal static FunctionMetadata OfCoreType(Core.Syntax.FunctionMetadata coreMetadata) =>
         new (
             FSharpOption<string>.get_IsNone(coreMetadata.symbol)

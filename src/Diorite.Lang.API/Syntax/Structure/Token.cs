@@ -34,32 +34,25 @@ public sealed class Token
     ///     </p>
     /// </summary>
     /// <param name="src"> <b>Diorite</b> source code to tokenise </param>
-    /// <param name="failIfIllegal"> should this method throw an exception if any <c>InvalidToken</c>s found </param>
+    /// <param name="failIfIllegal"> should this method throw a <see cref="Exception"/> if any <c>InvalidToken</c>s
+    ///                              found
+    /// </param>
     /// <returns> an ordered sequence of <c>Token</c>s </returns>
-    /// <exception cref="ArgumentException"> if <c>failIfIllegal</c> and <c>IllegalToken</c> is found </exception>
+    /// <exception cref="Exception"> if <c>failIfIllegal</c> and <c>IllegalToken</c> is found </exception>
     public static IReadOnlyList<Token> TokensOf(string src, bool failIfIllegal = false)
     {
         var tokens = Core.Lexer.Tokenizer.Tokenise(src);
         if (failIfIllegal)
         {
-            var error  = Core.Lexer.Tokenizer.GetTokenizerError(tokens);
+            var error  = Core.Lexer.Tokenizer.GetTokenizerErrors(tokens);
             if (error != null)
-                throw new ArgumentException(Core.Errors.ErrorUtilities.StrError(error.Value), nameof(src));
+                throw new Exception("yeha error ig");
         }
 
         var apiTokens = tokens.Select(FromCoreType).ToArray();
         return apiTokens;
     }
 
-    /// <summary>
-    ///     <p><i>For internal API usage only</i></p>
-    ///     <p>Creates a new <c>Token</c> from the supplied core <c>token</c> value, by mapping its data to its
-    ///        API type. The API <c>Token</c> type is lossy, as it does not contain the actual payload data the token
-    ///        may have. It is a purely structured representation of the <c>Token</c>.
-    ///     </p>
-    /// </summary>
-    /// <param name="coreToken"> the core <c>Token</c> to map to its API type </param>
-    /// <returns> the core <c>Token</c> type mapped to its API <c>Token</c> type </returns>
     private static Token FromCoreType(Core.Syntax.Token coreToken)
     {
         var type = (Kind) coreToken.id.Tag; // STABLE AS LONG AS THE ABI IS ALSO STABLE
