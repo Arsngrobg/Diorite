@@ -374,4 +374,10 @@ public abstract class Value : ICoreView<Core.Syntax.ValueType>
     public abstract double Im();
 
     public abstract Core.Syntax.ValueType AsCoreType();
+
+    public abstract override int GetHashCode();
+
+    public abstract override bool Equals(object? obj);
+    
+    public abstract override string ToString();
 }
