@@ -44,9 +44,12 @@ var values = new [] {
     Value.OfComplex(25, 0 ),
     Value.OfComplex(0 , 0 ),
     
-    Value.ImUnit,
+    Value.Pi,
+    Value.Tau,
+    Value.E,
     Value.PInfinity,
     Value.NInfinity,
+    Value.ImUnit,
     Value.Undefined
 };
 Console.WriteLine("\nValues:");
