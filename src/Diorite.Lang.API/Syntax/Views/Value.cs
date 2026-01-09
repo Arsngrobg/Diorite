@@ -158,7 +158,30 @@ public abstract class Value : ICoreView<Core.Syntax.ValueType>
         Core.Syntax.ValueType.Complex z => OfComplex(z.Item1, z.Item2),
         _                               => Undefined
     };
+
+    private Value() {}
+
+    /// <summary>
+    ///     <p>Extracts the real component from this <c>Value</c>.</p>
+    /// </summary>
+    /// <returns> the real component of this <c>Value</c> </returns>
+    /// <exception cref="ArithmeticException"> if the <c>Value</c> is <c>UndefinedValue</c> </exception>
+    public abstract double Re();
+    /// <summary>
+    ///     <p>Extracts the imaginary component from this <c>Value</c>.</p>
+    /// </summary>
+    /// <returns> the imaginary component of this <c>Value</c> </returns>
+    /// <exception cref="ArithmeticException"> if the <c>Value</c> is <c>UndefinedValue</c> </exception>
+    public abstract double Im();
+
+    public abstract Core.Syntax.ValueType AsCoreType();
+
+    public abstract override int GetHashCode();
+
+    public abstract override bool Equals(object? obj);
     
+    public abstract override string ToString();
+
     /// <summary>
     ///     <p>A 64-bit, floating-point decimal.</p>
     /// </summary>
@@ -357,27 +380,4 @@ public abstract class Value : ICoreView<Core.Syntax.ValueType>
         public override string ToString() =>
             "undefined";
     }
-
-    private Value() {}
-
-    /// <summary>
-    ///     <p>Extracts the real component from this <c>Value</c>.</p>
-    /// </summary>
-    /// <returns> the real component of this <c>Value</c> </returns>
-    /// <exception cref="ArithmeticException"> if the <c>Value</c> is <c>UndefinedValue</c> </exception>
-    public abstract double Re();
-    /// <summary>
-    ///     <p>Extracts the imaginary component from this <c>Value</c>.</p>
-    /// </summary>
-    /// <returns> the imaginary component of this <c>Value</c> </returns>
-    /// <exception cref="ArithmeticException"> if the <c>Value</c> is <c>UndefinedValue</c> </exception>
-    public abstract double Im();
-
-    public abstract Core.Syntax.ValueType AsCoreType();
-
-    public abstract override int GetHashCode();
-
-    public abstract override bool Equals(object? obj);
-    
-    public abstract override string ToString();
 }

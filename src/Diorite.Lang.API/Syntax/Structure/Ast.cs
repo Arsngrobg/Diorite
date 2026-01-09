@@ -392,86 +392,6 @@ public abstract class Ast : IEnumerable<Ast>
         /// </summary>
         NonStrictGreaterThanComparison
     }
-
-    /// <summary>
-    ///     <p>This is the case of <c>Ast</c> where it has no children (leaf node) and carries a payload value of type
-    ///        <c>T</c>, which cannot be <c>null</c>.
-    ///     </p>
-    ///     <p>You can check to see if a generic <c>Ast</c> is a <c>ValueNode</c> via the <see cref="Ast.IsLeafNode()"/>
-    ///        method.
-    ///     </p>
-    /// </summary>
-    /// <typeparam name="T"> the payload value of this <c>ValueNode</c> </typeparam>
-    private sealed class ValueNode<T> : Ast where T : notnull
-    {
-        /// <summary>
-        ///     <p>The payload value of this <c>ValueNode</c>.</p>
-        ///     <p><i>It cannot be null.</i></p>
-        /// </summary>
-        private  T Value { get; }
-
-        internal ValueNode(Kind type, T value) : base(type) =>
-            Value = value;
-
-        public override IEnumerator<Ast> GetEnumerator() =>
-            Enumerable.Empty<Ast>().GetEnumerator();
-
-        public override TU? GetValue<TU>() where TU : default =>
-            Value is TU v
-            ? v
-            : default;
-
-        public override int ChildCount() =>
-            0;
-
-        public override int GetHashCode() =>
-            HashCode.Combine(Type, Value);
-
-        public override bool Equals(object? obj) =>
-            obj is ValueNode<T> other &&
-            Type == other.Type && Value.Equals(other.Value);
-
-        public override string ToString() =>
-            Value is Array values
-            ? $"AST[Type: {Type}, Values: {values.Length}]"
-            : $"AST[Type: {Type}, Value: {Value}]";
-    }
-
-    /// <summary>
-    ///     <p>This is the case of <c>Ast</c> where it has child nodes.</p>
-    ///     <p>You can check to see if a generic <c>Ast</c> is a <c>BranchNode</c> via the <c>false</c> result of the
-    ///        <see cref="Ast.IsLeafNode()"/> method.
-    ///     </p>
-    /// </summary>
-    private sealed class BranchNode : Ast
-    {
-        /// <summary>
-        ///     <p>The ordered sequence of children this <c>BranchNode</c> branches to.</p>
-        /// </summary>
-        private IReadOnlyList<Ast> Children { get; }
-
-        internal BranchNode(Kind type, IReadOnlyList<Ast> children) : base(type) =>
-            Children = children;
-
-        public override T? GetValue<T>() where T : default =>
-            default;
-
-        public override IEnumerator<Ast> GetEnumerator() =>
-            Children.GetEnumerator();
-
-        public override int ChildCount() =>
-            Children.Count;
-
-        public override int GetHashCode() =>
-            HashCode.Combine(Type, Children);
-
-        public override bool Equals(object? obj) =>
-            obj is BranchNode other &&
-            Type == other.Type && Children.SequenceEqual(other.Children);
-
-        public override string ToString() =>
-            $"AST[Type: {Type}, Children: {Children.Count}]";
-    }
     
     /// <summary>
     ///     <p>The type of node this <c>AstNode</c> represents.</p>
@@ -632,9 +552,87 @@ public abstract class Ast : IEnumerable<Ast>
         return result;
     }
 
-    public abstract override int GetHashCode();
-
-    public abstract override bool Equals(object? obj);
-
+    public abstract override int    GetHashCode();
+    public abstract override bool   Equals(object? obj);
     public abstract override string ToString();
+
+    /// <summary>
+    ///     <p>This is the case of <c>Ast</c> where it has child nodes.</p>
+    ///     <p>You can check to see if a generic <c>Ast</c> is a <c>BranchNode</c> via the <c>false</c> result of the
+    ///        <see cref="Ast.IsLeafNode()"/> method.
+    ///     </p>
+    /// </summary>
+    private sealed class BranchNode : Ast
+    {
+        /// <summary>
+        ///     <p>The ordered sequence of children this <c>BranchNode</c> branches to.</p>
+        /// </summary>
+        private IReadOnlyList<Ast> Children { get; }
+
+        internal BranchNode(Kind type, IReadOnlyList<Ast> children) : base(type) =>
+            Children = children;
+
+        public override T? GetValue<T>() where T : default =>
+            default;
+
+        public override IEnumerator<Ast> GetEnumerator() =>
+            Children.GetEnumerator();
+
+        public override int ChildCount() =>
+            Children.Count;
+
+        public override int GetHashCode() =>
+            HashCode.Combine(Type, Children);
+
+        public override bool Equals(object? obj) =>
+            obj is BranchNode other &&
+            Type == other.Type && Children.SequenceEqual(other.Children);
+
+        public override string ToString() =>
+            $"AST[Type: {Type}, Children: {Children.Count}]";
+    }
+
+    /// <summary>
+    ///     <p>This is the case of <c>Ast</c> where it has no children (leaf node) and carries a payload value of type
+    ///        <c>T</c>, which cannot be <c>null</c>.
+    ///     </p>
+    ///     <p>You can check to see if a generic <c>Ast</c> is a <c>ValueNode</c> via the <see cref="Ast.IsLeafNode()"/>
+    ///        method.
+    ///     </p>
+    /// </summary>
+    /// <typeparam name="T"> the payload value of this <c>ValueNode</c> </typeparam>
+    private sealed class ValueNode<T> : Ast where T : notnull
+    {
+        /// <summary>
+        ///     <p>The payload value of this <c>ValueNode</c>.</p>
+        ///     <p><i>It cannot be null.</i></p>
+        /// </summary>
+        private  T Value { get; }
+
+        internal ValueNode(Kind type, T value) : base(type) =>
+            Value = value;
+
+        public override IEnumerator<Ast> GetEnumerator() =>
+            Enumerable.Empty<Ast>().GetEnumerator();
+
+        public override TU? GetValue<TU>() where TU : default =>
+            Value is TU v
+                ? v
+                : default;
+
+        public override int ChildCount() =>
+            0;
+
+        public override int GetHashCode() =>
+            HashCode.Combine(Type, Value);
+
+        public override bool Equals(object? obj) =>
+            obj is ValueNode<T> other &&
+            Type == other.Type && Value.Equals(other.Value);
+
+        public override string ToString() =>
+            Value is Array values
+                ? $"AST[Type: {Type}, Values: {values.Length}]"
+                : $"AST[Type: {Type}, Value: {Value}]";
+    }
 }
