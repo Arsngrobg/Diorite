@@ -319,7 +319,7 @@ module Evaluation =
         let (variable: VariableType), (expression: Expression) = assignment
         ((expression, memory) ||> EvalExpression)
         |> Result.map (fun result ->
-               let newState: Memory = SetVariable memory (variable, CellData.OfValue result)
+               let newState: Memory = SetVariable memory variable (CellData.OfValue result)
                (Some result, newState)
            )
 
@@ -334,7 +334,7 @@ module Evaluation =
     /// <param name="memory"> the stateful context to reference from </param>
     let EvalFnPlot (anonymousFunction: AnonymousFunction) (memory: Memory): unit =
         let bakedEval: ValueType -> ReadOnly = (fun input ->
-            let scopedMemory: Memory = (anonymousFunction.parameter, CellData.OfValue input) |> (SetVariable memory)
+            let scopedMemory: Memory = SetVariable memory anonymousFunction.parameter (CellData.OfValue input)
             (anonymousFunction.expression, scopedMemory) ||> EvalExpression
         )
 
@@ -348,7 +348,7 @@ module Evaluation =
     /// <returns> a <c>ValueType</c> as a result of this evaluation &amp; the mutated memory state </returns>
     let EvalFnDef (fn: FunctionType) (memory: Memory): WriteOnly =
         let (fnAttrs: FunctionAttributes), _ = fn
-        let newState: Memory = (fnAttrs.identifier,      CellData.OfFunction fn) |> (SetVariable  memory)
+        let newState: Memory = SetVariable memory fnAttrs.identifier (CellData.OfFunction fn)
         match fnAttrs.metadata.symbol with
          | None     -> newState
          | Some sym ->

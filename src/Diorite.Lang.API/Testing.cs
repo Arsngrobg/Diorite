@@ -3,6 +3,7 @@
 using Diorite.Lang.API.Syntax.Views;
 using Diorite.Lang.API.Syntax.Structure;
 using Token = Diorite.Lang.API.Syntax.Structure.Token;
+using Diorite.Lang.Core.Runtime;
 
 var variables = new [] {
     Variable.OfCharacter  ('x'),
@@ -71,3 +72,5 @@ foreach (var astNode in ast)
 {
     Console.WriteLine(astNode.TreeStr());
 }
+
+Console.WriteLine("\nMemory:");

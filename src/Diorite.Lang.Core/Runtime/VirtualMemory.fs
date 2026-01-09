@@ -148,7 +148,7 @@ module VirtualMemory =
     /// <param name="slot"> the <c>VariableType</c> that points to an index in the <c>VariableTable</c> </param>
     /// <param name="value"> <c>CellData</c> that either contains a function or value </param>
     /// <returns> a new <c>Memory</c> struct that carries the new variable table </returns>
-    let SetVariable (memory: Memory) (slot: VariableType, value: CellData): Memory =
+    let SetVariable (memory: Memory) (slot: VariableType) (value: CellData): Memory =
         let position: int = IndexOf slot
         let tableCopy: VariableTable = memory.variables |> (Array.updateAt position value)
         {
