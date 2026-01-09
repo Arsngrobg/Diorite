@@ -6,7 +6,7 @@
 //
 // ------------------------------------------------------------------------------------------------------------------
 // File:    Memory.cs
-// Summary: The type definition for the Memory type in VirtualMemory
+// Summary: The type definition for the Memory, the primary storage type for <b>Diorite</b>
 // Author:  Borngle
 // Version: v1.0
 // ------------------------------------------------------------------------------------------------------------------
@@ -53,8 +53,12 @@ public class Memory : ICoreView<Core.Runtime.VirtualMemory.Memory> {
 
     public Memory UpdateSymbol(string alias, Function function) {
         var functionCore = function.AsCoreType();
-        var newCoreMemory = _coreMemory;
-        newCoreMemory.symbols.Add(alias, functionCore);
+        var newSymbols = _coreMemory.symbols.Add(alias, functionCore);
+        var newCoreMemory = new Core.Runtime.VirtualMemory.Memory(
+            _coreMemory.variables,
+            newSymbols,
+            _coreMemory.plotCallback
+        );
         return new Memory(newCoreMemory);
     }
 

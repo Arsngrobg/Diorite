@@ -6,7 +6,7 @@
 //
 // ------------------------------------------------------------------------------------------------------------------
 // File:    Function.cs
-// Summary: The type definition for the Function type
+// Summary: The type definition for the Function, the structured representation of a function
 // Author:  Borngle
 // Version: v1.0
 // ------------------------------------------------------------------------------------------------------------------
