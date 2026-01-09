@@ -291,7 +291,9 @@ public abstract class Value : ICoreView<Core.Syntax.ValueType>
         }
     }
 
-    // A complex number of the form a + bi
+    /// <summary>
+    ///     <p>A complex number of the form <c>a + bi</c>.</p>
+    /// </summary>
     private sealed class ComplexValue : Value
     {
         /// <summary>
@@ -358,8 +360,9 @@ public abstract class Value : ICoreView<Core.Syntax.ValueType>
             return stringBuilder.ToString();
         }
     }
-
-    // An undetermined value - singleton
+    /// <summary>
+    ///     <p>An undetermined value - singleton.</p>
+    /// </summary>
     private sealed class UndefinedValue : Value
     {
         public override double Re() =>
