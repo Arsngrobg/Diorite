@@ -47,6 +47,22 @@ public abstract class Value : ICoreView<Core.Syntax.ValueType>
     public static readonly Value NInfinity = new NumberValue(double.NegativeInfinity);
 
     /// <summary>
+    ///     <p>A constant value for the <c>Number</c> core type.</p>
+    ///     <p>It is a <c>Number</c> carrying a value of <c>double.Pi</c>.</p>
+    /// </summary>
+    public static readonly Value Pi        = new NumberValue(double.Pi);
+    /// <summary>
+    ///     <p>A constant value for the <c>Number</c> core type.</p>
+    ///     <p>It is a <c>Number</c> carrying a value of <c>double.Tau</c>.</p>
+    /// </summary>
+    public static readonly Value Tau       = new NumberValue(double.Tau);
+    /// <summary>
+    ///     <p>A constant value for the <c>Number</c> core type.</p>
+    ///     <p>It is a <c>Number</c> carrying a value of <c>double.E</c>.</p>
+    /// </summary>
+    public static readonly Value E         = new NumberValue(double.E);
+
+    /// <summary>
     ///     <p>A constant value for the <c>Complex</c> core type.</p>
     ///     <p>It is a <c>Complex</c> value carrying a value of the imaginary unit (<c>i</c>).</p>
     /// </summary>
@@ -62,6 +78,7 @@ public abstract class Value : ICoreView<Core.Syntax.ValueType>
 
     private const string DecimalFormat      = "G10"; // for string representations
     private const double FractionResolution = 1e-10; // for determining fractional representation
+    private const int    FractionIterations = 1000;  // for capping the number of iterations of the CF
 
     /// <summary>
     ///     <p>Helper method to check whether the supplied <c>Value</c> is a <c>ComplexValue</c>.</p>
@@ -95,10 +112,20 @@ public abstract class Value : ICoreView<Core.Syntax.ValueType>
             return PInfinity;
         if (double.IsNegativeInfinity(value))
             return NInfinity;
-
-        return double.IsNaN(value)
-             ? throw new ArgumentException("Cannot represent double.NaN using DioriteValue.NumberValue", nameof(value))
-             : new NumberValue(value);
+        
+        return value switch
+        {
+            double.Pi  => Pi,
+            double.Tau => Tau,
+            double.E   => E,
+            _          =>
+                double.IsNaN(value)
+                ? throw new ArgumentException(
+                    "Cannot represent double.NaN using DioriteValue.NumberValue",
+                    nameof(value)
+                )
+                : new NumberValue(value)
+        };
     }
 
     /// <summary>
@@ -178,8 +205,9 @@ public abstract class Value : ICoreView<Core.Syntax.ValueType>
             var k1 = 1.0;
             var h2 = 1.0;
             var k2 = 0.0;
-            
-            while (r >= FractionResolution)
+
+            var i = 1;
+            while (r >= FractionResolution && i < FractionIterations)
             {
                 // handle error buildup
                 var reciprocal = 1 / r;
@@ -196,10 +224,12 @@ public abstract class Value : ICoreView<Core.Syntax.ValueType>
                 k2 = k1;
                 h1 = hn;
                 k1 = kn;
+
+                i++;
             }
 
-            if (k1.Equals(1))
-                return $"{Re()}";
+            if (i == FractionIterations || k1.Equals(1))
+                return $"{Re().ToString(DecimalFormat)}";
 
             return Re() < 0
                    ? $"-{h1}/{k1}"
