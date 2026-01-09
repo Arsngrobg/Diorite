@@ -1,8 +1,11 @@
 ﻿// testing file as the API is implemented
 
+using Diorite.Lang.API;
 using Diorite.Lang.API.Syntax.Views;
 using Diorite.Lang.API.Syntax.Structure;
 using Token = Diorite.Lang.API.Syntax.Structure.Token;
+
+Console.WriteLine($"Running Diorite Ver{DioriteVersion.CoreVersion} using API Ver {DioriteVersion.ApiVersion}");
 
 var variables = new [] {
     Variable.OfCharacter  ('x'),
