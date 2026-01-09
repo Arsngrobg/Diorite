@@ -240,15 +240,15 @@ module Combinators =
     ///     <p>The <c>Parser</c> that accepts a <b>Diorite</b> factor.</p>
     ///     <code>
     ///        &lt;Exponent&gt; ::= &lt;Factorial&gt;
-    ///                    |  &lt;Factorial&gt; "^" &lt;Factorial&gt;
+    ///                    |  &lt;Factorial&gt; "^" &lt;Factor&gt;
     ///     </code>
     /// </summary>
     and ExponentParser: DeferredParser<Expression> = fun () ->
         let factorial: Parser<Expression> = Deferred FactorialParser
 
         Any [
-            // <Exponent> ::= <Factorial> "^" <Factorial>
-            (factorial |> Then <|((Accept TokenType.Hat) |> IgnoreThen <| factorial)) |> Map (
+            // <Exponent> ::= <Factorial> "^" <Factor>
+            (factorial |> Then <|((Accept TokenType.Hat) |> IgnoreThen <| (Deferred FactorParser))) |> Map (
                 fun (l, r) -> Expression.BinaryOperation (l, BinaryOperator.Exponent, r)
             )
 
