@@ -68,11 +68,31 @@ foreach (var token in tokens)
 }
 
 Console.WriteLine("\nTrees:");
-var ast = AstNode<object?>.TreeOf("2 / 3; 3 + 3;");
-Console.WriteLine(ast.Count);
-foreach (var astNode in ast)
-{
-    Console.WriteLine(astNode.TreeStr());
+var ast = Ast.TreeOf("""
+100;
+3.245;
+1/3;
+1*10^-3;
+complex(25, 25);
+complex(0,  25);
+complex(25, 0 );
+complex(0,  0 );
+pi;
+tau;
+euler;
++inf;
+-inf;
+undefined;
+
+[symbol:abs]
+f(x: R) -> R = {
+    -x   if x < 0;
+     x   otherwise;
 }
+f(-2.43);
+
+x = 1200*(2139+124);
+""");
+Console.WriteLine(ast.TreeStr());
 
 Console.WriteLine("\nMemory:");

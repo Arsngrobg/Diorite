@@ -68,5 +68,7 @@ public sealed class FunctionMetadata
         Symbol == other.Symbol && Inlined == other.Inlined && Memoized == other.Memoized;
 
     public override string ToString() =>
-        $"FunctionMetadata[Symbol = {Symbol}, Inlined: {Inlined}, Memoized: {Memoized}]";
+        Symbol == null
+        ? $"FunctionMetadata[Inlined: {Inlined}, Memoized: {Memoized}]"
+        : $"FunctionMetadata[Symbol: {Symbol}, Inlined: {Inlined}, Memoized: {Memoized}]";
 }

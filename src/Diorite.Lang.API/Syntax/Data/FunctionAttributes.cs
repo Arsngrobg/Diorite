@@ -101,5 +101,6 @@ public class FunctionAttributes
         Metadata.Equals(other.Metadata);
 
     public override string ToString() =>
-        $"FunctionAttributes[Identifier: {Identifier}, Parameters: {Parameters}, Range: {Range}, Metadata: {Metadata}]";
+        $"FunctionAttributes" +
+        $"[Identifier: {Identifier}, Parameters: {Parameters.Count}, Range: {Range}, Metadata: {Metadata}]";
 }
