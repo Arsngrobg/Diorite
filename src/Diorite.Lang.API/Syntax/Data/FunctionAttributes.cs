@@ -22,6 +22,9 @@ namespace Diorite.Lang.API.Syntax.Data;
 ///     <p>The <c>FunctionMetadata</c> record type contains type information about a function definition.</p>
 ///     <p>It also maintains the identifier which this function is bound to, and its <c>FunctionMetadata</c>.</p>
 ///     <p><i>This is a concrete field, meaning it cannot be modified after the function definition.</i></p>
+///     <p><i>This is a <b>Read-Only</b> type, meaning they cannot and should not be instantiated outside of API
+///           functions.
+///     </i></p>
 /// </summary>
 public class FunctionAttributes
 {

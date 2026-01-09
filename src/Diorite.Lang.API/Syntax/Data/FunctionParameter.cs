@@ -23,6 +23,9 @@ namespace Diorite.Lang.API.Syntax.Data;
 ///     <p><b>2.</b> The second value (<c>NumberSet</c>), which denotes the number set which the parameter must comply
 ///        with in order for the function to accept it.
 ///     </p>
+///     <p><i>This is a <b>Read-Only</b> type, meaning they cannot and should not be instantiated outside of API
+///           functions.
+///     </i></p>
 /// </summary>
 public sealed class FunctionParameter
 {

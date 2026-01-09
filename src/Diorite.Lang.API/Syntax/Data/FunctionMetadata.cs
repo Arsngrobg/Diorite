@@ -19,6 +19,9 @@ namespace Diorite.Lang.API.Syntax.Data;
 
 /// <summary>
 ///     <p>The <c>FunctionMetadata</c> type are options relating to a function definition in <b>Diorite</b>.</p>
+///     <p><i>This is a <b>Read-Only</b> type, meaning they cannot and should not be instantiated outside of API
+///           functions.
+///     </i></p>
 /// </summary>
 public sealed class FunctionMetadata
 {

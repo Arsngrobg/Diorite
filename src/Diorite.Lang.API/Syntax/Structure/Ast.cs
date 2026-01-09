@@ -26,6 +26,9 @@ namespace Diorite.Lang.API.Syntax.Structure;
 ///     <p>The <c>Ast</c> type is a structured representation of <b>Diorite</b> code.</p>
 ///     <p>In short, it is the Abstract Syntax Tree (AST) of the provided source code.</p>
 ///     <p>It provides a rich set of methods for querying the structure of the node itself or the subtree.</p>
+///     <p><i>This is a <b>Read-Only</b> type, meaning they cannot and should not be instantiated outside of API
+///           functions.
+///     </i></p>
 /// </summary>
 public abstract class Ast : IEnumerable<Ast>
 {
@@ -86,7 +89,7 @@ public abstract class Ast : IEnumerable<Ast>
         }
     }
 
-    private static Ast OfCoreFunctionBody(Core.Syntax.FunctionBody coreBody)
+    internal static Ast OfCoreFunctionBody(Core.Syntax.FunctionBody coreBody)
     {
         switch (coreBody)
         {
