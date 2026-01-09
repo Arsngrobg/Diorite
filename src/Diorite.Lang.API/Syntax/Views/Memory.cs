@@ -19,7 +19,7 @@ using Diorite.Lang.Core.Runtime;
 namespace Diorite.Lang.API.Syntax.Views;
 
 public class Memory : ICoreView<Core.Runtime.VirtualMemory.Memory> {
-    private readonly  Core.Runtime.VirtualMemory.Memory _coreMemory;
+    private readonly Core.Runtime.VirtualMemory.Memory _coreMemory;
     
     public Memory(Core.Runtime.VirtualMemory.Memory coreMemory) {
         _coreMemory = coreMemory;
@@ -27,6 +27,11 @@ public class Memory : ICoreView<Core.Runtime.VirtualMemory.Memory> {
     
     public Core.Runtime.VirtualMemory.Memory AsCoreType() {
         return _coreMemory;
+    }
+
+    public int IndexOf(Variable variable) {
+        var coreVariable = variable.AsCoreType(); 
+        return VirtualMemory.IndexOf(coreVariable.Item1, coreVariable.Item2);
     }
     
     public VirtualMemory.CellData GetVariable(Variable variable) {
@@ -63,7 +68,22 @@ public class Memory : ICoreView<Core.Runtime.VirtualMemory.Memory> {
     }
 
     public Function GetFunctionFromSymbol(string alias) {
-        return new Function(_coreMemory.symbols.TryFind(alias).Value.Item1, 
-            _coreMemory.symbols.TryFind(alias).Value.Item2);
+        return Function.OfCoreType(VirtualMemory.GetFunctionFromSymbol(_coreMemory, alias).Value);
+    }
+
+    public Function GetFunctionFromRef(FunctionReferenceType functionReferenceType) {
+        var referenceTypeCore = functionReferenceType.AsCoreType();
+        var result = VirtualMemory.GetFunctionFromRef(_coreMemory, referenceTypeCore);
+        var function = result.Value;
+        return Function.OfCoreType(function);
+    }
+    
+    public override int GetHashCode() =>
+        HashCode.Combine(_coreMemory);
+    
+    public override string ToString() {
+        // TODO: maybe print out a table or a list of defined variables/symbols
+        string memory = "";
+        return memory;
     }
 }

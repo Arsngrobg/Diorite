@@ -30,4 +30,12 @@ public class Function : ICoreView<Tuple<FunctionAttributes, FunctionBody>> {
     public Tuple<FunctionAttributes, FunctionBody> AsCoreType() {
         return new (FunctionAttributes, FunctionBody);
     }
+    
+    /// <summary>
+    ///     <p>Creates a new <c>Function</c> from its equivalent core type.</p>
+    /// </summary>
+    /// <param name="functionCore"> the equivalent core type </param>
+    /// <returns> a new <c>Function</c>, derived from its equivalent core type </returns>
+    internal static Function OfCoreType(Tuple<FunctionAttributes, FunctionBody> functionCore) =>
+        new (functionCore.Item1, functionCore.Item2);
 }
