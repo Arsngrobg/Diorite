@@ -3,7 +3,6 @@
 using Diorite.Lang.API.Syntax.Views;
 using Diorite.Lang.API.Syntax.Structure;
 using Token = Diorite.Lang.API.Syntax.Structure.Token;
-using Diorite.Lang.Core.Runtime;
 
 var variables = new [] {
     Variable.OfCharacter  ('x'),
@@ -45,9 +44,12 @@ var values = new [] {
     Value.OfComplex(25, 0 ),
     Value.OfComplex(0 , 0 ),
     
-    Value.ImUnit,
+    Value.Pi,
+    Value.Tau,
+    Value.E,
     Value.PInfinity,
     Value.NInfinity,
+    Value.ImUnit,
     Value.Undefined
 };
 Console.WriteLine("\nValues:");

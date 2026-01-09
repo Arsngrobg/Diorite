@@ -51,6 +51,9 @@ module Evaluation =
     /// </summary>
     type DefiniteResult = (ValueType * Memory) Result
 
+    let MaxDenominator: int = 10000000
+    let IrrationalTolerance: float = 0.70
+
     /// <summary>
     ///     <p>Evaluates the incoming <c>ValueType</c>.</p>
     ///     <p>This is the identity function.</p>
@@ -136,8 +139,26 @@ module Evaluation =
     /// <param name="value"> the <c>ValueType</c> to check for set membership </param>
     /// <returns> a <c>ValueType</c> as a result of this evaluation </returns>
     let EvalSetIrrational (value: ValueType): ReadOnly =
-        // TODO: heuristic
-        (Some "Expected Irrational (I) number set membership", [value]) ||> MathError
+        // Heuristic:
+        //  using floating-point errors alongside logarithmic scaling to determine how likely it is that a given number
+        //  is considered to be likely irrational.
+        //
+        //  Since, every floating-point number is, by definition, rational, we have to essentially check how difficult
+        //  it is to represent x using a fraction
+         
+        match value with
+         | ValueType.Number x ->
+             let denominator: int = MaxDenominator
+             let numerator:   int = int (System.Math.Round(x * (float denominator)))
+            
+             let error = abs(x - (float numerator) / (float denominator))
+             let percentage: float = if error > 0 then min 1.0 (-System.Math.Log10(error) / 10.0) else 0.0
+             if percentage < IrrationalTolerance then
+                 (Some "Expected Irrational (I) number set membership", [value]) ||> MathError
+             else
+                 value |> Ok
+
+         | _ -> (Some "Expected Irrational (I) number set membership", [value]) ||> MathError
 
     /// <summary>
     ///     <p>Evaluates the <c>ValueType</c> as if it has membership in the <c>Complex</c> number set.</p>
