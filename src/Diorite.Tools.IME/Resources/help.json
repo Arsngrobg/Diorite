@@ -1,0 +1,50 @@
+﻿{
+  "header": "Help",
+  "sections": [
+    {
+      "title": "Usage",
+      "items": [
+        "The result of the currently focused input box is output in the result box at the bottom of the window",
+        "To add another input box, press enter",
+        "To remove an input box, press backspace when the box is empty",
+        "Input boxes can be easily navigated using the up and down arrow keys"
+      ]
+    },
+    {
+      "title": "Values",
+      "items": [
+        "Numbers (e.g., 100 or 0.5)",
+        "Variables defined in the format [a-Z] on their own or followed by a subscript number, e.g., x or x0",
+        "infinity or inf",
+        "undefined"
+      ]
+    },
+    {
+      "title": "Constants",
+      "items": [
+        "pi",
+        "tau",
+        "euler"
+      ]
+    },
+    {
+      "title": "Sets",
+      "items": [
+        "Natural: N",
+        "Integer: Z",
+        "Rational: Q",
+        "Real: R"
+      ]
+    },
+    {
+      "title": "Notation",
+      "items": [
+        "All statements must be closed by a semi-colon (;)",
+        "Whitespace is ignored",
+        "Multiplication must explicitly include the multiplication symbol and not be shorthand, e.g., a * b not ab",
+        "Functions must be of the form [a-Z](x) and can include an optional set hint, e.g., f(x : N) = 2 * x",
+        "Equations of a line must be of the form y = mx + c or x = my + c"
+      ]
+    }
+  ]
+}
