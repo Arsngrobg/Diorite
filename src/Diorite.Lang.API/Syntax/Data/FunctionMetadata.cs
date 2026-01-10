@@ -13,6 +13,7 @@
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
 
+using Diorite.Lang.API.Traits;
 using Microsoft.FSharp.Core;
 
 namespace Diorite.Lang.API.Syntax.Data;
@@ -23,9 +24,9 @@ namespace Diorite.Lang.API.Syntax.Data;
 ///           functions.
 ///     </i></p>
 /// </summary>
-public sealed class FunctionMetadata
+public sealed class FunctionMetadata : ICoreConverter<Core.Syntax.FunctionMetadata, FunctionMetadata>
 {
-    internal static FunctionMetadata OfCoreType(Core.Syntax.FunctionMetadata coreMetadata) =>
+    public static FunctionMetadata OfCoreType(Core.Syntax.FunctionMetadata coreMetadata) =>
         new (
             FSharpOption<string>.get_IsNone(coreMetadata.symbol)
             ? null

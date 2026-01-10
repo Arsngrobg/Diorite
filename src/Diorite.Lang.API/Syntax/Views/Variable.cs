@@ -30,7 +30,7 @@ namespace Diorite.Lang.API.Syntax.Views;
 ///        permutations, that means <b>Diorite</b> supports a total of <c>572</c> variables.
 ///     </p>
 /// </summary>
-public sealed class Variable : ICoreView<Tuple<char, byte>> // equivalent type definition for VariableType in Core
+public sealed class Variable : ICoreView<Tuple<char, byte>>, ICoreConverter<Tuple<char, byte>, Variable>
 {
     /// <summary>
     ///     <p>The maximum number of variables supported by <b>Diorite</b>.</p>
@@ -94,7 +94,7 @@ public sealed class Variable : ICoreView<Tuple<char, byte>> // equivalent type d
     /// </summary>
     /// <param name="coreVariableType"> the equivalent core type </param>
     /// <returns> a new <c>Variable</c>, derived from its equivalent core type </returns>
-    internal static Variable OfCoreType(Tuple<char, byte> coreVariableType) =>
+    public static Variable OfCoreType(Tuple<char, byte> coreVariableType) =>
         new (coreVariableType.Item1, coreVariableType.Item2);
 
     /// <summary>

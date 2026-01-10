@@ -25,7 +25,7 @@ namespace Diorite.Lang.API.Syntax.Views;
 ///     </p>
 ///     <p><b>3.</b> <c>Undefined</c>: denoting that a <b>variable</b> or operation is not properly defined.</p>
 /// </summary>
-public abstract class Value : ICoreView<Core.Syntax.ValueType>
+public abstract class Value : ICoreView<Core.Syntax.ValueType>, ICoreConverter<Core.Syntax.ValueType, Value>
 {
     /// <summary>
     ///     <p>The constant mapping of the <c>Undefined</c> core type.</p>
@@ -152,7 +152,7 @@ public abstract class Value : ICoreView<Core.Syntax.ValueType>
     /// </summary>
     /// <param name="coreValueType"> the equivalent core type </param>
     /// <returns> a new <c>Value</c>, derived from its equivalent core type </returns>
-    internal static Value OfCoreType(Core.Syntax.ValueType coreValueType) => coreValueType switch
+    public static Value OfCoreType(Core.Syntax.ValueType coreValueType) => coreValueType switch
     {
         Core.Syntax.ValueType.Number  x => OfNumber (x.Item),
         Core.Syntax.ValueType.Complex z => OfComplex(z.Item1, z.Item2),

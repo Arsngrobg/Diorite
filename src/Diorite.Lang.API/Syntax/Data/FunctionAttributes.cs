@@ -15,6 +15,7 @@
 // ------------------------------------------------------------------------------------------------------------------
 
 using Diorite.Lang.API.Syntax.Views;
+using Diorite.Lang.API.Traits;
 
 namespace Diorite.Lang.API.Syntax.Data;
 
@@ -26,9 +27,9 @@ namespace Diorite.Lang.API.Syntax.Data;
 ///           functions.
 ///     </i></p>
 /// </summary>
-public class FunctionAttributes
+public class FunctionAttributes : ICoreConverter<Core.Syntax.FunctionAttributes, FunctionAttributes>
 {
-    internal static FunctionAttributes OfCoreType(Core.Syntax.FunctionAttributes coreAttributes)
+    public static FunctionAttributes OfCoreType(Core.Syntax.FunctionAttributes coreAttributes)
     {
         var identifier = Variable.OfCoreType(coreAttributes.identifier);
         var parameters = coreAttributes.parameters

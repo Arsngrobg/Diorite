@@ -19,6 +19,7 @@ using System.Runtime;
 using Microsoft.FSharp.Core;
 using Diorite.Lang.API.Syntax.Data;
 using Diorite.Lang.API.Syntax.Views;
+using Diorite.Lang.API.Traits;
 
 namespace Diorite.Lang.API.Syntax.Structure;
 
@@ -30,7 +31,7 @@ namespace Diorite.Lang.API.Syntax.Structure;
 ///           functions.
 ///     </i></p>
 /// </summary>
-public abstract class Ast : IEnumerable<Ast>
+public abstract class Ast : IEnumerable<Ast>, ICoreConverter<Core.Syntax.ASTNode, Ast>
 {
     /// <summary>
     ///     <p>Parses <c>source</c> into a collection <c>Ast</c> objects, which is held up by a root <c>Ast</c>
@@ -39,16 +40,16 @@ public abstract class Ast : IEnumerable<Ast>
     /// </summary>
     /// <param name="source"> <b>Diorite</b> source code to parse </param>
     /// <returns> the AST </returns>
-    public static Ast TreeOf(string source) {
+    public static Ast OfSource(string source) {
         var root  = Core.Parser.TopLevelParser.ParseString(source).ResultValue;
         var asApi = new BranchNode(
             Kind.Root,
-            root.Select(OfCoreNode).ToArray()
+            root.Select(OfCoreType).ToArray()
         ); 
         return asApi;
     }
 
-    private static Ast OfCoreNode(Core.Syntax.ASTNode coreNode)
+    public static Ast OfCoreType(Core.Syntax.ASTNode coreNode)
     {
         switch (coreNode)
         {

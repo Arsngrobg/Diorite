@@ -5,9 +5,9 @@
 //   |_____/|__||_____|__|  |__|____|_____|
 //
 // ------------------------------------------------------------------------------------------------------------------
-// File:    ICoreView.cs
-// Summary: The definition of the ICoreView interface - which declares internal behaviour for mapping an API type
-//          to its Core type
+// File:    ICoreConverter.cs
+// Summary: The definition of the ICoreConverter interface - which declares internal behaviour for a static factory
+//          method that transforms an API object into a Core object
 // Author:  Arsngrobg
 // Version: v1.0
 // ------------------------------------------------------------------------------------------------------------------
@@ -17,22 +17,21 @@
 namespace Diorite.Lang.API.Traits;
 
 /// <summary>
-///     <p>The <c>ICoreView&lt;T&gt;</c> is an interface type which describes that the implementing type is mirroring a
-///        core type in the <c>Diorite.Lang.Core</c> project.
+///     <p>The <c>ICoreView&lt;TC, TA&gt;</c> is an interface type which describes that the implementing class will
+///        include a static factory method for converting a Core type into an API type.
 ///     </p>
 ///     <p>This is intended by API developers to allow for interacting with the Core layer through the API layer, whilst
 ///        hiding implementation details.
 ///     </p>
 /// </summary>
-/// <typeparam name="T"> the equivalent (mirrored) core type of the implementing class </typeparam>
-internal interface ICoreView<out T>
+/// <typeparam name="TC"> the equivalent (mirrored) core type of the implementing class </typeparam>
+/// <typeparam name="TA"> the implementing class </typeparam>
+internal interface ICoreConverter<in TC, out TA>
 {
     /// <summary>
-    ///     <p>Produces the representation of the implementing type as its equivalent Core type.</p>
-    ///     <p>This is an <c>internal</c> method, used by the API for interacting with the Core layer, whilst hiding
-    ///        implementation details.
-    ///     </p>
+    ///     <p>Creates a new instance of the <c>TA</c> type from the core <c>TC</c> type.</p>
     /// </summary>
-    /// <returns> this type as it is structured as in the Core project </returns>
-    internal T AsCoreType();
+    /// <param name="coreType"> the core type to derive the API type from </param>
+    /// <returns> a new instance of <c>TA</c>, derived from the input <c>TC</c> type </returns>
+    internal static abstract TA OfCoreType(TC coreType);
 }

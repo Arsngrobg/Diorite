@@ -78,7 +78,7 @@ foreach (var token in tokens2)
 }
 
 Console.WriteLine("\nTrees:");
-var ast = Ast.TreeOf("""
+var ast = Ast.OfSource("""
 100;
 3.245;
 1/3;

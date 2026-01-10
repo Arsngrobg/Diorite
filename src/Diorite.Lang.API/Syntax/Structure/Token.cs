@@ -13,6 +13,8 @@
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
 
+using Diorite.Lang.API.Traits;
+
 namespace Diorite.Lang.API.Syntax.Structure;
 
 /// <summary>
@@ -24,7 +26,7 @@ namespace Diorite.Lang.API.Syntax.Structure;
 ///           functions.
 ///     </i></p>
 /// </summary>
-public sealed class Token
+public sealed class Token : ICoreConverter<Core.Syntax.Token, Token>
 {
     /// <summary>
     ///     <p>Produces a sequence of ordered <c>Token</c>s from the supplied <c>source</c> input.</p>
@@ -49,11 +51,11 @@ public sealed class Token
                 throw new Exception("yeha error ig");
         }
 
-        var apiTokens = tokens.Select(FromCoreType).ToArray();
+        var apiTokens = tokens.Select(OfCoreType).ToArray();
         return apiTokens;
     }
 
-    private static Token FromCoreType(Core.Syntax.Token coreToken)
+    public static Token OfCoreType(Core.Syntax.Token coreToken)
     {
         var type = (Kind) coreToken.id.Tag; // STABLE AS LONG AS THE ABI IS ALSO STABLE
         return new Token(coreToken.lexeme, type, coreToken.line, coreToken.column);
