@@ -1,32 +1,40 @@
-﻿abs(x : Z) -> Z = {
+﻿[symbol:abs]
+f(x : Z) -> Z = {
     -x if x < 0; x otherwise;
 }
 
-sign(x : R) -> R = {
+[symbol:sign]
+f(x : R) -> R = {
     -1.0 if x < 0.0;
     0.0 if x = 0.0; 1.0 otherwise;
 }
 
-floor(x : R) -> R = {
+[symbol:floor]
+f(x : R) -> R = {
     # Truncating with integer division
     x // 1 if x >= 0;
     (x // 1) - 1 if x % 1 != 0; 
     x // 1 otherwise;
 }
 
-ceil(x : R) -> R = {
+[symbol:ceil]
+f(x : R) -> R = {
     # Truncating with integer division
     x // 1 if x <= 0; 
     (x // 1) + 1 if x % 1 != 0; 
     x // 1 otherwise;
 }
 
-deg(r : R) -> R = r * (180.0 / pi);
+[symbol:deg]
+f(r : R) -> R = r * (180.0 / pi);
 
-rad(d : R) -> R = d * (pi / 180.0);
+[symbol:rad]
+f(d : R) -> R = d * (pi / 180.0);
 
-gcd(a : Z, b : Z) -> Z = {
+[symbol:gcd]
+f(a : Z, b : Z) -> Z = {
     abs(a) if b = 0; gcd(b, a % b) otherwise;
 }
 
-lcm(a : Z, b : Z) -> Z = abs(a * b) / gcd(a, b);
+[symbol:lcm]
+f(a : Z, b : Z) -> Z = abs(a * b) / gcd(a, b);

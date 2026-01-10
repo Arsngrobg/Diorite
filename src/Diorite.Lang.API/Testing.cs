@@ -94,14 +94,28 @@ euler;
 -inf;
 undefined;
 
-[symbol:abs]
-f(x: R) -> R = {
-    -x   if x < 0;
-     x   otherwise;
-}
-f(-2.43);
-
 x = 1200*(2139+124);
+
+[symbol:abs]
+f(x : Z) -> Z = {
+    -x if x < 0; x otherwise;
+}
+
+[symbol:sin_loop]
+f(x : R, n : Z, y : R, z : R) -> R = {
+    z if n >= 10; # Limiting to 10 terms
+    f(
+        x,
+        n + 1,
+        y * -1.0 * x * x / ((2 * n) * (2 * n + 1)),
+        z + y * -1.0 * x * x / ((2 * n) * (2 * n + 1))
+    ) otherwise;
+}
+
+[symbol:sin]
+f(x : R) -> R = sin_loop(x, 1, x, x);
+
+abs(-2.43);
 """);
 Console.WriteLine(ast.TreeStr());
 

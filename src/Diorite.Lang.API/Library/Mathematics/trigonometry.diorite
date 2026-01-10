@@ -1,11 +1,71 @@
-﻿sin(x : R) : R =
+﻿[symbol:sin_loop]
+# x is the number sin is applied to
+# n is the term index
+# y is the term
+# z is the sum of terms
+f(x : R, n : Z, y : R, z : R) -> R = {
+    z if n >= 10; # Limiting to 10 terms
+    f(
+        x,
+        n + 1,
+        y * -1.0 * x * x / ((2 * n) * (2 * n + 1)),
+        z + y * -1.0 * x * x / ((2 * n) * (2 * n + 1))
+    ) otherwise;
+}
 
-cos (x: R) : R =
+[symbol:sin]
+f(x : R) -> R = sin_loop(x, 1, x, x);
 
-tan (x: R) : R =
+[symbol:cos_loop]
+f(x : R, n : Z, y : R, z: R) -> R = {
+    z if n >= 10;
+    f(
+        x,
+        n + 1,
+        y * -1.0 * x * x / (2 * n * (2 * n - 1)),
+        z + y * -1.0 * x * x / (2 * n * (2 * n - 1))
+    ) otherwise;
+}
 
-asin (x: R) : R =
+[symbol:cos]
+f(x: R) -> R = cos_loop(x, 1, 1.0, 1.0);
 
-acos (x: R) : R =
+[symbol:tan]
+f(x: R) -> R = sin(x) / cos(x);
 
-atan (x: R) : R =
+# x is the number asin is applied to
+# n is the term index
+# y is the coefficient
+# p is the power
+# z is the sum
+[symbol:asin_loop]
+f(x : R, n : Z, y : R, p : R, z : R) -> R = {
+    z if n >= 10;
+    f(
+        x,
+        n + 1,
+        y * (2 * n - 1) / (2 * n),
+        p * x * x,
+        z + (y * (2 * n - 1) / (2 * n)) * (p * x * x) * (x / (2 * n + 1))
+    ) otherwise;
+}
+        
+[symbol:asin]
+f(x: R) -> R = asin_loop(x, 1, 1.0, x, x)
+
+[symbol:acos]
+f(x: R) -> R = pi / 2.0 - asin(x);
+
+[symbol:atan_loop]
+f(x : R, n : Z, y : R, z : R) -> R = {
+    z if n >= 10;
+    f(
+        x,
+        n + 1,
+        y * -1.0 * x * x / (2 * n + 1),
+        z + (y * -1.0 * x * x / (2 * n + 1))
+    ) otherwise;
+}
+
+[symbol:atan]
+f(x: R) -> R = atan_loop(x, 0, x, x);
