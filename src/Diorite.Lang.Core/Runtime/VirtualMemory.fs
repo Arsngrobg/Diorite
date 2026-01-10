@@ -91,6 +91,7 @@ module VirtualMemory =
     ///           names using the <c>[symbol:[SYMBOL]]</c> syntax. This means a redefined function can still be
     ///           called, provided they have been declared to have a symbolic alias.
     ///        </p>
+    ///        <p><b>3.</b> <c>PlotCallback</c> - the callback function to call when the <c>plot</c> syntax is used.</p>
     ///     </p>
     ///     <p>Each 'instance' of <c>Memory</c> should remain immutable.</p>
     /// </summary>
@@ -141,6 +142,16 @@ module VirtualMemory =
         regionStart + (int s)
 
     /// <summary>
+    ///     <p>Gets the variable in the <c>VariableTable</c> of the supplied <c>Memory</c>.</p>
+    /// </summary>
+    /// <param name="memory"> the <c>Memory</c> struct </param>
+    /// <param name="slot"> the <c>VariableType</c> that points to an index in the <c>VariableTable</c> </param>
+    /// <returns> the <c>CellData</c> for that <c>VariableType</c> </returns>
+    let GetVariable (memory: Memory) (slot: VariableType): CellData =
+        let position: int = IndexOf slot
+        memory.variables[position]
+
+    /// <summary>
     ///     <p>Sets the variable in the <c>VariableTable</c> of the supplied <c>Memory</c>.</p>
     ///     <p>It returns a new copy of the <c>Memory</c> that includes the updated <c>VariableTable</c>.</p>
     /// </summary>
@@ -181,16 +192,6 @@ module VirtualMemory =
             symbols      = memory.symbols
             plotCallback = memory.plotCallback
         }
-
-    /// <summary>
-    ///     <p>Gets the variable in the <c>VariableTable</c> of the supplied <c>Memory</c>.</p>
-    /// </summary>
-    /// <param name="memory"> the <c>Memory</c> struct </param>
-    /// <param name="slot"> the <c>VariableType</c> that points to an index in the <c>VariableTable</c> </param>
-    /// <returns> the <c>CellData</c> for that <c>VariableType</c> </returns>
-    let GetVariable (memory: Memory) (slot: VariableType): CellData =
-        let position: int = IndexOf slot
-        memory.variables[position]
 
     /// <summary>
     ///     <p>Updates the <c>SymbolRegister</c> for the supplied <c>Memory</c>.</p>
