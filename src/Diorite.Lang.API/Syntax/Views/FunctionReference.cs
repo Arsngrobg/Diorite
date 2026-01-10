@@ -5,7 +5,7 @@
 //   |_____/|__||_____|__|  |__|____|_____|
 //
 // ------------------------------------------------------------------------------------------------------------------
-// File:    FunctionReferenceType.cs
+// File:    FunctionReference.cs
 // Summary: The type definition of the FunctionReferenceType type, which describes the reference types for a Diorite
 //          function  
 // Author:  Borngle
@@ -18,25 +18,25 @@ using Diorite.Lang.API.Traits;
 
 namespace Diorite.Lang.API.Syntax.Views;
 
-public abstract class FunctionReferenceType : ICoreView<Core.Syntax.FunctionReferenceType>,
-                                              ICoreConverter<Core.Syntax.FunctionReferenceType, FunctionReferenceType>
+public abstract class FunctionReference : ICoreView<Core.Syntax.FunctionReferenceType>,
+                                              ICoreConverter<Core.Syntax.FunctionReferenceType, FunctionReference>
 {
-    public static FunctionReferenceType OfCoreType(Core.Syntax.FunctionReferenceType coreRef) => coreRef switch
+    public static FunctionReference OfCoreType(Core.Syntax.FunctionReferenceType coreRef) => coreRef switch
     {
         Core.Syntax.FunctionReferenceType.OfVariable varRef => new OfVariable(Variable.OfCoreType(varRef.Item)),
-        Core.Syntax.FunctionReferenceType.OfSymbol symRef => new OfSymbol(symRef.Item),
+        Core.Syntax.FunctionReferenceType.OfSymbol   symRef => new OfSymbol(symRef.Item),
         _ => throw new InvalidOperationException("All match cases were not covered")
     };
 
     /// <summary>
-    ///     <p>The case of <c>FunctionReferenceType</c> where a <i>variable reference</i> is used when invoking a
+    ///     <p>The case of <c>FunctionReference</c> where a <i>variable reference</i> is used when invoking a
     ///        <b>Diorite</b> function.
     ///     </p>
     /// </summary>
-    private sealed class OfVariable : FunctionReferenceType
+    private sealed class OfVariable : FunctionReference
     {
         /// <summary>
-        ///     <p>The variable this <c>FunctionReferenceType</c> is describing.</p>
+        ///     <p>The variable this <c>FunctionReference</c> is describing.</p>
         /// </summary>
         public Variable Variable { get; }
 
@@ -58,14 +58,14 @@ public abstract class FunctionReferenceType : ICoreView<Core.Syntax.FunctionRefe
     }
 
     /// <summary>
-    ///     <p>The case of <c>FunctionReferenceType</c> where a <i>symbolic reference</i> is used when invoking a
+    ///     <p>The case of <c>FunctionReference</c> where a <i>symbolic reference</i> is used when invoking a
     ///        <b>Diorite</b> function.
     ///     </p>
     /// </summary>
-    private sealed class OfSymbol : FunctionReferenceType
+    private sealed class OfSymbol : FunctionReference
     {
         /// <summary>
-        ///     <p>The symbol this <c>FunctionReferenceType</c> is describing.</p>
+        ///     <p>The symbol this <c>FunctionReference</c> is describing.</p>
         /// </summary>
         public string Symbol { get; }
 
@@ -87,10 +87,10 @@ public abstract class FunctionReferenceType : ICoreView<Core.Syntax.FunctionRefe
     }
 
     /// <summary>
-    ///     <p>Performs pattern matching on this <c>FunctionReferenceType</c>.</p>
+    ///     <p>Performs pattern matching on this <c>FunctionReference</c>.</p>
     /// </summary>
-    /// <param name="onVariable"> the callback to execute if this <c>FunctionReferenceType</c> is of a variable </param>
-    /// <param name="onSymbol"> the callback to execute if this <c>FunctionReferenceType</c> is of  symbol </param>
+    /// <param name="onVariable"> the callback to execute if this <c>FunctionReference</c> is of a variable </param>
+    /// <param name="onSymbol"> the callback to execute if this <c>FunctionReference</c> is of  symbol </param>
     /// <typeparam name="T"> the result of this pattern matching operation </typeparam>
     /// <returns> the result of the pattern match, bound by the type <c>T</c> </returns>
     public T Match<T>(Func<Variable, T> onVariable, Func<string, T> onSymbol) => this switch
@@ -100,7 +100,7 @@ public abstract class FunctionReferenceType : ICoreView<Core.Syntax.FunctionRefe
         _                 => throw new InvalidOperationException($"Invalid case {GetType()}")
     };
     
-    private FunctionReferenceType() {}
+    private FunctionReference() {}
 
     public abstract Core.Syntax.FunctionReferenceType AsCoreType();
     public abstract override int    GetHashCode();
