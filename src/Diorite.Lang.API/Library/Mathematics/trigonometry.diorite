@@ -1,0 +1,11 @@
+﻿sin(x : R) : R =
+
+cos (x: R) : R =
+
+tan (x: R) : R =
+
+asin (x: R) : R =
+
+acos (x: R) : R =
+
+atan (x: R) : R =
