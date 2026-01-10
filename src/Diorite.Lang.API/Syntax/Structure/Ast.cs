@@ -185,18 +185,15 @@ public abstract class Ast : IEnumerable<Ast>, ICoreConverter<Core.Syntax.ASTNode
 
                 return new BranchNode(type, [operand]);
             case Core.Syntax.Expression.FunctionCall fnCall:
-                var fnRef  = fnCall.Item1;
+                var fnRef  = FunctionReferenceType.OfCoreType(fnCall.Item1);
                 var fnArgs = new ValueNode<object>(
                     Kind.FunctionArguments,
                     fnCall.Item2.Select(OfCoreExpression).ToArray()
                 );
 
-                var fnIdStr = fnRef.IsOfSymbol
-                    ? ((Core.Syntax.FunctionReferenceType.OfSymbol) fnRef).Item
-                    : Variable.OfCoreType(((Core.Syntax.FunctionReferenceType.OfVariable) fnRef).Item).ToString();
                 var fnId = new ValueNode<object>(
                     Kind.FunctionIdentifier,
-                    fnIdStr
+                    fnRef
                 );
 
                 return new BranchNode(

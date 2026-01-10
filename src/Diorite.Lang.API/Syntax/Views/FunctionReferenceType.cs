@@ -18,17 +18,92 @@ using Diorite.Lang.API.Traits;
 
 namespace Diorite.Lang.API.Syntax.Views;
 
-public class FunctionReferenceType : ICoreView<Core.Syntax.FunctionReferenceType>
+public abstract class FunctionReferenceType : ICoreView<Core.Syntax.FunctionReferenceType>,
+                                              ICoreConverter<Core.Syntax.FunctionReferenceType, FunctionReferenceType>
 {
-    private readonly Core.Syntax.FunctionReferenceType _functionReferenceType;
-    
-    private FunctionReferenceType(Core.Syntax.FunctionReferenceType functionReferenceType)
+    public static FunctionReferenceType OfCoreType(Core.Syntax.FunctionReferenceType coreRef) => coreRef switch
     {
-        _functionReferenceType = functionReferenceType;
-    }
-    
-    public Core.Syntax.FunctionReferenceType AsCoreType()
+        Core.Syntax.FunctionReferenceType.OfVariable varRef => new OfVariable(Variable.OfCoreType(varRef.Item)),
+        Core.Syntax.FunctionReferenceType.OfSymbol symRef => new OfSymbol(symRef.Item),
+        _ => throw new InvalidOperationException("All match cases were not covered")
+    };
+
+    /// <summary>
+    ///     <p>The case of <c>FunctionReferenceType</c> where a <i>variable reference</i> is used when invoking a
+    ///        <b>Diorite</b> function.
+    ///     </p>
+    /// </summary>
+    private sealed class OfVariable : FunctionReferenceType
     {
-        return _functionReferenceType;
+        /// <summary>
+        ///     <p>The variable this <c>FunctionReferenceType</c> is describing.</p>
+        /// </summary>
+        public Variable Variable { get; }
+
+        internal OfVariable(Variable variable) =>
+            Variable = variable;
+
+        public override Core.Syntax.FunctionReferenceType AsCoreType() =>
+            Core.Syntax.FunctionReferenceType.NewOfVariable(Variable.AsCoreType());
+
+        public override int GetHashCode() =>
+            Variable.GetHashCode();
+
+        public override bool Equals(object? obj) =>
+            obj is OfVariable other &&
+            Variable.Equals(other.Variable);
+
+        public override string ToString() =>
+            $"VariableFunctionReference[{Variable}]";
     }
+
+    /// <summary>
+    ///     <p>The case of <c>FunctionReferenceType</c> where a <i>symbolic reference</i> is used when invoking a
+    ///        <b>Diorite</b> function.
+    ///     </p>
+    /// </summary>
+    private sealed class OfSymbol : FunctionReferenceType
+    {
+        /// <summary>
+        ///     <p>The symbol this <c>FunctionReferenceType</c> is describing.</p>
+        /// </summary>
+        public string Symbol { get; }
+
+        internal OfSymbol(string symbol) =>
+            Symbol = symbol;
+
+        public override Core.Syntax.FunctionReferenceType AsCoreType() =>
+            Core.Syntax.FunctionReferenceType.NewOfSymbol(Symbol);
+
+        public override int GetHashCode() =>
+            Symbol.GetHashCode();
+
+        public override bool Equals(object? obj) =>
+            obj is OfSymbol other &&
+            Symbol.Equals(other.Symbol);
+
+        public override string ToString() =>
+            $"SymbolicFunctionReference[{Symbol}]";
+    }
+
+    /// <summary>
+    ///     <p>Performs pattern matching on this <c>FunctionReferenceType</c>.</p>
+    /// </summary>
+    /// <param name="onVariable"> the callback to execute if this <c>FunctionReferenceType</c> is of a variable </param>
+    /// <param name="onSymbol"> the callback to execute if this <c>FunctionReferenceType</c> is of  symbol </param>
+    /// <typeparam name="T"> the result of this pattern matching operation </typeparam>
+    /// <returns> the result of the pattern match, bound by the type <c>T</c> </returns>
+    public T Match<T>(Func<Variable, T> onVariable, Func<string, T> onSymbol) => this switch
+    {
+        OfVariable varRef => onVariable(varRef.Variable),
+        OfSymbol symRef   => onSymbol  (symRef.Symbol),
+        _                 => throw new InvalidOperationException($"Invalid case {GetType()}")
+    };
+    
+    private FunctionReferenceType() {}
+
+    public abstract Core.Syntax.FunctionReferenceType AsCoreType();
+    public abstract override int    GetHashCode();
+    public abstract override bool   Equals(object? obj);
+    public abstract override string ToString();
 }
