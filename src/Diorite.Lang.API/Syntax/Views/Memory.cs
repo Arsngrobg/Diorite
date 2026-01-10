@@ -37,6 +37,11 @@ public class Memory : ICoreView<Core.Runtime.VirtualMemory.Memory>,
                       ICoreConverter<Core.Runtime.VirtualMemory.Memory, Memory>
 {
     /// <summary>
+    ///     <p>The constant for a <see cref="PlotCallback"/> that does nothing.</p>
+    /// </summary>
+    public static readonly PlotCallback PlotDoNothing = _ => {};
+
+    /// <summary>
     ///     <p>Returns the default state of <c>Memory</c>.</p>
     ///     <p>All variables in the <c>VariableTable</c> are <c>Undefined</c>.</p>
     ///     <p>The <c>SymbolRegister</c> is empty.</p>
@@ -203,9 +208,15 @@ public class Memory : ICoreView<Core.Runtime.VirtualMemory.Memory>,
             other._symbolRegister.ToArray()
         );
 
-    public override string ToString() {
-        // TODO: maybe print out a table or a list of defined variables/symbols
-        string memory = "";
-        return memory;
-    }
+    // TODO: maybe print out a table or a list of defined variables/symbols
+    public override string ToString() =>
+        $"Memory[Variables: {
+            _variableTable.Select(cd => cd.Match(
+                onValueSlot:    val => val.Equals(Value.Undefined) ? 0 : 1,
+                onFunctionSlot: ___ => 0
+            ))
+            .Sum()
+        }, Symbols: {
+            _symbolRegister.Count
+        }]";
 }
