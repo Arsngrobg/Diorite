@@ -119,4 +119,7 @@ abs(-2.43);
 """);
 Console.WriteLine(ast.TreeStr());
 
+var error = DioriteError.OfMathError();
+Console.WriteLine(error.Message);
+
 Console.WriteLine("\nMemory:");

@@ -24,20 +24,6 @@ open Diorite.Lang.Core.Errors
 [<AutoOpen>]
 module ErrorUtilities =
     /// <summary>
-    ///     <p>Produces a <i>prettier</i> <c>string</c> representation of the supplied <c>DioriteError</c>.</p>
-    /// </summary>
-    /// <param name='error'> the <c>DioriteError</c> </param>
-    /// <returns> the <c>string</c> representation of the supplied <c>DioriteError</c> </returns>
-    let StrError (error: DioriteError): string =
-        match error with
-         | MathError   (Some msg, []         ) -> $"MathError: {msg}"
-         | MathError   (None,     []         ) ->  "MathError"
-         | MathError   (Some msg, inputs     ) -> $"MathError: {msg} - inputs: {inputs}"
-         | MathError   (None,     inputs     ) -> $"MathError from input: {inputs}"
-         | SyntaxError (msg,      Some (l, c)) -> $"SyntaxError: {msg} at line {l}, column {c}"
-         | SyntaxError (msg,      None       ) -> $"SyntaxError: {msg}"
-
-    /// <summary>
     ///     <p>A functional wrapper around a <c>Result</c> that contains a <c>MathError</c> with an optional and
     ///        meaningful message of the error, and the <c>input</c> that caused the <c>MathError</c>.
     ///     </p>

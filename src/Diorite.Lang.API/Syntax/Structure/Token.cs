@@ -36,19 +36,25 @@ public sealed class Token : ICoreConverter<Core.Syntax.Token, Token>
     ///     </p>
     /// </summary>
     /// <param name="src"> <b>Diorite</b> source code to tokenise </param>
-    /// <param name="failIfIllegal"> should this method throw a <see cref="Exception"/> if any <c>InvalidToken</c>s
+    /// <param name="failIfIllegal"> should this method throw a <see cref="DioriteError"/> if any <c>InvalidToken</c>s
     ///                              found
     /// </param>
     /// <returns> an ordered sequence of <c>Token</c>s </returns>
-    /// <exception cref="Exception"> if <c>failIfIllegal</c> and <c>IllegalToken</c> is found </exception>
+    /// <exception cref="DioriteError"> if <c>failIfIllegal</c> and <c>IllegalToken</c> is found </exception>
     public static IReadOnlyList<Token> TokensOf(string src, bool failIfIllegal = false)
     {
         var tokens = Core.Lexer.Tokenizer.Tokenise(src);
         if (failIfIllegal)
         {
-            var error  = Core.Lexer.Tokenizer.GetTokenizerErrors(tokens);
-            if (error != null)
-                throw new Exception("yeha error ig");
+            var errors = Core.Lexer.Tokenizer.GetTokenizerErrors(tokens).Select(DioriteError.OfCoreType)
+                                                                        .Cast<Exception>()
+                                                                        .ToArray();
+            switch (errors.Length)
+            {
+                case 0:  break;
+                case 1:  throw errors[0];
+                default: throw new AggregateException(errors);
+            }
         }
 
         var apiTokens = tokens.Select(OfCoreType).ToArray();

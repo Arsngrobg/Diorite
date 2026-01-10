@@ -111,7 +111,7 @@ public class Memory : ICoreView<Core.Runtime.VirtualMemory.Memory>,
             _plotCallback(x =>
             {
                 var fsResult = anonFn.Invoke(x.AsCoreType());
-                return fsResult.IsOk ? Value.OfCoreType(fsResult.ResultValue) : throw new Exception("yeah nah");
+                return fsResult.IsOk ? Value.OfCoreType(fsResult.ResultValue) : throw DioriteError.OfMathError("yeah nah");
             });
 
             return null!;
