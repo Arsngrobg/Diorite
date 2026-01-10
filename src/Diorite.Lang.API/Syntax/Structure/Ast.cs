@@ -31,7 +31,9 @@ namespace Diorite.Lang.API.Syntax.Structure;
 ///           functions.
 ///     </i></p>
 /// </summary>
-public abstract class Ast : IEnumerable<Ast>, ICoreConverter<Core.Syntax.ASTNode, Ast>
+public abstract class Ast : IEnumerable<Ast>,
+                            ICoreConverter<Core.Syntax.ASTNode, Ast>,
+                            ICoreConverter<Core.Syntax.Expression, Ast>
 {
     /// <summary>
     ///     <p>Parses <c>source</c> into a collection <c>Ast</c> objects, which is held up by a root <c>Ast</c>
@@ -54,9 +56,9 @@ public abstract class Ast : IEnumerable<Ast>, ICoreConverter<Core.Syntax.ASTNode
         switch (coreNode)
         {
             case Core.Syntax.ASTNode.Expression exp:
-                return OfCoreExpression(exp.Item);
+                return OfCoreType(exp.Item);
             case Core.Syntax.ASTNode.PlotFunction pltFn:
-                var anonFn  = OfCoreExpression(pltFn.Item.expression);
+                var anonFn  = OfCoreType(pltFn.Item.expression);
                 var anonArg = new ValueNode<object>(
                     Kind.FunctionArguments,
                     Variable.OfCoreType(pltFn.Item.parameter)
@@ -70,7 +72,7 @@ public abstract class Ast : IEnumerable<Ast>, ICoreConverter<Core.Syntax.ASTNode
                     Kind.Variable,
                     Variable.OfCoreType(assign.Item1)
                 );
-                var rValue = OfCoreExpression(assign.Item2);
+                var rValue = OfCoreType(assign.Item2);
                 return new BranchNode(
                     Kind.Assignment,
                     [lValue, rValue]
@@ -80,7 +82,7 @@ public abstract class Ast : IEnumerable<Ast>, ICoreConverter<Core.Syntax.ASTNode
                     Kind.FunctionAttributes,
                      FunctionAttributes.OfCoreType(fnDef.Item.Item1)
                 );
-                var fnBody  = OfCoreFunctionBody(fnDef.Item.Item2);
+                var fnBody  = OfCoreType(fnDef.Item.Item2);
                 return new BranchNode(
                     Kind.FunctionDefinition,
                     [fnAttrs, fnBody]
@@ -90,12 +92,12 @@ public abstract class Ast : IEnumerable<Ast>, ICoreConverter<Core.Syntax.ASTNode
         }
     }
 
-    internal static Ast OfCoreFunctionBody(Core.Syntax.FunctionBody coreBody)
+    internal static Ast OfCoreType(Core.Syntax.FunctionBody coreBody)
     {
         switch (coreBody)
         {
             case Core.Syntax.FunctionBody.Expression exp:
-                return OfCoreExpression(exp.Item);
+                return OfCoreType(exp.Item);
             case Core.Syntax.FunctionBody.PiecewiseConditions piecewiseConditions:
                 var conditions = piecewiseConditions.Item.Select(pwc =>
                 {
@@ -107,12 +109,12 @@ public abstract class Ast : IEnumerable<Ast>, ICoreConverter<Core.Syntax.ASTNode
                                 FSharpOption<string>.get_IsNone(err.Item) ? string.Empty : err.Item.Value
                             ),
                         Core.Syntax.FunctionResult.Expression exp =>
-                            OfCoreExpression(exp.Item),
+                            OfCoreType(exp.Item),
                         _ => throw new AmbiguousImplementationException($"Missing mapping for {pwc.Item1.GetType()}")
                     };
                     
-                    var left  = OfCoreExpression(pwc.Item2.Item1);
-                    var right = OfCoreExpression(pwc.Item2.Item3);
+                    var left  = OfCoreType(pwc.Item2.Item1);
+                    var right = OfCoreType(pwc.Item2.Item3);
                     var cmpOp = pwc.Item2.Item2;
 
                     Kind type;
@@ -140,7 +142,7 @@ public abstract class Ast : IEnumerable<Ast>, ICoreConverter<Core.Syntax.ASTNode
         }
     }
 
-    private static Ast OfCoreExpression(Core.Syntax.Expression coreExpression)
+    public static Ast OfCoreType(Core.Syntax.Expression coreExpression)
     {
         Kind type;
         switch (coreExpression)
@@ -156,8 +158,8 @@ public abstract class Ast : IEnumerable<Ast>, ICoreConverter<Core.Syntax.ASTNode
                     Variable.OfCoreType(variable.Item)
                 );
             case Core.Syntax.Expression.BinaryOperation binOp:
-                var left  = OfCoreExpression(binOp.Item1);
-                var right = OfCoreExpression(binOp.Item3);
+                var left  = OfCoreType(binOp.Item1);
+                var right = OfCoreType(binOp.Item3);
                 var bop   = binOp.Item2;
                 
                 if      (bop.IsAddition)       type = Kind.BinaryAddition;
@@ -172,7 +174,7 @@ public abstract class Ast : IEnumerable<Ast>, ICoreConverter<Core.Syntax.ASTNode
 
                 return new BranchNode(type, [left, right]);
             case Core.Syntax.Expression.UnaryOperation unOp:
-                var operand = OfCoreExpression(unOp.Item1);
+                var operand = OfCoreType(unOp.Item1);
                 var uop     = unOp.Item2;
                 
                 if      (uop.IsPositive)     type = Kind.UnaryPositive;
@@ -185,10 +187,10 @@ public abstract class Ast : IEnumerable<Ast>, ICoreConverter<Core.Syntax.ASTNode
 
                 return new BranchNode(type, [operand]);
             case Core.Syntax.Expression.FunctionCall fnCall:
-                var fnRef  = FunctionReferenceType.OfCoreType(fnCall.Item1);
+                var fnRef  = FunctionReference.OfCoreType(fnCall.Item1);
                 var fnArgs = new ValueNode<object>(
                     Kind.FunctionArguments,
-                    fnCall.Item2.Select(OfCoreExpression).ToArray()
+                    fnCall.Item2.Select(OfCoreType).ToArray()
                 );
 
                 var fnId = new ValueNode<object>(

@@ -14,6 +14,7 @@
 // ------------------------------------------------------------------------------------------------------------------
 
 using Diorite.Lang.API.Syntax.Views;
+using Diorite.Lang.API.Traits;
 
 namespace Diorite.Lang.API.Syntax.Data;
 
@@ -27,9 +28,10 @@ namespace Diorite.Lang.API.Syntax.Data;
 ///           functions.
 ///     </i></p>
 /// </summary>
-public sealed class FunctionParameter
+public sealed class FunctionParameter : ICoreView<Tuple<Tuple<char, byte>, Core.Syntax.NumberSet>>,
+                                        ICoreConverter<Tuple<Tuple<char, byte>, Core.Syntax.NumberSet>, FunctionParameter>
 {
-    internal static FunctionParameter OfCoreType(Tuple<Tuple<char, byte>, Core.Syntax.NumberSet> coreParameter)
+    public static FunctionParameter OfCoreType(Tuple<Tuple<char, byte>, Core.Syntax.NumberSet> coreParameter)
     {
         var variable  = Variable.OfCoreType(coreParameter.Item1);
         var numberSet = (NumberSet) coreParameter.Item2.Tag; // STABLE AS LONG AS THE ABI IS ALSO STABLE
@@ -41,6 +43,21 @@ public sealed class FunctionParameter
 
     private FunctionParameter(Variable identifier, NumberSet set) =>
         (Identifier, Set) = (identifier, set);
+
+    public Tuple<Tuple<char, byte>, Core.Syntax.NumberSet> AsCoreType()
+    {
+        var mappedSet = Set switch
+        {
+            NumberSet.Natural    => Core.Syntax.NumberSet.Natural,
+            NumberSet.Integer    => Core.Syntax.NumberSet.Integer,
+            NumberSet.Real       => Core.Syntax.NumberSet.Real,
+            NumberSet.Rational   => Core.Syntax.NumberSet.Rational,
+            NumberSet.Irrational => Core.Syntax.NumberSet.Irrational,
+            NumberSet.Complex    => Core.Syntax.NumberSet.Complex,
+            _ => throw new InvalidOperationException("Not all NumberSet cases were complete")
+        };
+        return new Tuple<Tuple<char, byte>, Core.Syntax.NumberSet>(Identifier.AsCoreType(), mappedSet);
+    }
 
     /// <summary>
     ///     <p>Checks whether this <c>FunctionParameter</c> is expected to be a <c>Natural</c> number.</p>

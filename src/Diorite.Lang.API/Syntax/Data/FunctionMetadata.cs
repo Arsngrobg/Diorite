@@ -24,7 +24,8 @@ namespace Diorite.Lang.API.Syntax.Data;
 ///           functions.
 ///     </i></p>
 /// </summary>
-public sealed class FunctionMetadata : ICoreConverter<Core.Syntax.FunctionMetadata, FunctionMetadata>
+public sealed class FunctionMetadata : ICoreView<Core.Syntax.FunctionMetadata>,
+                                       ICoreConverter<Core.Syntax.FunctionMetadata, FunctionMetadata>
 {
     public static FunctionMetadata OfCoreType(Core.Syntax.FunctionMetadata coreMetadata) =>
         new (
@@ -58,6 +59,9 @@ public sealed class FunctionMetadata : ICoreConverter<Core.Syntax.FunctionMetada
     /// <returns> if this <c>FunctionMetadata</c> has a symbolic alias </returns>
     public bool HasSymbolicAlias() =>
         Symbol != null;
+
+    public Core.Syntax.FunctionMetadata AsCoreType() =>
+        new (Symbol, Inlined, Memoized);
 
     public override int GetHashCode() =>
         HashCode.Combine(Symbol, Inlined, Memoized);

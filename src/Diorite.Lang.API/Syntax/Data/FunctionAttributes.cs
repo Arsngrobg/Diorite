@@ -16,6 +16,7 @@
 
 using Diorite.Lang.API.Syntax.Views;
 using Diorite.Lang.API.Traits;
+using Microsoft.FSharp.Collections;
 
 namespace Diorite.Lang.API.Syntax.Data;
 
@@ -27,7 +28,8 @@ namespace Diorite.Lang.API.Syntax.Data;
 ///           functions.
 ///     </i></p>
 /// </summary>
-public class FunctionAttributes : ICoreConverter<Core.Syntax.FunctionAttributes, FunctionAttributes>
+public class FunctionAttributes : ICoreView<Core.Syntax.FunctionAttributes>,
+                                  ICoreConverter<Core.Syntax.FunctionAttributes, FunctionAttributes>
 {
     public static FunctionAttributes OfCoreType(Core.Syntax.FunctionAttributes coreAttributes)
     {
@@ -48,6 +50,24 @@ public class FunctionAttributes : ICoreConverter<Core.Syntax.FunctionAttributes,
     private FunctionAttributes(Variable identifier, IReadOnlyList<FunctionParameter> parameters, NumberSet range,
         FunctionMetadata metadata) =>
         (Identifier, Parameters, Range, Metadata) = (identifier, parameters, range, metadata);
+
+    public Core.Syntax.FunctionAttributes AsCoreType()
+    {
+        var identifier = Identifier.AsCoreType();
+        var parameters = ListModule.OfArray(Parameters.Select(p => p.AsCoreType()).ToArray());
+        var range      = Range switch
+        {
+            NumberSet.Natural    => Core.Syntax.NumberSet.Natural,
+            NumberSet.Integer    => Core.Syntax.NumberSet.Integer,
+            NumberSet.Real       => Core.Syntax.NumberSet.Real,
+            NumberSet.Rational   => Core.Syntax.NumberSet.Rational,
+            NumberSet.Irrational => Core.Syntax.NumberSet.Irrational,
+            NumberSet.Complex    => Core.Syntax.NumberSet.Complex,
+            _ => throw new InvalidOperationException("Not all NumberSet cases were complete")
+        };
+        var metadata  = Metadata.AsCoreType();
+        return new Core.Syntax.FunctionAttributes(identifier, parameters, range, metadata);
+    }
 
     /// <summary>
     ///     <p>Checks whether this <c>FunctionAttributes</c> is expected to return a <c>Natural</c> number.</p>

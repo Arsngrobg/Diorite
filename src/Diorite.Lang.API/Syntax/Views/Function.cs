@@ -14,8 +14,10 @@
 // ------------------------------------------------------------------------------------------------------------------
 
 using Diorite.Lang.API.Syntax.Structure;
+using Diorite.Lang.API.Traits;
+using Diorite.Lang.API.Syntax.Data;
 
-namespace Diorite.Lang.API.Syntax.Data;
+namespace Diorite.Lang.API.Syntax.Views;
 
 /// <summary>
 ///     <p>The <c>Function</c> type describes a <b>Diorite</b> function.</p>
@@ -29,21 +31,32 @@ namespace Diorite.Lang.API.Syntax.Data;
 ///           functions.
 ///     </i></p>
 /// </summary>
-public sealed class Function
+public sealed class Function : ICoreView<Tuple<Core.Syntax.FunctionAttributes, Core.Syntax.FunctionBody>>,
+                               ICoreConverter<Tuple<Core.Syntax.FunctionAttributes, Core.Syntax.FunctionBody>, Function>
 {
     /// <summary>
     ///     <p>Creates a new <c>Function</c> from its equivalent core type.</p>
     /// </summary>
-    /// <param name="functionCore"> the equivalent core type </param>
+    /// <param name="coreFunction"> the equivalent core type </param>
     /// <returns> a new <c>Function</c>, derived from its equivalent core type </returns>
-    internal static Function OfCoreType(Tuple<Core.Syntax.FunctionAttributes, Core.Syntax.FunctionBody> functionCore) =>
-        new (FunctionAttributes.OfCoreType(functionCore.Item1), Ast.OfCoreFunctionBody(functionCore.Item2));
+    public static Function OfCoreType(Tuple<Core.Syntax.FunctionAttributes, Core.Syntax.FunctionBody> coreFunction) =>
+        new (
+            FunctionAttributes.OfCoreType(coreFunction.Item1),
+            Ast.OfCoreType(coreFunction.Item2),
+            coreFunction.Item2
+        );
 
     public FunctionAttributes FunctionAttributes { get; }
     public Ast                FunctionBody       { get; }
     
-    private Function(FunctionAttributes functionAttributes, Ast functionBody) =>
-        (FunctionAttributes, FunctionBody) = (functionAttributes, functionBody);
+    // executable-only
+    private readonly Core.Syntax.FunctionBody _executable;
+    
+    private Function(FunctionAttributes functionAttributes, Ast functionBody, Core.Syntax.FunctionBody executable) =>
+        (FunctionAttributes, FunctionBody, _executable) = (functionAttributes, functionBody, executable);
+
+    public Tuple<Core.Syntax.FunctionAttributes, Core.Syntax.FunctionBody> AsCoreType() =>
+        new (FunctionAttributes.AsCoreType(), _executable);
 
     public override int GetHashCode() =>
         HashCode.Combine(FunctionAttributes, FunctionBody);

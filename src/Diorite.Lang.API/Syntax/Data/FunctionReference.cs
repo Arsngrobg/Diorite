@@ -6,8 +6,8 @@
 //
 // ------------------------------------------------------------------------------------------------------------------
 // File:    FunctionReference.cs
-// Summary: The type definition of the FunctionReferenceType type, which describes the reference types for a Diorite
-//          function  
+// Summary: The type definition of the FunctionReference type, which describes the reference types for a Diorite
+//          function
 // Author:  Borngle
 // Version: v1.0
 // ------------------------------------------------------------------------------------------------------------------
@@ -27,12 +27,14 @@ public abstract class FunctionReference : ICoreView<Core.Syntax.FunctionReferenc
         Core.Syntax.FunctionReferenceType.OfSymbol   symRef => new OfSymbol(symRef.Item),
         _ => throw new InvalidOperationException("All match cases were not covered")
     };
+    
+    private FunctionReference() {}
 
     /// <summary>
     ///     <p>Performs pattern matching on this <c>FunctionReference</c>.</p>
     /// </summary>
     /// <param name="onVariable"> the callback to execute if this <c>FunctionReference</c> is of a variable </param>
-    /// <param name="onSymbol"> the callback to execute if this <c>FunctionReference</c> is of  symbol </param>
+    /// <param name="onSymbol"> the callback to execute if this <c>FunctionReference</c> is of symbol </param>
     /// <typeparam name="T"> the result of this pattern matching operation </typeparam>
     /// <returns> the result of the pattern match, bound by the type <c>T</c> </returns>
     public T Match<T>(Func<Variable, T> onVariable, Func<string, T> onSymbol) => this switch
@@ -41,8 +43,6 @@ public abstract class FunctionReference : ICoreView<Core.Syntax.FunctionReferenc
         OfSymbol symRef   => onSymbol  (symRef.Symbol),
         _                 => throw new InvalidOperationException($"Invalid case {GetType()}")
     };
-    
-    private FunctionReference() {}
 
     public abstract Core.Syntax.FunctionReferenceType AsCoreType();
     public abstract override int    GetHashCode();
