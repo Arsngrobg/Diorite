@@ -52,10 +52,41 @@ module Optimizer =
              )
          | expression -> expression |> Ok
 
-    // let FlattenFunction (fn: FunctionType) (memory: Memory): FunctionType Result =
-    //     let (fnAttrs: FunctionAttributes), (fnBody: FunctionBody) = fn
-    //     match fnBody with
-    //      | FunctionBody.Expression          exp -> ((exp, memory, fnAttrs) |||> FlattenExpression)
-    //                                                |> Result.map (fun e -> (fnAttrs, FunctionBody.Expression e))
-    //      | FunctionBody.PiecewiseConditions pwc -> ((pwc, memory, fnAttrs) |||> FlattenPiecewiseConditions)
-    //                                                |> Result.map (fun pwc -> (fnAttrs, FunctionBody.PiecewiseConditions pwc))
+    let FlattenFnResult (fnResult: FunctionResult) (memory: Memory) (fnAttrs: FunctionAttributes): FunctionResult Result =
+        match fnResult with
+         | FunctionResult.Expression exp -> ((exp, memory, fnAttrs) |||> FlattenExpression)
+                                            |> Result.map FunctionResult.Expression
+         | fnResult                      -> fnResult |> Ok
+
+    let FlattenComparisonOperation (cmpOp: ComparisonOperation) (memory: Memory) (fnAttrs: FunctionAttributes): ComparisonOperation Result =
+        let (l: Expression), (o: ComparisonOperator), (r: Expression) = cmpOp
+        ((l, memory, fnAttrs) |||> FlattenExpression) |> Result.bind (fun l ->
+        ((r, memory, fnAttrs) |||> FlattenExpression) |> Result.map  (fun r ->
+            (l, o, r)
+        ))
+
+    let FlattenPWCondition (pwc: PiecewiseCondition) (memory: Memory) (fnAttrs: FunctionAttributes): PiecewiseCondition Result =
+        let (fnResult: FunctionResult), (cmpOp: ComparisonOperation) = pwc
+        ((fnResult, memory, fnAttrs) |||> FlattenFnResult)            |> Result.bind (fun fnResult ->
+        ((cmpOp,    memory, fnAttrs) |||> FlattenComparisonOperation) |> Result.map  (fun cmpOp    ->
+            (fnResult, cmpOp)
+        ))
+
+    let rec FlattenPWConditions (pwcs: PiecewiseCondition list) (memory: Memory) (fnAttrs: FunctionAttributes): PiecewiseCondition list Result =
+        match pwcs with
+         | []           -> failwith "No PiecewiseConditions supplied to EvalPWConditions"
+         | [pwc]        -> (pwc, memory, fnAttrs) |||> FlattenPWCondition |> Result.map (fun pwc -> [pwc])
+         | head :: tail ->
+             ((head, memory, fnAttrs) |||> FlattenPWCondition)
+             |> Result.bind (fun pwc ->
+                    (tail, memory, fnAttrs) |||> FlattenPWConditions
+                    |> Result.map (fun pwcsTail -> pwc :: pwcsTail)
+                )
+
+    let FlattenFunction (fn: FunctionType) (memory: Memory): FunctionType Result =
+        let (fnAttrs: FunctionAttributes), (fnBody: FunctionBody) = fn
+        match fnBody with
+         | FunctionBody.Expression          exp -> ((exp, memory, fnAttrs) |||> FlattenExpression)
+                                                   |> Result.map (fun e -> (fnAttrs, FunctionBody.Expression e))
+         | FunctionBody.PiecewiseConditions pwc -> ((pwc, memory, fnAttrs) |||> FlattenPWConditions)
+                                                   |> Result.map (fun pwc -> (fnAttrs, FunctionBody.PiecewiseConditions pwc))

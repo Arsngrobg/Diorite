@@ -39,7 +39,7 @@ module Evaluation =
     ///        to <b>only</b>.
     ///     </p>
     /// </summary>
-    type WriteOnly      = Memory
+    type WriteOnly      = Memory Result
     /// <summary>
     ///     <p>A type to visually mark that this function may return a value, and potentially modified <c>Memory</c>
     ///        record.
@@ -394,13 +394,22 @@ module Evaluation =
     /// <param name="memory"> the stateful context to reference from </param>
     /// <returns> a <c>ValueType</c> as a result of this evaluation &amp; the mutated memory state </returns>
     let EvalFnDef (fn: FunctionType) (memory: Memory): WriteOnly =
-        let (fnAttrs: FunctionAttributes), _ = fn
-        let newState: Memory = SetVariable memory fnAttrs.identifier (CellData.OfFunction fn)
-        match fnAttrs.metadata.symbol with
-         | None     -> newState
-         | Some sym ->
-             let newState: Memory = (sym, fn) |> (UpdateSymbol newState)
-             newState
+        let (fnAttrs: FunctionAttributes), (_) = fn
+        let flattenedFn: FunctionType Result =
+            if fnAttrs.metadata.inlined then
+                ((fn, memory) ||> Optimizer.FlattenFunction)
+            else
+                fn |> Ok
+
+        flattenedFn
+        |> Result.map (fun fn ->
+               let newState: Memory = (memory, fnAttrs.identifier, (CellData.OfFunction fn)) |||> SetVariable
+               match fnAttrs.metadata.symbol with
+                | None     -> newState
+                | Some sym ->
+                    let newState: Memory = (sym, fn) |> (UpdateSymbol newState)
+                    newState
+           )
 
     /// <summary>
     ///     <p>Evaluates the incoming <c>ASTNode</c>.</p>
@@ -411,8 +420,8 @@ module Evaluation =
     let EvalNode (node: ASTNode) (memory: Memory): ReadAndWrite =
         // helper functions to map to ReadAndWrite type
         let MapReadOnly:  ReadOnly  -> ReadAndWrite = Result.map (fun v -> (Some v, memory))
-        let MapWriteOnly: WriteOnly -> ReadAndWrite = fun m -> (None, m)      |> Ok
-        let MapUnit:      unit      -> ReadAndWrite = fun _ -> (None, memory) |> Ok
+        let MapWriteOnly: WriteOnly -> ReadAndWrite = Result.map (fun m -> (None, m))
+        let MapUnit:      unit      -> ReadAndWrite =             fun _ -> (None, memory) |> Ok
 
         match node with
          | ASTNode.Expression         exp        -> (exp,        memory) ||> EvalExpression |> MapReadOnly

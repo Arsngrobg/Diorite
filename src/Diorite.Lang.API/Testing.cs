@@ -2,8 +2,8 @@
 
 using Diorite.Lang.API;
 using Diorite.Lang.API.Library;
+using Diorite.Lang.API.Syntax.Data;
 using Diorite.Lang.API.Syntax.Views;
-using Diorite.Lang.API.Syntax.Structure;
 using Token = Diorite.Lang.API.Syntax.Structure.Token;
 
 Console.WriteLine($"Running Diorite Ver{DioriteVersion.CoreVersion} using API Ver {DioriteVersion.ApiVersion}");
@@ -123,25 +123,25 @@ foreach (var token in tokens2)
 var error = DioriteError.OfMathError();
 Console.WriteLine(error.Message);
 
-var lib = Library.OfFile("src\\Diorite.Lang.API\\Library\\Stdlib\\base.diorite");
-lib.AddFile("src\\Diorite.Lang.API\\Library\\Stdlib\\trigonometry.diorite");
+// var lib = Library.OfFile("src\\Diorite.Lang.API\\Library\\Stdlib\\base.diorite");
+// lib.AddFile("src\\Diorite.Lang.API\\Library\\Stdlib\\trigonometry.diorite");
 
 var source = """
-sin(1);
-cos(1);
-tan(1);
-asin(1);
-acos(1);
-atan(1);
-plot x;
+x = 2;
+y = 2;
+
+[inlined]
+f(x) = 2 + y;
 """;
+var lib = Library.OfSource(source);
 
 var memory = lib.BuildMemorySnapshot();
 var evaluator = DioriteEvaluator.Configure(memory, _ => Console.WriteLine("FUCK YOU"));
 foreach (var value in evaluator.EvaluateSource(source))
     Console.WriteLine(value);
 
-var function = memory.GetFunctionFromSymbol("sin");
+var function = memory.GetFunctionFromRef(FunctionReference.UsingVariable(Variable.OfCharacter('f')));
 if (function == null) throw DioriteError.OfMathError("no function");
+Console.WriteLine(function.FunctionBody.TreeStr());
 var x = evaluator.EvaluateFunction(function, Value.OfNumber(1));
 Console.WriteLine($"X: {x}");

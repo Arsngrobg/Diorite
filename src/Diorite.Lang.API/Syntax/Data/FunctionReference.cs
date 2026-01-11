@@ -14,13 +14,20 @@
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
 
+using Diorite.Lang.API.Syntax.Views;
 using Diorite.Lang.API.Traits;
 
-namespace Diorite.Lang.API.Syntax.Views;
+namespace Diorite.Lang.API.Syntax.Data;
 
 public abstract class FunctionReference : ICoreView<Core.Syntax.FunctionReferenceType>,
                                           ICoreConverter<Core.Syntax.FunctionReferenceType, FunctionReference>
 {
+    public static FunctionReference UsingVariable(Variable variable) =>
+        new OfVariable(variable);
+
+    public static FunctionReference UsingSymbol(string symbol) =>
+        new OfSymbol(symbol);
+
     public static FunctionReference OfCoreType(Core.Syntax.FunctionReferenceType coreRef) => coreRef switch
     {
         Core.Syntax.FunctionReferenceType.OfVariable varRef => new OfVariable(Variable.OfCoreType(varRef.Item)),

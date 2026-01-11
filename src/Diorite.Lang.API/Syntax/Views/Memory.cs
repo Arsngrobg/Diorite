@@ -15,6 +15,7 @@
 
 using System.Collections;
 using Diorite.Lang.API.Callbacks;
+using Diorite.Lang.API.Syntax.Data;
 using Diorite.Lang.API.Traits;
 using Microsoft.FSharp.Collections;
 
