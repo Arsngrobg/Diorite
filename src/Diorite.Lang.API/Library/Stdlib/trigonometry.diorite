@@ -49,9 +49,9 @@ f(x : R, n : Z, y : R, p : R, z : R) -> R = {
         z + (y * (2 * n - 1) / (2 * n)) * (p * x * x) * (x / (2 * n + 1))
     ) otherwise;
 }
-        
+
 [symbol:asin]
-f(x: R) -> R = asin_loop(x, 1, 1.0, x, x)
+f(x: R) -> R = asin_loop(x, 1, 1.0, x, x);
 
 [symbol:acos]
 f(x: R) -> R = pi / 2.0 - asin(x);
