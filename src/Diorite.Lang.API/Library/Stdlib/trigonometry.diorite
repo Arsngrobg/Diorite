@@ -5,7 +5,7 @@
 # z is the sum of terms
 f(x : R, n : Z, y : R, z : R) -> R = {
     z if n >= 10; # Limiting to 10 terms
-    f(
+    sin_loop(
         x,
         n + 1,
         y * -1.0 * x * x / ((2 * n) * (2 * n + 1)),
@@ -19,7 +19,7 @@ f(x : R) -> R = sin_loop(x, 1, x, x);
 [symbol:cos_loop]
 f(x : R, n : Z, y : R, z: R) -> R = {
     z if n >= 10;
-    f(
+    cos_loop(
         x,
         n + 1,
         y * -1.0 * x * x / (2 * n * (2 * n - 1)),
@@ -41,7 +41,7 @@ f(x: R) -> R = sin(x) / cos(x);
 [symbol:asin_loop]
 f(x : R, n : Z, y : R, p : R, z : R) -> R = {
     z if n >= 10;
-    f(
+    asin_loop(
         x,
         n + 1,
         y * (2 * n - 1) / (2 * n),
@@ -59,7 +59,7 @@ f(x: R) -> R = pi / 2.0 - asin(x);
 [symbol:atan_loop]
 f(x : R, n : Z, y : R, z : R) -> R = {
     z if n >= 10;
-    f(
+    atan_loop(
         x,
         n + 1,
         y * -1.0 * x * x / (2 * n + 1),

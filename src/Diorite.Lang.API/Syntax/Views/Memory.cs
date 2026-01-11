@@ -59,13 +59,13 @@ public class Memory : ICoreView<Core.Runtime.VirtualMemory.Memory>,
     {
         // idk if this even works
         // no errors so hopefully
-        PlotCallback derivedCallback = csFn =>
+        PlotCallback derivedCallback = apiEval =>
         {
             var fsharpFn = Microsoft.FSharp.Core.FSharpFunc<Core.Syntax.ValueType, 
                     Microsoft.FSharp.Core.FSharpResult<Core.Syntax.ValueType, Core.Errors.DioriteError>>
                 .FromConverter(x =>
                 {
-                    var val = csFn(Value.OfCoreType(x));
+                    var val = apiEval(Value.OfCoreType(x));
                     return Microsoft.FSharp.Core.FSharpResult<
                         Core.Syntax.ValueType,
                         Core.Errors.DioriteError
@@ -111,23 +111,25 @@ public class Memory : ICoreView<Core.Runtime.VirtualMemory.Memory>,
             _plotCallback(x =>
             {
                 var fsResult = anonFn.Invoke(x.AsCoreType());
-                return fsResult.IsOk ? Value.OfCoreType(fsResult.ResultValue) : throw DioriteError.OfMathError("yeah nah");
+                return fsResult.IsOk
+                    ? Value.OfCoreType(fsResult.ResultValue)
+                    : throw DioriteError.OfMathError("yeah nah");
             });
 
             return null!;
         });
-        
+
         return new Core.Runtime.VirtualMemory.Memory(
             _variableTable.Select(c => c.AsCoreType()).ToArray(),
-            MapModule.OfSeq(_symbolRegister.Select(
-                kv => new Tuple<string, Tuple<Core.Syntax.FunctionAttributes, Core.Syntax.FunctionBody>>(
+            MapModule.OfSeq(_symbolRegister.Select(kv =>
+                new Tuple<string, Tuple<Core.Syntax.FunctionAttributes, Core.Syntax.FunctionBody>>(
                     kv.Key, kv.Value.AsCoreType()
                 )
             )),
             asFsharpFunc
         );
     }
-    
+
     /// <summary>
     ///     <p>Gets the variable in the <c>VariableTable</c> of this <c>Memory</c> object.</p>
     /// </summary>
@@ -143,6 +145,34 @@ public class Memory : ICoreView<Core.Runtime.VirtualMemory.Memory>,
     /// <param name="cellData"> the <c>CellData</c> that either contains a function or value </param>
     public void SetVariable(Variable variable, MemoryCell cellData) =>
         _variableTable[IndexOf(variable)] = cellData;
+
+    /// <summary>
+    ///     <p>Writes over this <c>Memory</c> object with the other supplied <c>Memory</c>.</p>
+    ///     <p>This does <b>NOT</b> write over the <see cref="PlotCallback"/> function supplied to it.</p>
+    /// </summary>
+    /// <param name="other"> the <c>Memory</c> object to write over this <c>Memory</c> object </param>
+    public void OverwriteWith(Memory other)
+    {
+        // write to variables
+        for (var idx = 0; idx < Variable.MaxVariables; idx++)
+        {
+            var thisSlot = _variableTable[idx];
+            var otherSlot = other._variableTable[idx];
+            var overwritten = thisSlot.Match(
+                onValueSlot: _ =>
+                    otherSlot.Match(
+                        onValueSlot: otherValue => otherValue.Equals(Value.Undefined) ? thisSlot : otherSlot,
+                        onFunctionSlot: _ => thisSlot
+                    ),
+                onFunctionSlot: _ => otherSlot
+            );
+            _variableTable[idx] = overwritten;
+        }
+
+        // write symbols
+        foreach (var kv in other._symbolRegister)
+            _symbolRegister[kv.Key] = kv.Value;
+    }
 
     /// <summary>
     ///     <p>Applies the sequence of variable-value pairs to this <c>Memory</c> object.</p>

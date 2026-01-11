@@ -123,6 +123,25 @@ foreach (var token in tokens2)
 var error = DioriteError.OfMathError();
 Console.WriteLine(error.Message);
 
-var lib = Library.OfFile("C:\\Users\\James Armstrong\\Documents\\Projects\\Diorite\\src\\Diorite.Lang.API\\Library\\Stdlib\\base.diorite");
-lib.AddFile("C:\\Users\\James Armstrong\\Documents\\Projects\\Diorite\\src\\Diorite.Lang.API\\Library\\Stdlib\\trigonometry.diorite");
-Console.WriteLine(lib.BuildMemorySnapshot());
+var lib = Library.OfFile("src\\Diorite.Lang.API\\Library\\Stdlib\\base.diorite");
+lib.AddFile("src\\Diorite.Lang.API\\Library\\Stdlib\\trigonometry.diorite");
+
+var source = """
+sin(1);
+cos(1);
+tan(1);
+asin(1);
+acos(1);
+atan(1);
+plot x;
+""";
+
+var memory = lib.BuildMemorySnapshot();
+var evaluator = DioriteEvaluator.Configure(memory, _ => Console.WriteLine("FUCK YOU"));
+foreach (var value in evaluator.EvaluateSource(source))
+    Console.WriteLine(value);
+
+var function = memory.GetFunctionFromSymbol("sin");
+if (function == null) throw DioriteError.OfMathError("no function");
+var x = evaluator.EvaluateFunction(function, Value.OfNumber(1));
+Console.WriteLine($"X: {x}");

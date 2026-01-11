@@ -52,7 +52,7 @@ public sealed class Token : ICoreConverter<Core.Syntax.Token, Token>
             switch (errors.Length)
             {
                 case 0:  break;
-                case 1:  throw errors[0];
+                case 1:  throw     errors[0];
                 default: throw new AggregateException(errors);
             }
         }

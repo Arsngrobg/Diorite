@@ -9,7 +9,8 @@ namespace Diorite.Lang.API.Library;
 ///        user-defined <b>Diorite</b> source code.
 ///     </p>
 ///     <p>It allows for the chaining of operations through the <see cref="AddFile"/> and <see cref="AddSource"/>
-///        methods. Typical usage is to initialise memory before executing some arbitrary <b>Diorite</b> code.
+///        methods. Typical usage is to initialise memory before executing some arbitrary <b>Diorite</b> code, as
+///        building the initial memory snapshot is expensive.
 ///     </p>
 ///     <p>To get the initial <see cref="Memory"/> snapshot of the code, use the <see cref="BuildMemorySnapshot"/>
 ///        method to <i>build</i> the library.
@@ -52,6 +53,11 @@ public sealed class Library
     private Library(string source) =>
         _source = source;
 
+    /// <summary>
+    ///     <p>Constructs the <see cref="Memory"/> snapshot of this library post evaluation.</p>
+    ///     <p>Raw expressions are ignored.</p>
+    /// </summary>
+    /// <returns> the <see cref="Memory"/> snapshot of this <c>Library</c> post evaluation </returns>
     public Memory BuildMemorySnapshot()
     {
         var noOp = Microsoft.FSharp.Core.FSharpFunc<

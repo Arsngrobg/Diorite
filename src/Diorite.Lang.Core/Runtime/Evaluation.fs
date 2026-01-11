@@ -51,7 +51,27 @@ module Evaluation =
     /// </summary>
     type DefiniteResult = (ValueType * Memory) Result
 
+    let GetMembershipError (isInput: bool) (set: NumberSet) (value: ValueType): ValueType Result =
+        let setStr: string =
+            match set with
+             | NumberSet.Natural    -> "N"
+             | NumberSet.Integer    -> "Z"
+             | NumberSet.Real       -> "R"
+             | NumberSet.Rational   -> "Q"
+             | NumberSet.Irrational -> "I"
+             | NumberSet.Complex    -> "C"
+        let msg: string =
+            if isInput then $"Expected Real ({setStr}) number set membership for input argument {value}"
+            else            $"Expected Real ({setStr}) number set membership for output argument {value}"
+        (Some msg, [value]) ||> MathError
+
+    /// <summary>
+    ///     <p>The maximum denominator to use for irrationality detection.</p>
+    /// </summary>
     let MaxDenominator: int = 10000000
+    /// <summary>
+    ///     <p>The tolerance value before a number is considered to be likely irrational.</p>
+    /// </summary>
     let IrrationalTolerance: float = 0.70
 
     /// <summary>
@@ -88,57 +108,62 @@ module Evaluation =
     /// <summary>
     ///     <p>Evaluates the <c>ValueType</c> as if it has membership in the <c>Natural</c> number set.</p>
     /// </summary>
+    /// <param name="isInput"> whether the erroneous value is an input or output value </param>
     /// <param name="value"> the <c>ValueType</c> to check for set membership </param>
     /// <returns> a <c>ValueType</c> as a result of this evaluation </returns>
-    let EvalSetNatural (value: ValueType): ReadOnly =
+    let EvalSetNatural (isInput: bool) (value: ValueType): ReadOnly =
         match value with
          | ValueType.Number x when (x = (System.Math.Truncate x)) && (x >= 0) ->
              EvalValue (ValueType.Number x)
          | _                                                                  ->
-             (Some "Expected Natural (N) number set membership", [value]) ||> MathError
+             (isInput, NumberSet.Natural, value) |||> GetMembershipError
 
     /// <summary>
     ///     <p>Evaluates the <c>ValueType</c> as if it has membership in the <c>Integer</c> number set.</p>
     /// </summary>
+    /// <param name="isInput"> whether the erroneous value is an input or output value </param>
     /// <param name="value"> the <c>ValueType</c> to check for set membership </param>
     /// <returns> a <c>ValueType</c> as a result of this evaluation </returns>
-    let EvalSetInteger (value: ValueType): ReadOnly =
+    let EvalSetInteger (isInput: bool) (value: ValueType): ReadOnly =
         match value with
          | ValueType.Number x when (x = (System.Math.Truncate x)) ->
              (ValueType.Number x) |> EvalValue
          | _                                                      ->
-             (Some "Expected Integer (I) number set membership", [value]) ||> MathError
+             (isInput, NumberSet.Integer, value) |||> GetMembershipError
 
     /// <summary>
     ///     <p>Evaluates the <c>ValueType</c> as if it has membership in the <c>Real</c> number set.</p>
     /// </summary>
+    /// <param name="isInput"> whether the erroneous value is an input or output value </param>
     /// <param name="value"> the <c>ValueType</c> to check for set membership </param>
     /// <returns> a <c>ValueType</c> as a result of this evaluation </returns>
-    let EvalSetReal (value: ValueType): ReadOnly =
+    let EvalSetReal (isInput: bool) (value: ValueType): ReadOnly =
         match value with
          | ValueType.Number x ->
              (ValueType.Number x) |> EvalValue
          | _                  ->
-             (Some "Expected Real (R) number set membership", [value]) ||> MathError
+             (isInput, NumberSet.Real, value) |||> GetMembershipError
 
     /// <summary>
     ///     <p>Evaluates the <c>ValueType</c> as if it has membership in the <c>Rational</c> number set.</p>
     /// </summary>
+    /// <param name="isInput"> whether the erroneous value is an input or output value </param>
     /// <param name="value"> the <c>ValueType</c> to check for set membership </param>
     /// <returns> a <c>ValueType</c> as a result of this evaluation </returns>
-    let EvalSetRational (value: ValueType): ReadOnly =
+    let EvalSetRational (isInput: bool) (value: ValueType): ReadOnly =
         match value with
          | ValueType.Number x ->
              (ValueType.Number x) |> EvalValue
          | _                  ->
-             (Some "Expected Rational (Q) number set membership", [value]) ||> MathError
+             (isInput, NumberSet.Rational, value) |||> GetMembershipError
 
     /// <summary>
     ///     <p>Evaluates the <c>ValueType</c> as if it has membership in the <c>Irrational</c> number set.</p>
     /// </summary>
+    /// <param name="isInput"> whether the erroneous value is an input or output value </param>
     /// <param name="value"> the <c>ValueType</c> to check for set membership </param>
     /// <returns> a <c>ValueType</c> as a result of this evaluation </returns>
-    let EvalSetIrrational (value: ValueType): ReadOnly =
+    let EvalSetIrrational (isInput: bool) (value: ValueType): ReadOnly =
         // Heuristic:
         //  using floating-point errors alongside logarithmic scaling to determine how likely it is that a given number
         //  is considered to be likely irrational.
@@ -154,11 +179,11 @@ module Evaluation =
              let error = abs(x - (float numerator) / (float denominator))
              let percentage: float = if error > 0 then min 1.0 (-System.Math.Log10(error) / 10.0) else 0.0
              if percentage < IrrationalTolerance then
-                 (Some "Expected Irrational (I) number set membership", [value]) ||> MathError
+                 (isInput, NumberSet.Natural, value) |||> GetMembershipError
              else
                  value |> Ok
 
-         | _ -> (Some "Expected Irrational (I) number set membership", [value]) ||> MathError
+         | _ -> (isInput, NumberSet.Natural, value) |||> GetMembershipError
 
     /// <summary>
     ///     <p>Evaluates the <c>ValueType</c> as if it has membership in the <c>Complex</c> number set.</p>
@@ -171,17 +196,18 @@ module Evaluation =
     /// <summary>
     ///     <p>Evaluates the structured pairing of a <c>VariableType</c> &amp; <c>NumberSet</c>.</p>
     /// </summary>
+    /// <param name="isInput"> whether the erroneous value is an input or output value </param>
     /// <param name="value"> the <c>ValueType</c> to check for set membership </param>
     /// <param name="set"> the <c>NumberSet</c> to chack <c>ValueType</c> against </param>
     /// <returns> the <c>ValueType</c> upon successful validation of the set membership </returns>
-    let EvalSetMembership (value: ValueType, set: NumberSet): ReadOnly =
+    let EvalSetMembership (isInput: bool) (value: ValueType, set: NumberSet): ReadOnly =
         match set with
-         | NumberSet.Natural    -> value |> EvalSetNatural
-         | NumberSet.Integer    -> value |> EvalSetInteger
-         | NumberSet.Real       -> value |> EvalSetReal
-         | NumberSet.Rational   -> value |> EvalSetRational
-         | NumberSet.Irrational -> value |> EvalSetIrrational
-         | NumberSet.Complex    -> value |> EvalSetComplex
+         | NumberSet.Natural    -> value |> (EvalSetNatural    isInput)
+         | NumberSet.Integer    -> value |> (EvalSetInteger    isInput)
+         | NumberSet.Real       -> value |> (EvalSetReal       isInput)
+         | NumberSet.Rational   -> value |> (EvalSetRational   isInput)
+         | NumberSet.Irrational -> value |> (EvalSetIrrational isInput)
+         | NumberSet.Complex    -> value |>  EvalSetComplex
 
     /// <summary>
     ///     <p>Evaluates the incoming a structured binary operation.</p>
@@ -231,7 +257,7 @@ module Evaluation =
              (fnArgs, List.map snd fnAttrs.parameters)
              ||> List.map2  (fun exp set ->     // evaluate all expressions
                      ((exp, memory) ||> EvalExpression)
-                     |> Result.bind (fun value -> (value, set) |> EvalSetMembership)
+                     |> Result.bind (fun value -> (value, set) |> (EvalSetMembership true))
                  )
              |> List.fold   (fun acc result ->                            // first occurrence of error - fail
                     match (acc, result) with
@@ -253,7 +279,7 @@ module Evaluation =
                                    | MathError (msg, _) -> (msg, fnArgs) |> DioriteError.MathError
                                    | err                -> err
                               )
-                           |> Result.bind (fun value -> EvalSetMembership (value, fnAttrs.range))
+                           |> Result.bind (fun value -> (value, fnAttrs.range) |> (EvalSetMembership false))
                         )
                 )
 

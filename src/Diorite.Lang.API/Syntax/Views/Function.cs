@@ -50,13 +50,13 @@ public sealed class Function : ICoreView<Tuple<Core.Syntax.FunctionAttributes, C
     public Ast                FunctionBody       { get; }
     
     // executable-only
-    private readonly Core.Syntax.FunctionBody _executable;
+    internal readonly Core.Syntax.FunctionBody Executable;
     
     private Function(FunctionAttributes functionAttributes, Ast functionBody, Core.Syntax.FunctionBody executable) =>
-        (FunctionAttributes, FunctionBody, _executable) = (functionAttributes, functionBody, executable);
+        (FunctionAttributes, FunctionBody, Executable) = (functionAttributes, functionBody, executable);
 
     public Tuple<Core.Syntax.FunctionAttributes, Core.Syntax.FunctionBody> AsCoreType() =>
-        new (FunctionAttributes.AsCoreType(), _executable);
+        new (FunctionAttributes.AsCoreType(), Executable);
 
     public override int GetHashCode() =>
         HashCode.Combine(FunctionAttributes, FunctionBody);

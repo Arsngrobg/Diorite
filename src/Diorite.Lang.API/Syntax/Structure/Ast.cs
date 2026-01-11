@@ -43,7 +43,11 @@ public abstract class Ast : IEnumerable<Ast>,
     /// <param name="source"> <b>Diorite</b> source code to parse </param>
     /// <returns> the AST </returns>
     public static Ast OfSource(string source) {
-        var root  = Core.Parser.TopLevelParser.ParseString(source).ResultValue;
+        var result = Core.Parser.TopLevelParser.ParseString(source);
+        if (result.IsError)
+            throw DioriteError.OfCoreType(result.ErrorValue);
+
+        var root = result.ResultValue;
         var asApi = new BranchNode(
             Kind.Root,
             root.Select(OfCoreType).ToArray()
