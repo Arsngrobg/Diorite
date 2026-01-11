@@ -400,14 +400,20 @@ module Evaluation =
     /// <param name="root"> the <c>AST</c> to evaluate </param>
     /// <param name="memory"> the stateful context to initially reference from (propagated through chain) </param>
     /// <returns> a sequence of <c>(ValueType * Memory) Result</c>s - <c>None</c> results are ignored</returns>
-    let rec EvalTree (root: AST) (memory: Memory): DefiniteResult list =
+    let rec EvalTree (root: AST) (memory: Memory): ValueType Result list * Memory =
         match root with
-         | []           -> []
+         | []           -> ([], memory)
          | head :: tail ->
-             match ((head, memory) ||> EvalNode) with
-              | Ok    (None,   memory) ->                        ((tail, memory) ||> EvalTree)
-              | Ok    (Some v, memory) -> (Ok    (v, memory)) :: ((tail, memory) ||> EvalTree)
-              | Error err              -> (Error err)         :: ((tail, memory) ||> EvalTree)
+            match ((head, memory) ||> EvalNode) with
+            | Ok (Some value, newMemory) -> // add on the value to the list
+                let (tailResults: ValueType Result list), (finalMemory: Memory) = (tail, newMemory) ||> EvalTree
+                (Ok value :: tailResults, finalMemory)
+            | Ok (None, newMemory) ->       // move onto the next subtree
+                let (tailResults: ValueType Result list), (finalMemory: Memory) = (tail, newMemory) ||> EvalTree
+                (tailResults, finalMemory)
+            | Error err ->                  // error, so move on
+                let (tailResults: ValueType Result list), (finalMemory: Memory) = (tail, memory)    ||> EvalTree
+                (Error err :: tailResults, finalMemory)
 
     /// <summary>
     ///     <p>Evaluates the incoming <c>string</c>.</p>
@@ -416,11 +422,13 @@ module Evaluation =
     /// <param name="source"> the <c>string</c> to evaluate. </param>
     /// <param name="memory"> the stateful context to initially reference from (propagated through chain) </param>
     /// <returns> a sequence of <c>(ValueType * Memory) Result</c>s - <c>None</c> results are ignored</returns>
-    let EvalString (source: string) (memory: Memory): DefiniteResult list =
+    let EvalString (source: string) (memory: Memory): ValueType Result list * Memory =
         let tokens: TokenStream = source |> Tokenise
         match (GetTokenizerErrors tokens) with
-         | head :: _ -> [Error head]
          | []        ->
              match (ParseTokens tokens) with
-              | Error err  -> [Error err]
+              | Error err  -> ([Error err], memory)
               | Ok    tree -> (EvalTree tree memory)
+         | errors    -> (errors |> (List.map Error), memory)
+
+    
