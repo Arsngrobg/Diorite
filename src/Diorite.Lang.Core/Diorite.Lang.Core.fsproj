@@ -66,6 +66,7 @@
         <Compile Include="Runtime\ComparisonOperationRules.fs" />
         <Compile Include="Runtime\RuleMappings.fs"             />
         <Compile Include="Runtime\VirtualMemory.fs"            />
+        <Compile Include="Runtime\Optimizer.fs"                />
         <Compile Include="Runtime\Evaluation.fs"               />
     </ItemGroup>
 
