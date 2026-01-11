@@ -1,6 +1,7 @@
 ﻿// testing file as the API is implemented
 
 using Diorite.Lang.API;
+using Diorite.Lang.API.Library;
 using Diorite.Lang.API.Syntax.Views;
 using Diorite.Lang.API.Syntax.Structure;
 using Token = Diorite.Lang.API.Syntax.Structure.Token;
@@ -77,49 +78,51 @@ foreach (var token in tokens2)
     Console.WriteLine($"\t{token}");
 }
 
-Console.WriteLine("\nTrees:");
-var ast = Ast.OfSource("""
-100;
-3.245;
-1/3;
-1*10^-3;
-complex(25, 25);
-complex(0,  25);
-complex(25, 0 );
-complex(0,  0 );
-pi;
-tau;
-euler;
-+inf;
--inf;
-undefined;
-
-x = 1200*(2139+124);
-
-[symbol:abs]
-f(x : Z) -> Z = {
-    -x if x < 0; x otherwise;
-}
-
-[symbol:sin_loop]
-f(x : R, n : Z, y : R, z : R) -> R = {
-    z if n >= 10; # Limiting to 10 terms
-    f(
-        x,
-        n + 1,
-        y * -1.0 * x * x / ((2 * n) * (2 * n + 1)),
-        z + y * -1.0 * x * x / ((2 * n) * (2 * n + 1))
-    ) otherwise;
-}
-
-[symbol:sin]
-f(x : R) -> R = sin_loop(x, 1, x, x);
-
-abs(-2.43);
-""");
-Console.WriteLine(ast.TreeStr());
+// Console.WriteLine("\nTrees:");
+// var ast = Ast.OfSource("""
+// 100;
+// 3.245;
+// 1/3;
+// 1*10^-3;
+// complex(25, 25);
+// complex(0,  25);
+// complex(25, 0 );
+// complex(0,  0 );
+// pi;
+// tau;
+// euler;
+// +inf;
+// -inf;
+// undefined;
+//
+// x = 1200*(2139+124);
+//
+// [symbol:abs]
+// f(x : Z) -> Z = {
+//     -x if x < 0; x otherwise;
+// }
+//
+// [symbol:sin_loop]
+// f(x : R, n : Z, y : R, z : R) -> R = {
+//     z if n >= 10; # Limiting to 10 terms
+//     f(
+//         x,
+//         n + 1,
+//         y * -1.0 * x * x / ((2 * n) * (2 * n + 1)),
+//         z + y * -1.0 * x * x / ((2 * n) * (2 * n + 1))
+//     ) otherwise;
+// }
+//
+// [symbol:sin]
+// f(x : R) -> R = sin_loop(x, 1, x, x);
+//
+// abs(-2.43);
+// """);
+// Console.WriteLine(ast.TreeStr());
 
 var error = DioriteError.OfMathError();
 Console.WriteLine(error.Message);
 
-Console.WriteLine("\nMemory:");
+var lib = Library.OfFile("C:\\Users\\James Armstrong\\Documents\\Projects\\Diorite\\src\\Diorite.Lang.API\\Library\\Stdlib\\base.diorite");
+lib.AddFile("C:\\Users\\James Armstrong\\Documents\\Projects\\Diorite\\src\\Diorite.Lang.API\\Library\\Stdlib\\trigonometry.diorite");
+Console.WriteLine(lib.BuildMemorySnapshot());
