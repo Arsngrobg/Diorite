@@ -98,7 +98,7 @@ namespace IME {
             var inputFunctions = new List<(TextBox TextBox, Function? Function)>();
             foreach (var textBox in _plots.Keys.ToList()) {
                 string input = textBox.Text;
-                var function = DioriteEvaluator.ExtractFunction(input);
+                var function = Function.OfString(input);
                 inputFunctions.Add((textBox, function));
             }
             await Task.Run(() => {
@@ -229,7 +229,7 @@ namespace IME {
             try {
                 var result = _evaluator.EvaluateSource(input);
                 _sessionMemory = _evaluator.GetMemory();
-                var function = DioriteEvaluator.ExtractFunction(input);
+                var function = Function.OfString(input);
                 if (function != null) {
                     var (xValues, yValues) = PlotFunction(function);
                     if (IsValidPlot(xValues, yValues)) {

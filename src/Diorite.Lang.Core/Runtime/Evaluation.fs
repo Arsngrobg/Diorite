@@ -16,9 +16,8 @@
 namespace Diorite.Lang.Core.Runtime
 
 open Diorite.Lang.Core.Errors
-open Diorite.Lang.Core.Lexer
-open Diorite.Lang.Core.Parser
 open Diorite.Lang.Core.Runtime
+open Diorite.Lang.Core.Runtime.Optimizer
 open Diorite.Lang.Core.Syntax
 open Diorite.Lang.Core.Runtime.RuleMappings
 
@@ -29,28 +28,14 @@ open Diorite.Lang.Core.Runtime.RuleMappings
 /// </summary>
 module Evaluation =
     /// <summary>
-    ///     <p>A type to visually mark that this function only returns a <c>ValueType</c>, hence memory is not mutated
-    ///        between calls, hence only a <c>ValueType</c> is returned.
+    ///     <p>Gets the equivalent error message from the supplied <c>NumberSet</c> and whether the erroneous
+    ///        <c>ValueType</c> was an input or output value.
     ///     </p>
     /// </summary>
-    type ReadOnly       = ValueType Result
-    /// <summary>
-    ///     <p>A type to visually mark that this function only returns a <c>Memory</c> context, hence memory is written
-    ///        to <b>only</b>.
-    ///     </p>
-    /// </summary>
-    type WriteOnly      = Memory Result
-    /// <summary>
-    ///     <p>A type to visually mark that this function may return a value, and potentially modified <c>Memory</c>
-    ///        record.
-    ///     </p>
-    /// </summary>
-    type ReadAndWrite   = (ValueType option * Memory) Result
-    /// <summary>
-    ///     <p>A type to visually mark that this function returns a definite value &amp; mutated state.</p>
-    /// </summary>
-    type DefiniteResult = (ValueType * Memory) Result
-
+    /// <param name="isInput"> whether the erroneous <c>ValueType</c> is an input or output </param>
+    /// <param name="set"> the <c>NumberSet</c> the supplied <c>ValueType</c> doesn't match with </param>
+    /// <param name="value"> the erroneous <c>ValueType</c> </param>
+    /// <returns> a <c>MathError</c> that contains that message and erroneous <c>ValueType</c> </returns>
     let GetMembershipError (isInput: bool) (set: NumberSet) (value: ValueType): ValueType Result =
         let setStr: string =
             match set with
@@ -66,7 +51,68 @@ module Evaluation =
         (Some msg, [value]) ||> MathError
 
     /// <summary>
-    ///     <p>The maximum denominator to use for irrationality detection.</p>
+    ///     <p>The <c>Evaluator</c> type is a lambda that evaluates a specific structure defined by the <c>'a</c> type.
+    ///        It references the supplied <c>Memory</c> struct, and produces a value, bound by the generic type
+    ///        <c>'b</c>, alongside the updated <c>Memory</c>.
+    ///     </p>
+    /// </summary>
+    type Evaluator<'a, 'b> = 'a * Memory -> ('b * Memory) Result
+
+    /// <summary>
+    ///     <p>Produces an <c>Evaluator</c> that evaluates whether a given <c>ValueType</c> has membership in the
+    ///        <c>Natural</c> number set.
+    ///     </p>
+    /// </summary>
+    /// <param name="isInput"> for error messages, if the <c>ValueType</c> is an input or output value </param>
+    /// <returns> a new <c>Evaluator</c>, that tests the membership against the <c>Natural</c> set </returns>
+    let NaturalSetEvaluator (isInput: bool): Evaluator<ValueType, ValueType> =
+        (fun (value, memory) ->
+            match value with
+             | ValueType.Undefined                                                   ->
+                 (ValueType.Undefined, memory) |> Ok
+             | ValueType.Number    x when (x = (System.Math.Truncate x)) && (x >= 0) ->
+                 (ValueType.Number x,  memory) |> Ok
+             | value                                                                 ->
+                 ((isInput, NumberSet.Natural, value) |||> GetMembershipError)
+                 |> Result.map (fun result -> (result, memory))
+        )
+
+    /// <summary>
+    ///     <p>Produces an <c>Evaluator</c> that evaluates whether a given <c>ValueType</c> has membership in the
+    ///        <c>Integer</c> number set.
+    ///     </p>
+    /// </summary>
+    /// <param name="isInput"> for error messages, if the <c>ValueType</c> is an input or output value </param>
+    /// <returns> a new <c>Evaluator</c>, that tests the membership against the <c>Integer</c> set </returns>
+    let IntegerSetEvaluator (isInput: bool): Evaluator<ValueType, ValueType> =
+        (fun (value, memory) ->
+            match value with
+             | ValueType.Undefined                                    -> (ValueType.Undefined, memory) |> Ok
+             | ValueType.Number x when (x = (System.Math.Truncate x)) -> (ValueType.Number x,  memory) |> Ok
+             | value                                                  ->
+                 ((isInput, NumberSet.Integer, value) |||> GetMembershipError)
+                 |> Result.map (fun result -> (result, memory))
+        )
+
+    /// <summary>
+    ///     <p>Produces an <c>Evaluator</c> that evaluates whether a given <c>ValueType</c> has membership in the
+    ///        <c>Real</c> number set.
+    ///     </p>
+    /// </summary>
+    /// <param name="isInput"> for error messages, if the <c>ValueType</c> is an input or output value </param>
+    /// <returns> a new <c>Evaluator</c>, that tests the membership against the <c>Real</c> set </returns>
+    let RealSetEvaluator (isInput: bool): Evaluator<ValueType, ValueType> =
+        (fun (value, memory) ->
+            match value with
+             | ValueType.Undefined -> (ValueType.Undefined, memory) |> Ok
+             | ValueType.Number x  -> (ValueType.Number x,  memory) |> Ok
+             | value               ->
+                 ((isInput, NumberSet.Real, value) |||> GetMembershipError)
+                 |> Result.map (fun result -> (result, memory))
+        )
+
+    /// <summary>
+    ///     <p>The maximum denominator to use for irrationality heuristic.</p>
     /// </summary>
     let MaxDenominator: int = 10000000
     /// <summary>
@@ -75,27 +121,69 @@ module Evaluation =
     let IrrationalTolerance: float = 0.70
 
     /// <summary>
-    ///     <p>Evaluates the incoming <c>ValueType</c>.</p>
-    ///     <p>This is the identity function.</p>
-    /// </summary>
-    /// <param name="value"> the <c>ValueType</c> to evaluate </param>
-    /// <returns> a <c>ValueType</c> as a result of this evaluation </returns>
-    let EvalValue (value: ValueType): ReadOnly =
-        value |> Ok
-
-    /// <summary>
-    ///     <p>Evaluates the incoming <c>VariableType</c>.</p>
-    ///     <p>This function assumes the intended use is unwrapping a value from a variable, hence will return a
-    ///        <c>MathError</c> if the data stored in the location defined by the <c>VariableType</c> is a
-    ///        <c>FunctionType</c> and not a <c>ValueType</c>.
+    ///     <p>Produces an <c>Evaluator</c> that evaluates whether a given <c>ValueType</c> has membership in the
+    ///        <c>Irrational</c> number set.
     ///     </p>
     /// </summary>
-    /// <param name="variable"> the <c>VariableType</c> to evaluate </param>
-    /// <param name="memory"> the stateful context to reference from </param>
-    /// <returns> a <c>ValueType</c> as a result of this evaluation </returns>
-    let EvalVariable (variable: VariableType) (memory: Memory): ReadOnly =
-        match (GetVariable memory variable) with
-         | CellData.OfValue    value        -> value |> EvalValue
+    /// <param name="isInput"> for error messages, if the <c>ValueType</c> is an input or output value </param>
+    /// <returns> a new <c>Evaluator</c>, that tests the membership against the <c>Irrational</c> set </returns>
+    let IrrationalSetEvaluator (isInput: bool): Evaluator<ValueType, ValueType> =
+        (fun (value, memory) ->
+            match value with
+             | ValueType.Undefined -> (ValueType.Undefined, memory) |> Ok
+             | ValueType.Number x  ->
+                 let denominator: int = MaxDenominator
+                 let numerator:   int = int (System.Math.Round(x * (float denominator)))
+            
+                 let error = abs(x - (float numerator) / (float denominator))
+                 let percentage: float = if error > 0 then min 1.0 (-System.Math.Log10(error) / 10.0) else 0.0
+                 if percentage < IrrationalTolerance then
+                     (isInput, NumberSet.Natural, value) |||> GetMembershipError
+                     |> Result.map (fun result -> (result, memory))
+                 else
+                     (value, memory) |> Ok
+             | value               ->
+                 ((isInput, NumberSet.Irrational, value) |||> GetMembershipError)
+                 |> Result.map (fun result -> (result, memory))
+        )
+
+    /// <summary>
+    ///     <p>Produces an <c>Evaluator</c> that evaluates whether a given <c>ValueType</c> has membership in the
+    ///        <c>Rational</c> number set.
+    ///     </p>
+    /// </summary>
+    /// <param name="isInput"> for error messages, if the <c>ValueType</c> is an input or output value </param>
+    /// <returns> a new <c>Evaluator</c>, that tests the membership against the <c>Rational</c> set </returns>
+    let RationalSetEvaluator (isInput: bool): Evaluator<ValueType, ValueType> =
+        (fun (value, memory) ->
+            match value with
+             | ValueType.Undefined -> (ValueType.Undefined, memory) |> Ok
+             | ValueType.Number x  ->
+                 match ((ValueType.Number x, memory) |> (IrrationalSetEvaluator isInput)) with
+                  | Error _ -> (ValueType.Number x, memory) |> Ok
+                  | Ok    _ ->
+                     ((isInput, NumberSet.Rational, value) |||> GetMembershipError)
+                     |> Result.map (fun result -> (result, memory))
+             | value               ->
+                 ((isInput, NumberSet.Rational, value) |||> GetMembershipError)
+                 |> Result.map (fun result -> (result, memory))
+        )
+
+    /// <summary>
+    ///     <p>Produces an <c>Evaluator</c> that evaluates whether a given <c>ValueType</c> has membership in the
+    ///        <c>Complex</c> number set.
+    ///     </p>
+    ///     <p><i>All values are inherintly complex.</i></p>
+    /// </summary>
+    let ComplexSetEvaluator: Evaluator<ValueType, ValueType> = Ok
+
+    /// <summary>
+    ///     <p>The evaluator for a <c>VariableType</c>.</p>
+    ///     <p>It will try to unwrap the <c>VariableType</c> into its <c>ValueType</c> in <c>Memory</c>.</p>
+    /// </summary>
+    let VariableEvaluator: Evaluator<VariableType, ValueType> = (fun (variable, memory) ->
+        match (variable |> (GetVariable memory)) with
+         | CellData.OfValue    value        -> (value, memory) |> Ok
          | CellData.OfFunction (fnAttrs, _) ->
              let functionStr: string =
                  fnAttrs.parameters
@@ -104,300 +192,239 @@ module Evaluation =
                  |> String.concat ", "
                  |> (fun paramStr -> $"{fnAttrs.parameters}({paramStr})")
              (Some $"Expected ValueType got FunctionType instead ({functionStr})", []) ||> MathError
+    )
 
     /// <summary>
-    ///     <p>Evaluates the <c>ValueType</c> as if it has membership in the <c>Natural</c> number set.</p>
+    ///     <p>The <c>Evaluator</c> for an <c>Expression</c>.</p>
     /// </summary>
-    /// <param name="isInput"> whether the erroneous value is an input or output value </param>
-    /// <param name="value"> the <c>ValueType</c> to check for set membership </param>
-    /// <returns> a <c>ValueType</c> as a result of this evaluation </returns>
-    let EvalSetNatural (isInput: bool) (value: ValueType): ReadOnly =
-        match value with
-         | ValueType.Number x when (x = (System.Math.Truncate x)) && (x >= 0) ->
-             EvalValue (ValueType.Number x)
-         | _                                                                  ->
-             (isInput, NumberSet.Natural, value) |||> GetMembershipError
-
+    let rec ExpressionEvaluator: Evaluator<Expression, ValueType> = (fun (expression, memory) ->
+        match expression with
+         | Expression.Value           value               -> (value,                memory) |> Ok
+         | Expression.Variable        variable            -> (variable,             memory) |> VariableEvaluator
+         | Expression.BinaryOperation (l, o, r)           -> (((l, o, r),           memory) |> BinaryOperationEvaluator)
+         | Expression.UnaryOperation  (operand, operator) -> (((operand, operator), memory) |> UnaryOperationEvaluator)
+         | Expression.FunctionCall    (fnRef,   fnArgs)   -> (((fnRef, fnArgs),     memory) |> FunctionCallEvaluator)
+    )
+    
     /// <summary>
-    ///     <p>Evaluates the <c>ValueType</c> as if it has membership in the <c>Integer</c> number set.</p>
+    ///     <p>The <c>Evaluator</c> for a <i>structured binary operation</i>.</p>
     /// </summary>
-    /// <param name="isInput"> whether the erroneous value is an input or output value </param>
-    /// <param name="value"> the <c>ValueType</c> to check for set membership </param>
-    /// <returns> a <c>ValueType</c> as a result of this evaluation </returns>
-    let EvalSetInteger (isInput: bool) (value: ValueType): ReadOnly =
-        match value with
-         | ValueType.Number x when (x = (System.Math.Truncate x)) ->
-             (ValueType.Number x) |> EvalValue
-         | _                                                      ->
-             (isInput, NumberSet.Integer, value) |||> GetMembershipError
-
-    /// <summary>
-    ///     <p>Evaluates the <c>ValueType</c> as if it has membership in the <c>Real</c> number set.</p>
-    /// </summary>
-    /// <param name="isInput"> whether the erroneous value is an input or output value </param>
-    /// <param name="value"> the <c>ValueType</c> to check for set membership </param>
-    /// <returns> a <c>ValueType</c> as a result of this evaluation </returns>
-    let EvalSetReal (isInput: bool) (value: ValueType): ReadOnly =
-        match value with
-         | ValueType.Number x ->
-             (ValueType.Number x) |> EvalValue
-         | _                  ->
-             (isInput, NumberSet.Real, value) |||> GetMembershipError
-
-    /// <summary>
-    ///     <p>Evaluates the <c>ValueType</c> as if it has membership in the <c>Rational</c> number set.</p>
-    /// </summary>
-    /// <param name="isInput"> whether the erroneous value is an input or output value </param>
-    /// <param name="value"> the <c>ValueType</c> to check for set membership </param>
-    /// <returns> a <c>ValueType</c> as a result of this evaluation </returns>
-    let EvalSetRational (isInput: bool) (value: ValueType): ReadOnly =
-        match value with
-         | ValueType.Number x ->
-             (ValueType.Number x) |> EvalValue
-         | _                  ->
-             (isInput, NumberSet.Rational, value) |||> GetMembershipError
-
-    /// <summary>
-    ///     <p>Evaluates the <c>ValueType</c> as if it has membership in the <c>Irrational</c> number set.</p>
-    /// </summary>
-    /// <param name="isInput"> whether the erroneous value is an input or output value </param>
-    /// <param name="value"> the <c>ValueType</c> to check for set membership </param>
-    /// <returns> a <c>ValueType</c> as a result of this evaluation </returns>
-    let EvalSetIrrational (isInput: bool) (value: ValueType): ReadOnly =
-        // Heuristic:
-        //  using floating-point errors alongside logarithmic scaling to determine how likely it is that a given number
-        //  is considered to be likely irrational.
-        //
-        //  Since, every floating-point number is, by definition, rational, we have to essentially check how difficult
-        //  it is to represent x using a fraction
-         
-        match value with
-         | ValueType.Number x ->
-             let denominator: int = MaxDenominator
-             let numerator:   int = int (System.Math.Round(x * (float denominator)))
+    and BinaryOperationEvaluator: Evaluator<Expression * BinaryOperator * Expression, ValueType> =
+        // optimised function call to reuse the call stack
+        (fun ((l, o, r), memory) ->
+            // optimised function call to reuse the call stack
+            let optimisedCall: Bounce = Call (fun () ->
+                // left
+                match ((l, memory) |> ExpressionEvaluator) with
+                 | Error err         -> Done (Error err)
+                 | Ok    (l, memory) ->
+                     // right
+                     Call (fun () ->
+                        match ((r, memory) |> ExpressionEvaluator) with
+                         | Error err         -> Done (Error err)
+                         | Ok    (r, memory) ->
+                             // application
+                             Done (
+                                 ((l, r) |> (GetBinaryRule o))
+                                 |> Result.map (fun value -> (value, memory))
+                             )
+                     )
+            )
             
-             let error = abs(x - (float numerator) / (float denominator))
-             let percentage: float = if error > 0 then min 1.0 (-System.Math.Log10(error) / 10.0) else 0.0
-             if percentage < IrrationalTolerance then
-                 (isInput, NumberSet.Natural, value) |||> GetMembershipError
-             else
-                 value |> Ok
-
-         | _ -> (isInput, NumberSet.Natural, value) |||> GetMembershipError
-
-    /// <summary>
-    ///     <p>Evaluates the <c>ValueType</c> as if it has membership in the <c>Complex</c> number set.</p>
-    /// </summary>
-    /// <param name="value"> the <c>ValueType</c> to check for set membership </param>
-    /// <returns> a <c>ValueType</c> as a result of this evaluation </returns>
-    let EvalSetComplex (value: ValueType): ReadOnly =
-        value |> EvalValue // every value is complex
-
-    /// <summary>
-    ///     <p>Evaluates the structured pairing of a <c>VariableType</c> &amp; <c>NumberSet</c>.</p>
-    /// </summary>
-    /// <param name="isInput"> whether the erroneous value is an input or output value </param>
-    /// <param name="value"> the <c>ValueType</c> to check for set membership </param>
-    /// <param name="set"> the <c>NumberSet</c> to chack <c>ValueType</c> against </param>
-    /// <returns> the <c>ValueType</c> upon successful validation of the set membership </returns>
-    let EvalSetMembership (isInput: bool) (value: ValueType, set: NumberSet): ReadOnly =
-        match set with
-         | NumberSet.Natural    -> value |> (EvalSetNatural    isInput)
-         | NumberSet.Integer    -> value |> (EvalSetInteger    isInput)
-         | NumberSet.Real       -> value |> (EvalSetReal       isInput)
-         | NumberSet.Rational   -> value |> (EvalSetRational   isInput)
-         | NumberSet.Irrational -> value |> (EvalSetIrrational isInput)
-         | NumberSet.Complex    -> value |>  EvalSetComplex
-
-    /// <summary>
-    ///     <p>Evaluates the incoming a structured binary operation.</p>
-    /// </summary>
-    /// <param name="binOp"> the structured binary operation to evaluate </param>
-    /// <param name="memory"> the stateful context to reference from </param>
-    /// <returns> a <c>ValueType</c> as a result of this evaluation </returns>
-    let rec EvalBinOp (binOp: Expression * BinaryOperator * Expression) (memory: Memory): ReadOnly =
-        let (l: Expression), (o: BinaryOperator), (r: Expression) = binOp
-        ((l, memory) ||> EvalExpression) |> Result.bind (fun l ->
-        ((r, memory) ||> EvalExpression) |> Result.bind (fun r ->
-            ((l, r) |> (GetBinaryRule o))
-        ))
-
-    /// <summary>
-    ///     <p>Evaluates the incoming structured unary operation.</p>
-    /// </summary>
-    /// <param name="unOp"> the structured unary operation to evaluate </param>
-    /// <param name="memory"> the stateful context to reference from </param>
-    /// <returns> a <c>ValueType</c> as a result of this evaluation </returns>
-    and EvalUnOp (unOp: Expression * UnaryOperator) (memory: Memory): ReadOnly =
-        let (operand: Expression), (operator: UnaryOperator) = unOp
-        ((operand, memory) ||> EvalExpression) |> Result.bind (fun operand ->
-            (operand |> (GetUnaryRule operator))
+            optimisedCall |> EvaluateBounce
         )
 
     /// <summary>
-    ///     <p>Evaluates the incoming structured function call.</p>
+    ///     <p>The <c>Evaluator</c> for a <i>structured unary operation</i>.</p>
     /// </summary>
-    /// <param name="fnCall"> the structured function call to evaluate </param>
-    /// <param name="memory"> the stateful context to reference from </param>
-    /// <returns> a <c>ValueType</c> as a result of this evaluation </returns>
-    and EvalFnCall (fnCall: FunctionReferenceType * Expression list) (memory: Memory): ReadOnly =
-        let (fnRef: FunctionReferenceType), (fnArgs: Expression list) = fnCall
-        match (GetFunctionFromRef memory fnRef) with
-         | None                   -> (
-                                      Some $"Function reference {fnRef} does not point to a real function in memory",
-                                      []
-                                     ) ||> MathError
-         | Some (fnAttrs, fnBody) ->
-             let argDiff: int = fnAttrs.parameters.Length - fnArgs.Length
-             if argDiff < 0 then
-                 (Some $"Missing {-argDiff} position arguments for function: {fnRef}", []) ||> MathError
-             elif argDiff > 0 then
-                 (Some $"Too many arguments supplied to function: {fnRef}", []) ||> MathError
-             else
-             (fnArgs, List.map snd fnAttrs.parameters)
-             ||> List.map2  (fun exp set ->     // evaluate all expressions
-                     ((exp, memory) ||> EvalExpression)
-                     |> Result.bind (fun value -> (value, set) |> (EvalSetMembership true))
+    and UnaryOperationEvaluator: Evaluator<Expression * UnaryOperator, ValueType> =
+        (fun ((operand, operator), memory) ->
+            // optimised function call to reuse the call stack
+            let optimisedCall: Bounce = Call (fun () ->
+                // operand
+                match ((operand, memory) |> ExpressionEvaluator) with
+                 | Error err               -> Done (Error err)
+                 | Ok    (operand, memory) ->
+                     // application
+                     Done (
+                         (operand |> (GetUnaryRule operator))
+                         |> Result.map (fun value -> (value, memory))
+                     )
+            )
+
+            optimisedCall |> EvaluateBounce
+        )
+
+    /// <summary>
+    ///     <p>The <c>Evaluator</c> for a sequence of function arguments.</p>
+    /// </summary>
+    and FunctionArgumentEvaluator: Evaluator<Expression list, ValueType list> = (fun (args, memory) ->
+        match args with
+         | []           -> ([], memory) |> Ok
+         | head :: tail ->
+             match ((head, memory) |> ExpressionEvaluator) with
+              | Error err           -> Error err
+              | Ok    (arg, memory) ->
+                  match ((tail, memory) |> FunctionArgumentEvaluator) with
+                   | Error err            -> Error err
+                   | Ok    (args, memory) -> Ok (arg :: args, memory)
+    )
+
+    /// <summary>
+    ///     <p>The <c>Evaluator</c> for a <i>structured function call</i>.</p>
+    /// </summary>
+    and FunctionCallEvaluator: Evaluator<FunctionReferenceType * Expression list, ValueType> =
+        (fun ((fnRef, fnArgs), memory) ->
+            // error factory
+            let err (msg: string): Bounce =
+                 Done ((Some msg, []) ||> MathError)
+
+            // optimised function call to reuse the call stack
+            let optimisedCall: Bounce = Call (fun () ->
+                // validate function reference
+                match (fnRef |> (GetFunctionFromRef memory)) with
+                 | None                   ->
+                     err $"Function reference {fnRef} does not point to a real function in memory"
+                 | Some (fnAttrs, fnBody) ->
+                     // validate function arguments
+                     let argDiff: int = fnAttrs.parameters.Length - fnArgs.Length
+                     if argDiff < 0 then
+                        err $"Missing {-argDiff} position arguments for function: {fnRef}"
+                     elif argDiff > 0 then
+                         err $"Too many arguments supplied to function: {fnRef}"
+                     else
+                         Call (fun () ->
+                             // some memoization can happen
+                             match ((fnArgs, memory) |> FunctionArgumentEvaluator) with
+                              | Error err              -> Done (Error err)
+                              | Ok    (fnArgs, memory) ->
+                                  let pairs: (VariableType * CellData) list =
+                                      fnArgs
+                                      |> List.map CellData.OfValue
+                                      |> List.zip (List.map fst fnAttrs.parameters)
+                                  
+                                  let scopedMemory: Memory = pairs |> (SetVariables memory)
+                                  Call (fun () -> Done ())
+                         )
+            )
+
+            optimisedCall |> EvaluateBounce
+        )
+
+    /// <summary>
+    ///     <p>The <c>Evaluator</c> for a <c>FunctionBody</c>.</p>
+    /// </summary>
+    and FunctionBodyEvaluator: Evaluator<FunctionBody, ValueType> = (fun (fnBody, memory) ->
+        // optimised function call to reuse the call stack
+        let optimisedCall: Bounce = Call (fun () ->
+            match fnBody with
+             | FunctionBody.Expression          expression -> Done ((expression, memory) |> ExpressionEvaluator)
+             | FunctionBody.PiecewiseConditions conditions -> Done ((conditions, memory) |> PiecewiseConditionsEvaluator)
+        )
+
+        optimisedCall |> EvaluateBounce
+    )
+
+    /// <summary>
+    ///     <p>The <c>Evaluator</c> for a sequence of <c>PiecewiseCondition</c>s.</p>
+    /// </summary>
+    and PiecewiseConditionsEvaluator: Evaluator<PiecewiseCondition list, ValueType> = (fun (cs, memory) ->
+        let optimisedCall: Bounce = Call (fun () ->
+            match cs with
+             | []                          -> failwith "no PiecewiseConditions provided"
+             | [(baseCase, _)]             -> Done ((baseCase, memory) |> FunctionResultEvaluator)
+             | head :: tail ->
+                 match ((head, memory) |> PiecewiseConditionEvaluator) with
+                  | Error err             -> Done (Error err)
+                  | Ok    (value, memory) ->
+                      match value with
+                       | ValueType.Number x when x |> System.Double.IsNaN ->
+                           Done ((tail, memory) |> PiecewiseConditionsEvaluator)
+                       | value                                            ->
+                           Done ((value, memory) |> Ok)
+        )
+
+        optimisedCall |> EvaluateBounce
+    )
+
+    /// <summary>
+    ///     <p>The <c>Evaluator</c> for a <c>PiecewiseCondition</c>.</p>
+    /// </summary>
+    and PiecewiseConditionEvaluator: Evaluator<PiecewiseCondition, ValueType> = (fun ((ifTrue, (l, o, r)), memory) ->
+        // optimised function call to reuse the call stack
+        let optimisedCall: Bounce = Call (fun () ->
+            // left
+            match ((l, memory) |> ExpressionEvaluator) with
+             | Error err         -> Done (Error err)
+             | Ok    (l, memory) ->
+                 // right
+                 Call (fun () ->
+                    match ((r, memory) |> ExpressionEvaluator) with
+                     | Error err         -> Done (Error err)
+                     | Ok    (r, memory) ->
+                         // application
+                         Call (fun () ->
+                             match ((l, r) |> (GetComparisonRule o)) with
+                             | Error err -> Done (Error err)
+                             | Ok    b   ->
+                                 if not b then
+                                     Done ((ConstantNaN, memory) |> Ok)
+                                 else
+                                     Done ((ifTrue, memory) |> FunctionResultEvaluator)
+                         )
                  )
-             |> List.fold   (fun acc result ->                            // first occurrence of error - fail
-                    match (acc, result) with
-                     | Ok    vs, Ok    v -> Ok    (v::vs)
-                     | Error e,  _
-                     | _,        Error e -> Error e
-                )
-                (Ok [])
-             |> Result.map  List.rev                                      // reverse as fold produces reversed list
-             |> Result.bind (fun fnArgs ->
-                    fnArgs 
-                    |> List.map CellData.OfValue
-                    |> List.zip (List.map fst fnAttrs.parameters)         // pair up args to their variables
-                    |> (fun pairs ->                                      // map args to each variable in memory
-                           let scopedMemory: Memory = SetVariables memory pairs
-                           ((fnBody, scopedMemory) ||> EvalFnBody)
-                           |> Result.mapError (fun err ->
-                                  match err with
-                                   | MathError (msg, _) -> (msg, fnArgs) |> DioriteError.MathError
-                                   | err                -> err
-                              )
-                           |> Result.bind (fun value -> (value, fnAttrs.range) |> (EvalSetMembership false))
-                        )
-                )
+        )
+            
+        optimisedCall |> EvaluateBounce
+    )
 
     /// <summary>
-    ///     <p>Evaluates the incoming <c>FunctionBody</c>.</p>
+    ///     <p>The <c>Evaluator</c> for a <c>FunctionResult</c>.</p>
     /// </summary>
-    /// <param name="fnBody"> the <c>FunctionBody</c> to evaluate </param>
-    /// <param name="memory"> the stateful context to reference from </param>
-    /// <returns> a <c>ValueType</c> as a result of this evaluation </returns>
-    and EvalFnBody (fnBody: FunctionBody) (memory: Memory): ReadOnly =
-        match fnBody with
-         | FunctionBody.Expression          exp        -> (exp,        memory) ||> EvalExpression
-         | FunctionBody.PiecewiseConditions conditions -> (conditions, memory) ||> EvalPWConditions
+    and FunctionResultEvaluator: Evaluator<FunctionResult, ValueType> = (fun (fnResult, memory) ->
+        // optimised function call to reuse the call stack
+        let optimisedCall: Bounce = Call (fun () ->
+            match fnResult with
+             | FunctionResult.Error      error      -> Done ((error, []) ||> MathError)
+             | FunctionResult.Expression expression -> Done ((expression, memory) |> ExpressionEvaluator)
+        )
+
+        optimisedCall |> EvaluateBounce
+    )
 
     /// <summary>
-    ///     <p>Evaluates the incoming structured piecewise condition sequence.</p>
-    ///     <p>If no conditions are supplied, then this function fails with a fatal error.</p>
+    ///     <p>The <c>Evaluator</c> for a <i>structured assignment operation</i>.</p>
     /// </summary>
-    /// <param name="conditions"> the structured piecewise condition sequence to evaluate </param>
-    /// <param name="memory"> the stateful context to reference from </param>
-    /// <returns> a <c>ValueType</c> as a result of this evaluation </returns>
-    and EvalPWConditions (conditions: PiecewiseCondition list) (memory: Memory): ReadOnly =
-        match conditions with
-         | []              -> failwith "No PiecewiseConditions supplied to EvalPWConditions"
-         | [(baseCase, _)] -> (baseCase, memory) ||> EvalFnResult
-         | head :: tail    ->
-             ((head, memory) ||> EvalPWCondition)
-             |> Result.bind (fun result ->
-                    match result with
-                     | ValueType.Number x when x |> System.Double.IsNaN -> EvalPWConditions tail memory
-                     | result                                           -> result |> EvalValue
-                )
-
-    /// <summary>
-    ///     <p>Evaluates the incoming <c>PiecewiseCondition</c>.</p>
-    /// </summary>
-    /// <param name="condition"> the <c>PiecewiseCondition</c> to evaluate </param>
-    /// <param name="memory"> the stateful context to reference from </param>
-    /// <returns> a <c>ValueType</c> as a result of this evaluation </returns>
-    and EvalPWCondition (condition: PiecewiseCondition) (memory: Memory): ReadOnly =
-        let (fnResult: FunctionResult), (cmpOp: ComparisonOperation) = condition
-        let (l: Expression), (o: ComparisonOperator), (r: Expression) = cmpOp
-        ((l, memory) ||> EvalExpression) |> Result.bind (fun l ->
-        ((r, memory) ||> EvalExpression) |> Result.bind (fun r ->
-            ((l, r) |> (GetComparisonRule o))
-            |> Result.bind (fun b ->
-                   if not b then ConstantNaN |> Ok
-                   else          (fnResult, memory) ||> EvalFnResult
-               )
-        ))
-
-    /// <summary>
-    ///     <p>Evaluates the incoming <c>FunctionResult</c>.</p>
-    /// </summary>
-    /// <param name="fnResult"> the <c>FunctionResult</c> to evaluate </param>
-    /// <param name="memory"> the stateful context to reference from </param>
-    /// <returns> a <c>ValueType</c> as a result of this evaluation </returns>
-    and EvalFnResult (fnResult: FunctionResult) (memory: Memory): ReadOnly =
-        match fnResult with
-         | FunctionResult.Error      err -> (err, [])     ||> MathError
-         | FunctionResult.Expression exp -> (exp, memory) ||> EvalExpression
-
-    /// <summary>
-    ///     <p>Evaluates the incoming <c>Expression</c>.</p>
-    /// </summary>
-    /// <param name="expression"> the <c>Expression</c> to evaluate </param>
-    /// <param name="memory"> the stateful context to reference from </param>
-    /// <returns> a <c>ValueType</c> as a result of this evaluation </returns>
-    and EvalExpression (expression: Expression) (memory: Memory): ReadOnly =
-        match expression with
-         | Expression.Value           value           -> value                      |> EvalValue
-         | Expression.Variable        variable        -> (variable,        memory) ||> EvalVariable
-         | Expression.BinaryOperation (l, o, r)       -> ((l, o, r),       memory) ||> EvalBinOp
-         | Expression.UnaryOperation  (op, o)         -> ((op, o),         memory) ||> EvalUnOp
-         | Expression.FunctionCall    (fnRef, fnArgs) -> ((fnRef, fnArgs), memory) ||> EvalFnCall
-
-    /// <summary>
-    ///     <p>Evaluates the incoming structured variable assignment.</p>
-    /// </summary>
-    /// <param name="assignment"> the structured variable assignment to evaluate </param>
-    /// <param name="memory"> the stateful context to reference from </param>
-    /// <returns> a <c>ValueType</c> as a result of this evaluation &amp; the mutated memory state </returns>
-    let EvalAssign (assignment: VariableType * Expression) (memory: Memory): ReadAndWrite =
-        let (variable: VariableType), (expression: Expression) = assignment
-        ((expression, memory) ||> EvalExpression)
-        |> Result.map (fun result ->
-               let newState: Memory = SetVariable memory variable (CellData.OfValue result)
-               (Some result, newState)
+    let AssignmentEvaluator: Evaluator<VariableType * Expression, ValueType> = (fun ((variable, expression), memory) ->
+        ((expression, memory) |> ExpressionEvaluator)
+        |> Result.map (fun (value, memory) ->
+               let updatedMemory: Memory = (variable, CellData.OfValue value) ||> (SetVariable memory)
+               (value, updatedMemory)
            )
+    )
 
     /// <summary>
-    ///     <p>Evaluates the incoming <c>AnonymousFunction</c>.</p>
-    ///     <p>This invokes the <c>plotCallback</c> function registered in <b>Diorite</b>'s <c>VirtualMemory</c>.</p>
-    ///     <p><i>This function evaluates but returns nothing as state is local to the evaluation, and values are
-    ///           explicitly handled by the user's callback function.
-    ///     </i></p>
+    ///     <p>The <c>Evaluator</c> for an <c>AnonymousFunction</c>.</p>
     /// </summary>
-    /// <param name="anonymousFunction"> the <c>AnonymousFunction</c> to evaluate </param>
-    /// <param name="memory"> the stateful context to reference from </param>
-    let EvalFnPlot (anonymousFunction: AnonymousFunction) (memory: Memory): unit =
-        let bakedEval: ValueType -> ReadOnly = (fun input ->
+    let PlotEvaluator: Evaluator<AnonymousFunction, unit> = (fun (anonymousFunction, memory) ->
+        let bakedEval: ValueType -> ValueType Result = (fun input ->
             let scopedMemory: Memory = SetVariable memory anonymousFunction.parameter (CellData.OfValue input)
-            (anonymousFunction.expression, scopedMemory) ||> EvalExpression
+            ((anonymousFunction.expression, scopedMemory) |> ExpressionEvaluator)
+            |> Result.map fst
         )
 
         memory.plotCallback bakedEval
+        ((), memory) |> Ok
+    )
 
     /// <summary>
-    ///     <p>Evaluates the incoming <c>FunctionType</c>.</p>
+    ///     <p>The <c>Evaluator</c> for a <i>structured function definition</i>.</p>
     /// </summary>
-    /// <param name="fn"> the <c>FunctionType</c> to evaluate </param>
-    /// <param name="memory"> the stateful context to reference from </param>
-    /// <returns> a <c>ValueType</c> as a result of this evaluation &amp; the mutated memory state </returns>
-    let EvalFnDef (fn: FunctionType) (memory: Memory): WriteOnly =
-        let (fnAttrs: FunctionAttributes), (_) = fn
+    let FunctionDefinitionEvaluator: Evaluator<FunctionType, unit> = (fun ((fnAttrs, fnBody), memory) ->
+        let fn: FunctionType = (fnAttrs, fnBody)
         let flattenedFn: FunctionType Result =
             if fnAttrs.metadata.inlined then
-                ((fn, memory) ||> Optimizer.FlattenFunction)
+                ((fn, memory) ||> FlattenFunction)
             else
                 fn |> Ok
 
@@ -405,65 +432,45 @@ module Evaluation =
         |> Result.map (fun fn ->
                let newState: Memory = (memory, fnAttrs.identifier, (CellData.OfFunction fn)) |||> SetVariable
                match fnAttrs.metadata.symbol with
-                | None     -> newState
+                | None     -> ((), newState)
                 | Some sym ->
                     let newState: Memory = (sym, fn) |> (UpdateSymbol newState)
-                    newState
+                    ((), newState)
            )
+    )
 
     /// <summary>
-    ///     <p>Evaluates the incoming <c>ASTNode</c>.</p>
+    ///     <p>The <c>Evaluator</c> for an <c>ASTNode</c>.</p>
     /// </summary>
-    /// <param name="node"> the <c>ASTNode</c> to evaluate </param>
-    /// <param name="memory"> the stateful context to reference from </param>
-    /// <returns> a <c>ValueType option</c> as a result of this evaluation &amp; the mutated <c>Memory</c></returns>
-    let EvalNode (node: ASTNode) (memory: Memory): ReadAndWrite =
-        // helper functions to map to ReadAndWrite type
-        let MapReadOnly:  ReadOnly  -> ReadAndWrite = Result.map (fun v -> (Some v, memory))
-        let MapWriteOnly: WriteOnly -> ReadAndWrite = Result.map (fun m -> (None, m))
-        let MapUnit:      unit      -> ReadAndWrite =             fun _ -> (None, memory) |> Ok
-
+    let ASTNodeEvaluator: Evaluator<ASTNode, ValueType option> = (fun (node, memory) ->
         match node with
-         | ASTNode.Expression         exp        -> (exp,        memory) ||> EvalExpression |> MapReadOnly
-         | ASTNode.PlotFunction       afn        -> (afn,        memory) ||> EvalFnPlot     |> MapUnit
-         | ASTNode.Assignment         (var, exp) -> ((var, exp), memory) ||> EvalAssign
-         | ASTNode.FunctionDefinition fn         -> (fn,         memory) ||> EvalFnDef      |> MapWriteOnly
+         | ASTNode.Expression         expression             ->
+             ((expression, memory) |> ExpressionEvaluator)
+             |> Result.map (fun (value, memory) -> (Some value, memory))
+         | ASTNode.PlotFunction       anonymousFunction      ->
+             ((anonymousFunction, memory) |> PlotEvaluator)
+             |> Result.map (fun (_, memory) -> (None, memory))
+         | ASTNode.Assignment         (variable, expression) ->
+             (((variable, expression), memory) |> AssignmentEvaluator)
+             |> Result.map (fun (value, memory) -> (Some value, memory))
+         | ASTNode.FunctionDefinition functionDefinition     ->
+             ((functionDefinition, memory) |> FunctionDefinitionEvaluator)
+             |> Result.map (fun (_, memory) -> (None, memory))
+    )
 
     /// <summary>
-    ///     <p>Evaluates the incoming <c>AST</c>.</p>
+    ///     <p>The <c>Evaluator</c> for an <c>AST</c>.</p>
     /// </summary>
-    /// <param name="root"> the <c>AST</c> to evaluate </param>
-    /// <param name="memory"> the stateful context to initially reference from (propagated through chain) </param>
-    /// <returns> a sequence of <c>(ValueType * Memory) Result</c>s - <c>None</c> results are ignored</returns>
-    let rec EvalTree (root: AST) (memory: Memory): ValueType Result list * Memory =
-        match root with
-         | []           -> ([], memory)
+    let rec ASTEvaluator: Evaluator<AST, ValueType list> = (fun (tree, memory) ->
+        match tree with
+         | []           -> ([], memory) |> Ok
          | head :: tail ->
-            match ((head, memory) ||> EvalNode) with
+            match ((head, memory) |> ASTNodeEvaluator) with
             | Ok (Some value, newMemory) -> // add on the value to the list
-                let (tailResults: ValueType Result list), (finalMemory: Memory) = (tail, newMemory) ||> EvalTree
-                (Ok value :: tailResults, finalMemory)
-            | Ok (None, newMemory) ->       // move onto the next subtree
-                let (tailResults: ValueType Result list), (finalMemory: Memory) = (tail, newMemory) ||> EvalTree
-                (tailResults, finalMemory)
-            | Error err ->                  // error, so move on
-                let (tailResults: ValueType Result list), (finalMemory: Memory) = (tail, memory)    ||> EvalTree
-                (Error err :: tailResults, finalMemory)
-
-    /// <summary>
-    ///     <p>Evaluates the incoming <c>string</c>.</p>
-    ///     <p>Applies the tokenisation and parsing pipelines to the input <c>string</c>.</p>
-    /// </summary>
-    /// <param name="source"> the <c>string</c> to evaluate. </param>
-    /// <param name="memory"> the stateful context to initially reference from (propagated through chain) </param>
-    /// <returns> a sequence of <c>(ValueType * Memory) Result</c>s - <c>None</c> results are ignored</returns>
-    let EvalString (source: string) (memory: Memory): ValueType Result list * Memory =
-        let tokens: TokenStream = source |> Tokenise
-        match (GetTokenizerErrors tokens) with
-         | []        ->
-             match (ParseTokens tokens) with
-              | Error err  -> ([Error err], memory)
-              | Ok    tree -> (EvalTree tree memory)
-         | errors    -> (errors |> (List.map Error), memory)
-
-    
+                ((tail, newMemory) |> ASTEvaluator)
+                |> Result.map (fun (values, memory) -> (value :: values, memory))
+            | Ok (None, newMemory)       -> // move onto the next subtree
+                ((tail, newMemory) |> ASTEvaluator)
+            | Error err                  -> // error
+                Error err
+    )

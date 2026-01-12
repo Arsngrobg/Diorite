@@ -78,70 +78,23 @@ foreach (var token in tokens2)
     Console.WriteLine($"\t{token}");
 }
 
-// Console.WriteLine("\nTrees:");
-// var ast = Ast.OfSource("""
-// 100;
-// 3.245;
-// 1/3;
-// 1*10^-3;
-// complex(25, 25);
-// complex(0,  25);
-// complex(25, 0 );
-// complex(0,  0 );
-// pi;
-// tau;
-// euler;
-// +inf;
-// -inf;
-// undefined;
-//
-// x = 1200*(2139+124);
-//
-// [symbol:abs]
-// f(x : Z) -> Z = {
-//     -x if x < 0; x otherwise;
-// }
-//
-// [symbol:sin_loop]
-// f(x : R, n : Z, y : R, z : R) -> R = {
-//     z if n >= 10; # Limiting to 10 terms
-//     f(
-//         x,
-//         n + 1,
-//         y * -1.0 * x * x / ((2 * n) * (2 * n + 1)),
-//         z + y * -1.0 * x * x / ((2 * n) * (2 * n + 1))
-//     ) otherwise;
-// }
-//
-// [symbol:sin]
-// f(x : R) -> R = sin_loop(x, 1, x, x);
-//
-// abs(-2.43);
-// """);
-// Console.WriteLine(ast.TreeStr());
-
-var error = DioriteError.OfMathError();
-Console.WriteLine(error.Message);
-
-// var lib = Library.OfFile("src\\Diorite.Lang.API\\Library\\Stdlib\\base.diorite");
-// lib.AddFile("src\\Diorite.Lang.API\\Library\\Stdlib\\trigonometry.diorite");
-
 var source = """
-x = 2;
-y = 2;
+[symbol:sum]
+L(n: N) -> N = {
+    0                if n = 0;
+    n + sum(n - 1)   otherwise;
+}
 
-[inlined]
-f(x) = 2 + y;
+[symbol:sum_acc]
+L(n, a) = {
+    a                if n = 0;
+    sum_acc(n-1, a+n) otherwise;
+}
+
+L = undefined;          
 """;
+
 var lib = Library.OfSource(source);
-
-var memory = lib.BuildMemorySnapshot();
-var evaluator = DioriteEvaluator.Configure(memory, _ => Console.WriteLine("FUCK YOU"));
-foreach (var value in evaluator.EvaluateSource(source))
-    Console.WriteLine(value);
-
-var function = memory.GetFunctionFromRef(FunctionReference.UsingVariable(Variable.OfCharacter('f')));
-if (function == null) throw DioriteError.OfMathError("no function");
-Console.WriteLine(function.FunctionBody.TreeStr());
-var x = evaluator.EvaluateFunction(function, Value.OfNumber(1));
-Console.WriteLine($"X: {x}");
+var evaluator = DioriteEvaluator.Configure(lib.BuildMemorySnapshot(), Memory.PlotDoNothing);
+Console.WriteLine(evaluator.GetMemory());
+Console.WriteLine(evaluator.EvaluateExpression("sum(1000)"));

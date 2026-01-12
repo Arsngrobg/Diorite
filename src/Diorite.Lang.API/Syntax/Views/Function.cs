@@ -8,7 +8,7 @@
 // File:    Function.cs
 // Summary: The type definition for the Function, the structured representation of a function
 // Author:  Borngle
-// Version: v1.0
+// Version: v1.1
 // ------------------------------------------------------------------------------------------------------------------
 // Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
 // ------------------------------------------------------------------------------------------------------------------
@@ -34,6 +34,28 @@ namespace Diorite.Lang.API.Syntax.Views;
 public sealed class Function : ICoreView<Tuple<Core.Syntax.FunctionAttributes, Core.Syntax.FunctionBody>>,
                                ICoreConverter<Tuple<Core.Syntax.FunctionAttributes, Core.Syntax.FunctionBody>, Function>
 {
+    /// <summary>
+    ///     <p>Checks if <c>input</c> expression contains a <b>Diorite</b> function definition, and returns a
+    ///        new <see cref="Function"/> if it does.
+    ///     </p>
+    /// </summary>
+    /// <param name="input"> the <b>Diorite</b> expression to evaluate </param>
+    /// <returns> a <see cref="Function"/> </returns>
+    public static Function? OfString(string input) {
+        Microsoft.FSharp.Collections.FSharpList<Core.Syntax.ASTNode> nodes =
+            Core.Parser.TopLevelParser.ParseString(input).ResultValue;
+
+        if (nodes.Length > 1)
+            throw DioriteError.OfSyntaxError(
+                $"Expected a single FunctionDefinition statement - got {nodes.Length} instead"
+            );
+
+        if (nodes[0] is Core.Syntax.ASTNode.FunctionDefinition functionDefinition)
+            return OfCoreType(functionDefinition.Item);
+
+        return null;
+    }
+
     /// <summary>
     ///     <p>Creates a new <c>Function</c> from its equivalent core type.</p>
     /// </summary>

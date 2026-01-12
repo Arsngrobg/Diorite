@@ -60,20 +60,9 @@ public sealed class Library
     /// <returns> the <see cref="Memory"/> snapshot of this <c>Library</c> post evaluation </returns>
     public Memory BuildMemorySnapshot()
     {
-        var noOp = Microsoft.FSharp.Core.FSharpFunc<
-            Microsoft.FSharp.Core.FSharpFunc<
-                Core.Syntax.ValueType,
-                Microsoft.FSharp.Core.FSharpResult<
-                    Core.Syntax.ValueType,
-                    Core.Errors.DioriteError
-                >
-            >,
-            Microsoft.FSharp.Core.Unit
-        >.FromConverter(_ => null!);
-
-        var blankMemory  = Core.Runtime.VirtualMemory.Defaults(noOp);
-        var coreSnapshot = Core.Runtime.Evaluation.EvalString(_source, blankMemory).Item2;
-        return Memory.OfCoreType(coreSnapshot);
+        var evaluator = DioriteEvaluator.OfNoState();
+        evaluator.EvaluateSource(_source);
+        return evaluator.GetMemory();
     }
 
     /// <summary>

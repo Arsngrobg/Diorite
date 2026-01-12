@@ -71,6 +71,21 @@ module VirtualMemory =
     ///     </p>
     /// </summary>
     type SymbolRegister = Map<string, FunctionType>
+
+    /// <summary>
+    ///     <p>The <c>ArgumentMapping</c> is the direct mapping of <b>Diorite</b> function arguments to their
+    ///        corresponding return value.
+    ///     </p>
+    /// </summary>
+    type ArgumentMapping = Map<ValueType list, ValueType>
+
+    /// <summary>
+    ///     <p>A <c>Cache</c> in relation to <b>Diorite</b>s virtual memory, is the direct mapping of a sequence of
+    ///        ordered inputs to a return value. This is structured so that regular variable-defined <b>Diorite</b>
+    ///        functions and symbolic functions have separate memoization caches.
+    ///     </p>
+    /// </summary>
+    type Cache = Map<FunctionReferenceType, ArgumentMapping>
     
     /// <summary>
     ///     <p>The callback function that is called whenever the <c>plot &lt;Expression&gt;</c> syntax is evaluated.
@@ -105,6 +120,10 @@ module VirtualMemory =
         /// </summary>
         symbols:   SymbolRegister
         /// <summary>
+        ///     <p>The cache for memoization purposes.</p>
+        /// </summary>
+        cache:     Cache
+        /// <summary>
         ///     <p>The callback function that is called whenever the <c>plot &lt;Expression&gt;</c> syntax is evaluated.
         ///        It accepts a function that takes in a parameter, and produces a value, only 1-dimensional functions
         ///        are supported for plotting functions as the interpreter evaluates it as a <c>FunctionType</c> with a
@@ -124,6 +143,7 @@ module VirtualMemory =
     let Defaults (plotCallback: PlotCallback): Memory = {
         variables    = (ValueType.Undefined |> CellData.OfValue) |> (Array.create MaxVariables)
         symbols      = Map.empty<string, FunctionType>
+        cache        = Map.empty<FunctionReferenceType, Map<ValueType list, ValueType>>
         plotCallback = plotCallback
     }
 
@@ -165,6 +185,7 @@ module VirtualMemory =
         {
             variables    = tableCopy
             symbols      = memory.symbols
+            cache        = memory.cache
             plotCallback = memory.plotCallback
         }
 
@@ -190,6 +211,7 @@ module VirtualMemory =
         {
             variables    = tableCopy
             symbols      = memory.symbols
+            cache        = memory.cache
             plotCallback = memory.plotCallback
         }
 
@@ -208,6 +230,7 @@ module VirtualMemory =
         {
             variables    = memory.variables // no need to copy as any modifications will be applied to copies later on
             symbols      = updatedSymbols
+            cache        = memory.cache
             plotCallback = memory.plotCallback
         }
 
@@ -239,3 +262,39 @@ module VirtualMemory =
              match (GetVariable memory var) with
               | CellData.OfFunction fn -> Some fn
               | CellData.OfValue    _  -> None
+
+    /// <summary>
+    ///     <p>Updates this <c>Memory</c>s cache to contain the result of an arbitrary function result.</p>
+    /// </summary>
+    /// <param name="memory"> the <c>Memory</c> struct to update </param>
+    /// <param name="fnRef"> the <c>FunctionReferenceType</c> to update the <c>ArgumentMapping</c> </param>
+    /// <param name="fnArgs"> the sequence of function arguments that map to the <c>fnResult</c> </param>
+    /// <param name="fnResult"> the <c>ValueType</c> to map the function arguments to </param>
+    /// <returns> a new <c>Memory</c> struct, that contains the updated cache </returns>
+    let AddCachedResult (memory: Memory) (fnRef: FunctionReferenceType) (fnArgs: ValueType list, fnResult: ValueType): Memory =
+        let updatedMapping: ArgumentMapping = memory.cache[fnRef].Add(fnArgs, fnResult)
+        let updatedCache:   Cache           = memory.cache.Add(fnRef, updatedMapping)
+        {
+            variables    = memory.variables
+            symbols      = memory.symbols
+            cache        = updatedCache
+            plotCallback = memory.plotCallback
+        }
+
+    /// <summary>
+    ///     <p>Trys to obtain the cached result of the supplied function defined by the <c>FunctionReferenceType</c>.
+    ///        If the arguments do not map to a result, nor a function mapping is in the cache, then this function
+    ///        returns <c>None</c>.
+    ///     </p>
+    /// </summary>
+    /// <param name="memory"> the <c>Memory</c> struct to reference from </param>
+    /// <param name="fnRef"> the <c>FunctionReferenceType</c> to check for cache membership </param>
+    /// <param name="fnArgs"> the sequence of arguments that may map to a function result </param>
+    /// <returns> an <c>option</c> result, that may contain the cached value, or not </returns>
+    let GetCachedResult (memory: Memory) (fnRef: FunctionReferenceType) (fnArgs: ValueType list): ValueType option =
+        if memory.cache.ContainsKey fnRef then
+            let fnCache = memory.cache[fnRef]
+            if fnCache.ContainsKey fnArgs then
+                Some fnCache[fnArgs]
+            else None
+        else None

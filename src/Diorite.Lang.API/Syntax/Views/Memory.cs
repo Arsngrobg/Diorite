@@ -127,6 +127,13 @@ public class Memory : ICoreView<Core.Runtime.VirtualMemory.Memory>,
                     kv.Key, kv.Value.AsCoreType()
                 )
             )),
+            MapModule.Empty<
+                Core.Syntax.FunctionReferenceType,
+                FSharpMap<
+                    FSharpList<Core.Syntax.ValueType>,
+                    Core.Syntax.ValueType
+                >
+            >(),
             asFsharpFunc
         );
     }

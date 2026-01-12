@@ -17,8 +17,6 @@
 using System.Runtime.CompilerServices;
 using Diorite.Lang.API.Callbacks;
 using Diorite.Lang.API.Syntax.Views;
-using Diorite.Lang.Core.Parser;
-using Diorite.Lang.Core.Syntax;
 using Microsoft.FSharp.Collections;
 
 namespace Diorite.Lang.API;
@@ -33,7 +31,7 @@ public sealed class DioriteEvaluator
     }
 
     public static DioriteEvaluator OfNoState() =>
-        Configure(Library.Library.OfNothing().BuildMemorySnapshot(), Memory.PlotDoNothing);
+        Configure(Memory.FromDefaults(Memory.PlotDoNothing), Memory.PlotDoNothing);
 
     private Core.Runtime.VirtualMemory.Memory _coreMemory;
 
@@ -64,12 +62,12 @@ public sealed class DioriteEvaluator
         if (tree.IsError)
             throw DioriteError.OfCoreType(tree.ErrorValue);
 
-        var (results, memory) = Core.Runtime.Evaluation.EvalTree(tree.ResultValue, _coreMemory);
-        _coreMemory = memory;
-        return results.Select(r => r.IsOk
-                                   ? Value.OfCoreType(r.ResultValue)
-                                   : throw DioriteError.OfCoreType(r.ErrorValue)
-                     ).ToArray();
+        var state = Core.Runtime.Evaluation.ASTEvaluator(tree.ResultValue, _coreMemory);
+        if (state.IsError)
+            throw DioriteError.OfCoreType(state.ErrorValue);
+
+        _coreMemory = state.ResultValue.Item2;
+        return state.ResultValue.Item1.Select(Value.OfCoreType).ToArray();
     }
 
     /// <summary>
@@ -90,7 +88,7 @@ public sealed class DioriteEvaluator
             c, s,
             Core.Runtime.VirtualMemory.CellData.NewOfFunction(function.AsCoreType())
         );
-        var result = Core.Runtime.Evaluation.EvalExpression(
+        var result = Core.Runtime.Evaluation.ExpressionEvaluator(
             Core.Syntax.Expression.NewFunctionCall(
                 Core.Syntax.FunctionReferenceType.NewOfVariable(function.FunctionAttributes.Identifier.AsCoreType()),
                 asExpressions
@@ -99,7 +97,7 @@ public sealed class DioriteEvaluator
         );
         
         return result.IsOk
-               ? Value.OfCoreType(result.ResultValue)
+               ? Value.OfCoreType(result.ResultValue.Item1)
                : throw DioriteError.OfCoreType(result.ErrorValue);
     }
 
@@ -146,35 +144,18 @@ public sealed class DioriteEvaluator
             lastToken.column + 1
         );
 
-        var tree = Core.Parser.TopLevelParser.ParseTokens(ListModule.OfSeq(tokens.Append(endOfExp)));
-        if (tree.IsError)
-            throw DioriteError.OfCoreType(tree.ErrorValue);
+        var tokensResult = Core.Parser.TopLevelParser.ParseTokens(ListModule.OfSeq(tokens.Append(endOfExp)));
+        if (tokensResult.IsError)
+            throw DioriteError.OfCoreType(tokensResult.ErrorValue);
 
-        var (result, _) = Core.Runtime.Evaluation.EvalTree(tree.ResultValue, _coreMemory);
-        if (result.Length > 1)
-            throw new InvalidOperationException("Results of expression greater than one.");
-        
-        return result[0].IsOk
-               ? Value.OfCoreType(result[0].ResultValue)
-               : throw DioriteError.OfCoreType(result[0].ErrorValue);
-    }
-    
-    /// <summary>
-    /// <p>Checks if <c>input</c> expression contains an <see cref="ASTNode.FunctionDefinition"/>, and returns a
-    /// new <see cref="Function"/> if it does.</p>
-    /// </summary>
-    /// <param name="input"> the <b>Diorite</b> expression to evaluate </param>
-    /// <returns> a <see cref="Function"/> </returns>
-    public static Function? ExtractFunction(string input) {
-        Microsoft.FSharp.Collections.FSharpList<ASTNode> nodes = TopLevelParser.ParseString(input).ResultValue;
-        foreach (var node in nodes) {
-            if (node.IsFunctionDefinition) {
-                ASTNode.FunctionDefinition functionDefinition = node as ASTNode.FunctionDefinition;
-                Function function = Function.OfCoreType(functionDefinition.Item);
-                return function;
-            }
-        }
-        return null;
+        var result = Core.Runtime.Evaluation.ASTEvaluator(tokensResult.ResultValue, _coreMemory);
+        if (result.IsError)
+            throw DioriteError.OfCoreType(result.ErrorValue);
+
+        var tree = result.ResultValue;
+        return tree.Item1.Length == 1
+               ? Value.OfCoreType(tree.Item1[0])
+               : throw DioriteError.OfSyntaxError($"Expected only one expression - got {tree.Item1.Length} instead");
     }
 
     public Memory GetMemory() =>
