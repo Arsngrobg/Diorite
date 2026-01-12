@@ -10,113 +10,101 @@
 /* ε is the 'epsilon' character, which denotes an empty string                                                        */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/* base definitions */
-<digit>   ::= "0"|"1"|"2"|"3"|"4"|"5"|"6"|"7"|"8"|"9"
-<digits>  ::= <digit>
-           |  <digit> <digits>
+/* base defs */
+<DQString> ::= "\"" <StringContent> "\""
+<StringContent> ::= ε
+                  | <Char> <StringContent>
+<Char> ::= any character except "\""
 
-<number>  ::= <digits>
-           |  <digits> "." <digits>
+<Digit> ::= "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"
 
-<letter>  ::= "a"|"b"|"c"|"d"|"e"|"f"|"g"|"h"|"i"|"j"|"k"|"l"|"m"|"n"|"o"|"p"|"q"|"r"|"s"|"t"|"u"|"v"|"w"|"x"|"y"|"z"
-           |  "A"|"B"|"C"|"D"|"E"|"F"|"G"|"H"|"I"|"J"|"K"|"L"|"M"|"N"|"O"|"P"|"Q"|"R"|"S"|"T"|"U"|"V"|"W"|"X"|"Y"|"Z"
-<letters> ::= <letter>
-           |  <letter> <letters>
+<Letter> ::= "a" | "b" | ... | "z" | "A" | "B" | ... | "Z"
 
-/* number sets */
-<numberSet> ::= "N"  /* natural     */
-             |  "Z"  /* integer     */
-             |  "R"  /* reals       */
-             |  "Q"  /* rationals   */
-             |  "I"  /* irrationals */
-             |  "C"  /* complex     */
+<Variable> ::= <Letter>
+             | <Letter> <Digit>
+             | <Letter> <Letter>
+             | <Letter> <Letter> <Digit>
 
-/* values & variables */
-<variable>  ::= <letter>
-             |  <letter> <digit>
-<value>     ::= "undefined"
-             |  "infinity" | "inf"
-             |  "pi"
-             |  "tau"
-             |  "euler"
-             |  <number>
+<Value> ::= <Number>
+          | <DQString>
 
-/* source file */
-<source>      ::= ε
-               |  <statement> <source>
+<Number> ::= <Digit>
+           | <Digit> <Digit>
+           | <Digit> "." <Digit>
+           | <Digit> <Digit> "." <Digit>
 
-/* statement */
-<statement>   ::= ";"
-               |  "plot" <expression> ";"
-               |  <expression> ";"
-               |  <variable>           "=" <expression> ";"
-               |  <functionDefinition> "=" <functionBody>
+<Expression> ::= <Expression> "+" <Term>
+               | <Expression> "-" <Term>
+               | <Term>
 
-/* expressions */
-<expression>    ::= <term> <expression'>
-<expression'>   ::= ε
-                 |  "+" <term> <expression'>
-                 |  "-" <term> <expression'>
+<Term> ::= <Term> "*" <Factor>
+         | <Term> "/" <Factor>
+         | <Factor>
 
-<term>          ::= <factor> <term'>
-<term'>         ::= ε
-                 |  "*"  <factor> <term'>
-                 |  "/"  <factor> <term'>
-                 |  "//" <factor> <term'>
-                 |  "%"  <factor> <term'>
+<Factor> ::= <SubExpression> "^" <Factor>
+           | <SubExpression>
 
-<factor>        ::= <signed>
-                 |  <signed> "^" <signed>
+<SubExpression> ::= "complex" "(" <Expression> "," <Expression> ")"
+                  | "im" <SubExpression>
+                  | "re" <SubExpression>
+                  | <FunctionCall>
+                  | "(" <Expression> ")"
+                  | "|" <Expression> "|"
+                  | <Variable>
+                  | <Value>
 
-<signed>        ::= <subExpression> <factorials>
-                 |  "+" <signed>
-                 |  "-" <signed>
+<FunctionCall> ::= <Variable> "(" <Args> ")"
+                 | <Symbol> "(" <Args> ")"
 
-<factorials>    ::= ε
-                 |  "!" <factorials>
+<Args> ::= <Expression>
+         | <Expression> "," <Args>
 
-<subExpression> ::= <value>
-                 |  <variable>
-                 |  "(" <expression> ")"
-                 |  "|" <expression> "|"
-                 |  <variable> "(" <functionArgs> ")"
-                 |  <letters>  "(" <functionArgs> ")"
+<Assignment> ::= <Variable> "=" <Expression>
 
-/* conditions */
-<conditions>         ::= <ifCondition> ";" <conditions>
-                      |  <ifCondition> ";" <otherwiseCondition> ";"
+<FunctionResult> ::= <Expression>
+                   | "error" <DQString>
+                   | "error"
 
-<ifCondition>        ::= <expression> "if" <expression> <comparison> <expression>
-<otherwiseCondition> ::= <expression> "otherwise"
+<ComparisonOperator> ::= "=" | "!=" | "<" | "<=" | ">" | ">="
 
-<comparison>         ::= "="
-                      |  "!="
-                      |  ">"
-                      |  "<"
-                      |  ">="
-                      |  "<="
+<ComparisonOperation> ::= <Expression> <ComparisonOperator> <Expression>
 
-/* functions */
-<functionDefinition> ::= <functionMetadata> <variable> "(" <functionParams> ")" <functionRange>
+<PiecewiseIf> ::= <Expression> "if" <ComparisonOperation>
 
-<functionMetadata>   ::= ε
-                      |  "[" "symbol" ":" <letters> "]" <functionMetadata>
-                      |  "[" "inlined"  "]"             <functionMetadata>
-                      |  "[" "memoized" "]"             <functionMetadata>
+<PiecewiseOtherwise> ::= <Expression> "otherwise"
 
-<functionArgs>       ::= <expression>
-                      |  <expression> "," <functionArgs>
+<PiecewiseConditions> ::= <PiecewiseIf> ";" <PiecewiseConditions>
+                        | <PiecewiseIf> ";" <PiecewiseOtherwise> ";"
 
-<functionParams>     ::= <functionParam>
-                      |  <functionParam> "," <functionParams>
-<functionParam>      ::= <variable>
-                      |  <variable> ":" <numberSet>
+<FunctionBody> ::= <Expression> ";"
+                 | "{" <PiecewiseConditions> "}"
 
-<functionRange>      ::= ε
-                      |  "->" <numberSet>
+<Parameter> ::= <Letter>
+              | <Letter> ":" <NumberSet>
 
-<functionBody>       ::= <expression> ";"
-                      |  "{" <conditions> "}"
+<Parameters> ::= <Parameter> "," <Parameters>
+               | <Parameter>
+
+<ReturnSet> ::= ε
+              | "->" <NumberSet>
+
+<FunctionMeta> ::= "[" "symbol" ":" <Letters> "]" <FunctionMeta>
+                 | "[" "inline" "]" <FunctionMeta>
+                 | "[" "memoized" "]" <FunctionMeta>
+
+<FunctionHead> ::= <Variable> "(" <Parameters> ")" <ReturnSet>
+
+<FunctionDefinition> ::= <FunctionHead> "=" <FunctionBody>
+
+<PlotExpression> ::= "plot" <Expression>
+                   | "plot" <Expression> "using" <Variable>
+
+<Statement> ::= ε
+              | ";" <Statement>
+              | <Expression> ";" <Statement>
+              | <PlotExpression> ";" <Statement>
+              | <Assignment> ";" <Statement>
+              | <FunctionDefinition> <Statement>
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Diorite | Developed and produced by Arsngrobg and Borngle | 2025                                                   */

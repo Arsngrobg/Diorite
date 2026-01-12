@@ -17,7 +17,6 @@ namespace Diorite.Lang.Core.Runtime
 
 open Diorite.Lang.Core.Errors
 open Diorite.Lang.Core.Runtime
-open Diorite.Lang.Core.Runtime.Optimizer
 open Diorite.Lang.Core.Syntax
 open Diorite.Lang.Core.Runtime.RuleMappings
 
@@ -212,26 +211,17 @@ module Evaluation =
     and BinaryOperationEvaluator: Evaluator<Expression * BinaryOperator * Expression, ValueType> =
         // optimised function call to reuse the call stack
         (fun ((l, o, r), memory) ->
-            // optimised function call to reuse the call stack
-            let optimisedCall: Bounce = Call (fun () ->
-                // left
-                match ((l, memory) |> ExpressionEvaluator) with
-                 | Error err         -> Done (Error err)
-                 | Ok    (l, memory) ->
-                     // right
-                     Call (fun () ->
-                        match ((r, memory) |> ExpressionEvaluator) with
-                         | Error err         -> Done (Error err)
-                         | Ok    (r, memory) ->
-                             // application
-                             Done (
-                                 ((l, r) |> (GetBinaryRule o))
-                                 |> Result.map (fun value -> (value, memory))
-                             )
-                     )
-            )
-            
-            optimisedCall |> EvaluateBounce
+            // left
+            match ((l, memory) |> ExpressionEvaluator) with
+             | Error err         -> Error err
+             | Ok    (l, memory) ->
+                 // right
+                match ((r, memory) |> ExpressionEvaluator) with
+                 | Error err         -> Error err
+                 | Ok    (r, memory) ->
+                     // application
+                     ((l, r) |> (GetBinaryRule o))
+                     |> Result.map (fun value -> (value, memory))
         )
 
     /// <summary>
@@ -239,20 +229,13 @@ module Evaluation =
     /// </summary>
     and UnaryOperationEvaluator: Evaluator<Expression * UnaryOperator, ValueType> =
         (fun ((operand, operator), memory) ->
-            // optimised function call to reuse the call stack
-            let optimisedCall: Bounce = Call (fun () ->
-                // operand
-                match ((operand, memory) |> ExpressionEvaluator) with
-                 | Error err               -> Done (Error err)
-                 | Ok    (operand, memory) ->
-                     // application
-                     Done (
-                         (operand |> (GetUnaryRule operator))
-                         |> Result.map (fun value -> (value, memory))
-                     )
-            )
-
-            optimisedCall |> EvaluateBounce
+            // operand
+            match ((operand, memory) |> ExpressionEvaluator) with
+             | Error err               -> Error err
+             | Ok    (operand, memory) ->
+                 // application
+                 (operand |> (GetUnaryRule operator))
+                 |> Result.map (fun value -> (value, memory))
         )
 
     /// <summary>
@@ -276,120 +259,98 @@ module Evaluation =
     and FunctionCallEvaluator: Evaluator<FunctionReferenceType * Expression list, ValueType> =
         (fun ((fnRef, fnArgs), memory) ->
             // error factory
-            let err (msg: string): Bounce =
-                 Done ((Some msg, []) ||> MathError)
+            let err (msg: string): (ValueType * Memory) Result =
+                 (Some msg, []) ||> MathError
 
-            // optimised function call to reuse the call stack
-            let optimisedCall: Bounce = Call (fun () ->
-                // validate function reference
-                match (fnRef |> (GetFunctionFromRef memory)) with
-                 | None                   ->
-                     err $"Function reference {fnRef} does not point to a real function in memory"
-                 | Some (fnAttrs, fnBody) ->
-                     // validate function arguments
-                     let argDiff: int = fnAttrs.parameters.Length - fnArgs.Length
-                     if argDiff < 0 then
-                        err $"Missing {-argDiff} position arguments for function: {fnRef}"
-                     elif argDiff > 0 then
-                         err $"Too many arguments supplied to function: {fnRef}"
-                     else
-                         Call (fun () ->
-                             // some memoization can happen
-                             match ((fnArgs, memory) |> FunctionArgumentEvaluator) with
-                              | Error err              -> Done (Error err)
-                              | Ok    (fnArgs, memory) ->
-                                  let pairs: (VariableType * CellData) list =
-                                      fnArgs
-                                      |> List.map CellData.OfValue
-                                      |> List.zip (List.map fst fnAttrs.parameters)
-                                  
-                                  let scopedMemory: Memory = pairs |> (SetVariables memory)
-                                  Call (fun () -> Done ((fnBody, scopedMemory) |> FunctionBodyEvaluator))
-                         )
-            )
-
-            optimisedCall |> EvaluateBounce
+            // validate function reference
+            match (fnRef |> (GetFunctionFromRef memory)) with
+             | None                   ->
+                 err $"Function reference {fnRef} does not point to a real function in memory"
+             | Some (fnAttrs, fnBody) ->
+                 // validate function arguments
+                 let argDiff: int = fnAttrs.parameters.Length - fnArgs.Length
+                 if argDiff < 0 then
+                    err $"Missing {-argDiff} position arguments for function: {fnRef}"
+                 elif argDiff > 0 then
+                     err $"Too many arguments supplied to function: {fnRef}"
+                 else
+                     // some memoization can happen
+                     match ((fnArgs, memory) |> FunctionArgumentEvaluator) with
+                      | Error err              -> Error err
+                      | Ok    (fnArgs, memory) ->
+                          let pairs: (VariableType * CellData) list =
+                              fnArgs
+                              |> List.map CellData.OfValue
+                              |> List.zip (List.map fst fnAttrs.parameters)
+                          
+                          let scopedMemory: Memory = pairs |> (SetVariables memory)
+                          match ((fnBody, scopedMemory) |> FunctionBodyEvaluator) with
+                           | Ok (result, memory) ->
+                               let memory: Memory =
+                                   if fnAttrs.metadata.memoized then
+                                        (fnRef, (fnArgs, result)) ||> (AddCachedResult memory)
+                                   else
+                                       memory
+                               (result, memory) |> Ok
+                           | Error err -> Error err
         )
 
     /// <summary>
     ///     <p>The <c>Evaluator</c> for a <c>FunctionBody</c>.</p>
     /// </summary>
     and FunctionBodyEvaluator: Evaluator<FunctionBody, ValueType> = (fun (fnBody, memory) ->
-        // optimised function call to reuse the call stack
-        let optimisedCall: Bounce = Call (fun () ->
-            match fnBody with
-             | FunctionBody.Expression          expression -> Done ((expression, memory) |> ExpressionEvaluator)
-             | FunctionBody.PiecewiseConditions conditions -> Done ((conditions, memory) |> PiecewiseConditionsEvaluator)
-        )
-
-        optimisedCall |> EvaluateBounce
+        match fnBody with
+         | FunctionBody.Expression          expression -> (expression, memory) |> ExpressionEvaluator
+         | FunctionBody.PiecewiseConditions conditions -> (conditions, memory) |> PiecewiseConditionsEvaluator
     )
 
     /// <summary>
     ///     <p>The <c>Evaluator</c> for a sequence of <c>PiecewiseCondition</c>s.</p>
     /// </summary>
     and PiecewiseConditionsEvaluator: Evaluator<PiecewiseCondition list, ValueType> = (fun (cs, memory) ->
-        let optimisedCall: Bounce = Call (fun () ->
             match cs with
              | []                          -> failwith "no PiecewiseConditions provided"
-             | [(baseCase, _)]             -> Done ((baseCase, memory) |> FunctionResultEvaluator)
+             | [(baseCase, _)]             -> (baseCase, memory) |> FunctionResultEvaluator
              | head :: tail ->
                  match ((head, memory) |> PiecewiseConditionEvaluator) with
-                  | Error err             -> Done (Error err)
+                  | Error err             -> Error err
                   | Ok    (value, memory) ->
                       match value with
                        | ValueType.Number x when x |> System.Double.IsNaN ->
-                           Done ((tail, memory) |> PiecewiseConditionsEvaluator)
+                           (tail, memory) |> PiecewiseConditionsEvaluator
                        | value                                            ->
-                           Done ((value, memory) |> Ok)
-        )
-
-        optimisedCall |> EvaluateBounce
+                           (value, memory) |> Ok
     )
 
     /// <summary>
     ///     <p>The <c>Evaluator</c> for a <c>PiecewiseCondition</c>.</p>
     /// </summary>
     and PiecewiseConditionEvaluator: Evaluator<PiecewiseCondition, ValueType> = (fun ((ifTrue, (l, o, r)), memory) ->
-        // optimised function call to reuse the call stack
-        let optimisedCall: Bounce = Call (fun () ->
             // left
             match ((l, memory) |> ExpressionEvaluator) with
-             | Error err         -> Done (Error err)
+             | Error err         -> Error err
              | Ok    (l, memory) ->
                  // right
-                 Call (fun () ->
                     match ((r, memory) |> ExpressionEvaluator) with
-                     | Error err         -> Done (Error err)
+                     | Error err         -> Error err
                      | Ok    (r, memory) ->
                          // application
-                         Call (fun () ->
-                             match ((l, r) |> (GetComparisonRule o)) with
-                             | Error err -> Done (Error err)
-                             | Ok    b   ->
-                                 if not b then
-                                     Done ((ConstantNaN, memory) |> Ok)
-                                 else
-                                     Done ((ifTrue, memory) |> FunctionResultEvaluator)
-                         )
-                 )
-        )
-            
-        optimisedCall |> EvaluateBounce
+                         match ((l, r) |> (GetComparisonRule o)) with
+                         | Error err -> Error err
+                         | Ok    b   ->
+                             if not b then
+                                 (ConstantNaN, memory) |> Ok
+                             else
+                                 (ifTrue, memory) |> FunctionResultEvaluator
     )
 
     /// <summary>
     ///     <p>The <c>Evaluator</c> for a <c>FunctionResult</c>.</p>
     /// </summary>
     and FunctionResultEvaluator: Evaluator<FunctionResult, ValueType> = (fun (fnResult, memory) ->
-        // optimised function call to reuse the call stack
-        let optimisedCall: Bounce = Call (fun () ->
-            match fnResult with
-             | FunctionResult.Error      error      -> Done ((error, []) ||> MathError)
-             | FunctionResult.Expression expression -> Done ((expression, memory) |> ExpressionEvaluator)
-        )
-
-        optimisedCall |> EvaluateBounce
+        match fnResult with
+         | FunctionResult.Error      error      -> (error, []) ||> MathError
+         | FunctionResult.Expression expression -> (expression, memory) |> ExpressionEvaluator
     )
 
     /// <summary>
@@ -424,7 +385,7 @@ module Evaluation =
         let fn: FunctionType = (fnAttrs, fnBody)
         let flattenedFn: FunctionType Result =
             if fnAttrs.metadata.inlined then
-                ((fn, memory) ||> FlattenFunction)
+                ((fn, memory) ||> Optimizer.FlattenFunction)
             else
                 fn |> Ok
 

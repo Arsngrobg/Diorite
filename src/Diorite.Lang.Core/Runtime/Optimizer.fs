@@ -24,41 +24,6 @@ open Diorite.Lang.Core.Runtime.RuleMappings
 /// </summary>
 module Optimizer =
     /// <summary>
-    ///     <p>The return result of the <c>Bounce</c> type.</p>
-    /// </summary>
-    type BounceResult = (ValueType * Memory) Result
-
-    /// <summary>
-    ///     <p>The <c>Bounce</c> type is an optimiser type for <b>Diorite</b> evaluations calls. Specifically, for
-    ///        recursive function calls.
-    ///     </p>
-    ///     <p>It ensures that it reuses the same call stack upon every recursive evaluation in <b>Diorite</b>.</p>
-    /// </summary>
-    type Bounce =
-        /// <summary>
-        ///     <p>The case where the optimised recursive function has finished executing.</p>
-        /// </summary>
-        | Done of BounceResult
-        /// <summary>
-        ///     <p>The case where the optimised recursive function has produced a deferred function call.</p>
-        /// </summary>
-        | Call of (unit -> Bounce)
-
-    /// <summary>
-    ///     <p>Recursively invokes the <c>Bounce</c>.</p>
-    ///     <p>It repeatedly invokes the <c>Bounce</c> until a <c>Done</c> case is reached.</p>
-    /// </summary>
-    /// <param name="bounce"> the <c>Bounce</c> to evaluate </param>
-    /// <returns> the return result of the optimised evaluator function </returns>
-    let rec EvaluateBounce (bounce: Bounce): BounceResult =
-        let rec loop (b: Bounce) : BounceResult =
-            match b with
-            | Bounce.Done result -> result
-            | Bounce.Call thunk  -> loop (thunk ())
-
-        loop bounce
-
-    /// <summary>
     ///     <p>Flattens the <c>Expression</c> to its smallest structure possible.</p>
     ///     <p>Requires the current <c>Memory</c> context in order to make the correct decisions when flattening the
     ///        tree structure.

@@ -81,8 +81,9 @@ module BinaryOperationRules =
                  (Some "Division by zero", [ValueType.Complex (a, b); ValueType.Complex (c, d)])
                  ||> MathError
              else
-                 let a: float = (a*c + b*d) / denominator
-                 let b: float = (b*c - a*d) / denominator
+                 let a0: float = a
+                 let a: float = (a0*c + b*d) / denominator
+                 let b: float = (b*c - a0*d) / denominator
                  ValueType.Complex (a, b) |> Ok
          | ValueType.Number   a,     ValueType.Number   b     ->
              if   b = 0 then (Some "Division by zero", [ValueType.Number a; ValueType.Number b]) ||> MathError

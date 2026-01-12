@@ -642,12 +642,12 @@ module Combinators =
     ///     <p>The <c>Parser</c> that accepts a <b>Diorite</b> plot expression statement.</p>
     ///     <code>
     ///         &lt;PlotExpression&gt; ::= "plot" &lt;Expression&gt;
-    ///                                 |  "plot" &lt;Expression&gt; "against" &lt;Variable&gt;
+    ///                                 |  "plot" &lt;Expression&gt; "using" &lt;Variable&gt;
     ///     </code>
     /// </summary>
     let PlotExpressionParser: Parser<ASTNode> =
         Any [
-            // <PlotExpression> ::= "plot" <Expression> "against" <Variable>
+            // <PlotExpression> ::= "plot" <Expression> "using" <Variable>
             ((Accept TokenType.Plot) |> IgnoreThen <| (Deferred ExpressionParser))
             |> Then <|
             ((Accept TokenType.Using) |> IgnoreThen <| VariableParser)
