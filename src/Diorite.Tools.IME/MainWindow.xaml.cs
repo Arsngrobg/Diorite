@@ -114,16 +114,22 @@ namespace IME {
                     }
                     double[] yValues = new double[sizeX];
                     Parallel.For(0, sizeX, i => {
-                        var result = _evaluator.EvaluateFunction(function, Value.OfNumber(xValues[i]));
-                        double re = result.Re();
-                        double im = result.Im();
-                        if (result == Value.Undefined || result == Value.PInfinity || result == Value.NInfinity
-                            || im > 0) {
-                            yValues[i] = double.NaN;
+                        try {
+                            var result = _evaluator.EvaluateFunction(
+                                function,
+                                Value.OfNumber(xValues[i])
+                            );
+                            double re = result.Re();
+                            double im = result.Im();
+                            if (result == Value.Undefined || result == Value.PInfinity || result == Value.NInfinity || im != 0) {
+                                yValues[i] = double.NaN;
+                            }
+                            else {
+                                yValues[i] = double.IsFinite(re) ? re : double.NaN;
+                            }
                         }
-                        else {
-                            double y = re;
-                            yValues[i] = double.IsFinite(y) ? y : double.NaN;
+                        catch (DioriteError error) {
+                            yValues[i] = double.NaN;
                         }
                     });
                     Application.Current.Dispatcher.Invoke(() => {
@@ -241,55 +247,24 @@ namespace IME {
                 return;
             }
             try {
-                // var result = _evaluator.EvaluateSource(input);
-                // _sessionMemory = _evaluator.GetMemory();
-
-                var tree = Ast.OfSource(input);
-                foreach (var node in tree)
-                {
-                    Console.WriteLine(node.TreeStr());
-                    if (node.IsExpression())
-                    {
-                        var function = Function.OfString($"f(x) = {input}");
-                        if (function == null) return;
-                        function.FunctionAttributes.Range = NumberSet.Complex;
-                        var (xValues, yValues) = PlotFunction(function);
-                        if (IsValidPlot(xValues, yValues)) {
-                            UpdateInputPlot(textBox, xValues, yValues);
-                        }
-                        Console.WriteLine(true);
-                    }
-                    else if (node.IsFunctionDefinition())
-                    {
-                        var function = Function.OfString(input);
-                        if (function == null) return;
-                        function.FunctionAttributes.Range = NumberSet.Complex;
-                        var (xValues, yValues) = PlotFunction(function);
-                        if (IsValidPlot(xValues, yValues)) {
-                            UpdateInputPlot(textBox, xValues, yValues);
-                        }
-                        Console.WriteLine(true);
-                    }
-                    else if (node.IsAssignment())
-                    {
-                        
-                    }
-                }
+                 var result = _evaluator.EvaluateSource(input);
+                 _sessionMemory = _evaluator.GetMemory();
+                 
                 
-                // var function = Function.OfString(input);
-                // function.FunctionAttributes.Range = NumberSet.Complex;
-                // if (function != null) {
-                //     var (xValues, yValues) = PlotFunction(function);
-                //     if (IsValidPlot(xValues, yValues)) {
-                //         UpdateInputPlot(textBox, xValues, yValues);
-                //     }
-                // }
-                // if (result != null && result.Length > 0) {
-                //     Output.Text = result[0]?.ToString() ?? "";
-                // } 
-                // else {
-                //     Output.Text = "";
-                // }
+                var function = Function.OfString(input);
+                if (function != null) {
+                    function.FunctionAttributes.Range = NumberSet.Complex;
+                     var (xValues, yValues) = PlotFunction(function);
+                     if (IsValidPlot(xValues, yValues)) {
+                         UpdateInputPlot(textBox, xValues, yValues);
+                     }
+                 }
+                 if (result != null && result.Length > 0) {
+                     Output.Text = result[0]?.ToString() ?? "";
+                 } 
+                else {
+                     Output.Text = "";
+                }
             }
             catch (Exception exception) {
                 Output.Text = exception.Message;
@@ -306,14 +281,10 @@ namespace IME {
                 var result = _evaluator.EvaluateFunction(function, Value.OfNumber(x));
                 double re = result.Re();
                 double im = result.Im();
-                if (result == Value.Undefined ||
-                    result == Value.PInfinity ||
-                    result == Value.NInfinity || im != 0)
-                {
+                if (result == Value.Undefined || result == Value.PInfinity || result == Value.NInfinity || im != 0) {
                     yValues[i] = double.NaN;
                 }
-                else
-                {
+                else {
                     yValues[i] = double.IsFinite(re) ? re : double.NaN;
                 }
             }
@@ -532,6 +503,7 @@ namespace IME {
             try {
                 var results = _evaluator.EvaluateSource(Workspace.Text);
                 var output = string.Join("\n", results.Select(result => result.ToString()));
+                Output.Text = output;
             }
             catch (Exception exception) {
                 var error =  exception.Message;

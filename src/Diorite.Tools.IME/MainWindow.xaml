@@ -53,11 +53,11 @@
                 </StackPanel>
                 <!-- Buttons -->
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" HorizontalAlignment="Left" Margin="0,0,0,6">
-                    <Button Content="Run" Width="80" Height="32" Margin="0,0,6,0" Click="RunClick"/>
-                    <Button Content="Save" Width="80" Height="32" Margin="0,0,6,0" Click="SaveFileClick"/>
-                    <Button Content="Save As" Width="80" Height="32" Margin="0,0,6,0" Click="SaveAsClick"/>
-                    <Button Content="Load" Width="80" Height="32" Margin="0,0,6,0" Click="LoadFileClick"/>
-                    <Button Content="Clear" Width="80" Height="32" Click="ClearClick"/>
+                    <Button Content="Run" Width="50" Height="32" Margin="0,0,6,0" Click="RunClick"/>
+                    <Button Content="Save" Width="50" Height="32" Margin="0,0,6,0" Click="SaveFileClick"/>
+                    <Button Content="Save As" Width="50" Height="32" Margin="0,0,6,0" Click="SaveAsClick"/>
+                    <Button Content="Load" Width="50" Height="32" Margin="0,0,6,0" Click="LoadFileClick"/>
+                    <Button Content="Clear" Width="50" Height="32" Click="ClearClick"/>
                 </StackPanel>
                 <!-- Editor or REPL -->
                 <avalonEdit:TextEditor

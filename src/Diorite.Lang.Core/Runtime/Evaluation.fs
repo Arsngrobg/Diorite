@@ -325,7 +325,6 @@ module Evaluation =
                                                (fnRef, (fnArgs, result)) ||> (AddCachedResult memory)
                                            else
                                                memory
-                                       printf $"{memory.cache}\n"
                                        (result, memory) |> Ok
                                | Error err -> Error err
         )
