@@ -17,7 +17,7 @@ namespace Diorite.Lang.Core.Syntax
 
 /// <summary>
 ///     <p>The union type which describe the cases in which a <c>Value</c> is represented as in <b>Diorite</b>.</p>
-///     <p><b>1.</b> <c>Number</c>: a 64-bit, floating-point decimal.</p>
+///     <p><b>1.</b> <c>Number</c>: a 64-bit, floating-point decimal or integer.</p>
 ///     <p><b>2.</b> <c>Complex</c>: a pair of real values, <c>a + bi</c>, where <c>a</c> &amp; <c>b</c> are
 ///        <c>Real</c> numbers.
 ///     </p>
@@ -25,9 +25,13 @@ namespace Diorite.Lang.Core.Syntax
 /// </summary>
 type ValueType =
     /// <summary>
-    ///     <p>A 64-bit, floating-point decimal.</p>
+    ///     <p>A 64-bit, integer.</p>
     /// </summary>
-    | Number    of float
+    | Integer   of int64
+    /// <summary>
+    ///     <p>A 64-bit, floating-point decimal</p>
+    /// </summary>
+    | Float     of float
     /// <summary>
     ///     <p>A complex number of the form <c>a + bi</c>.</p>
     ///     <p>Where <c>a</c> &amp; <c>b</c> are <c>Real</c> numbers.</p>

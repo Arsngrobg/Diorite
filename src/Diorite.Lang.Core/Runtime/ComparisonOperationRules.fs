@@ -42,9 +42,10 @@ module ComparisonOperationRules =
     /// </summary>
     /// <param name="ab"> the operands </param>
     let EqualityComparisonRule: ComparisonOperationRule = fun ab ->
-        match (Upcast ab) with
+        match (UpcastMax ab) with
          | ValueType.Complex (a, b), ValueType.Complex (c, d) -> (a = c && b = d) |> Ok
-         | ValueType.Number   a,     ValueType.Number   b     -> (a = b)          |> Ok
+         | ValueType.Float    a,     ValueType.Float    b     -> (a = b)          |> Ok
+         | ValueType.Integer  a,     ValueType.Integer  b     -> (a = b)          |> Ok
          | ValueType.Undefined,      ValueType.Undefined      -> true             |> Ok
          | _,                        _                        -> false            |> Ok
 
@@ -61,8 +62,9 @@ module ComparisonOperationRules =
     /// <param name="ab"> the operands </param>
     let StrictLessThanComparisonRule: ComparisonOperationRule = fun ab ->
         let unsupported: ComparisonOperationRule = UnsupportedComparison ComparisonOperator.StrictLessThan
-        match ab with
-         | ValueType.Number a, ValueType.Number b -> (a < b) |> Ok
+        match (UpcastMin ab) with
+         | ValueType.Float   a, ValueType.Float   b -> (a < b) |> Ok
+         | ValueType.Integer a, ValueType.Integer b -> (a < b) |> Ok
          | a,                  b                  -> unsupported (a, b)
 
     /// <summary>
@@ -72,7 +74,8 @@ module ComparisonOperationRules =
     let StrictGreaterThanComparisonRule: ComparisonOperationRule = fun ab ->
         let unsupported: ComparisonOperationRule = UnsupportedComparison ComparisonOperator.StrictGreaterThan
         match ab with
-         | ValueType.Number a, ValueType.Number b -> (a > b) |> Ok
+         | ValueType.Float   a, ValueType.Float   b -> (a > b) |> Ok
+         | ValueType.Integer a, ValueType.Integer b -> (a > b) |> Ok
          | a,                  b                  -> unsupported (a, b)
 
     /// <summary>
@@ -82,8 +85,9 @@ module ComparisonOperationRules =
     let NonStrictLessThanComparisonRule: ComparisonOperationRule = fun ab ->
         let unsupported: ComparisonOperationRule = UnsupportedComparison ComparisonOperator.NonStrictLessThan
         match ab with
-         | ValueType.Number a, ValueType.Number b -> (a >= b) |> Ok
-         | a,                  b                  -> unsupported (a, b)
+         | ValueType.Float   a, ValueType.Float   b -> (a <= b) |> Ok
+         | ValueType.Integer a, ValueType.Integer b -> (a <= b) |> Ok
+         | a,                  b                -> unsupported (a, b)
 
     /// <summary>
     ///     <p>The rule for non-strict-greater-than comparison.</p>
@@ -92,5 +96,6 @@ module ComparisonOperationRules =
     let NonStrictGreaterThanComparisonRule: ComparisonOperationRule = fun ab ->
         let unsupported: ComparisonOperationRule = UnsupportedComparison ComparisonOperator.NonStrictGreaterThan
         match ab with
-         | ValueType.Number a, ValueType.Number b -> (a >= b) |> Ok
+         | ValueType.Float   a, ValueType.Float   b -> (a >= b) |> Ok
+         | ValueType.Integer a, ValueType.Integer b -> (a >= b) |> Ok
          | a,                  b                  -> unsupported (a, b)

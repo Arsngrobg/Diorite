@@ -27,10 +27,14 @@ type TokenType =
     /// </summary>
     | IllegalToken
     /// <summary>
+    ///     <p>a 64-bit integer.</p>
+    /// </summary>
+    | Integer
+    /// <summary>
     ///     <p>A floating-point decimal number.</p>
     ///     <p>Any integer or decimal representation.</p>
     /// </summary>
-    | Number
+    | Float
     /// <summary>
     ///     <p>A character followed by an optional encoded subscript.</p>
     ///     <p>A variable is a tuple consisting of the character that represents it, and the encoded subscript.

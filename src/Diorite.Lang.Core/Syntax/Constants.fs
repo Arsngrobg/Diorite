@@ -20,31 +20,31 @@ module Diorite.Lang.Core.Syntax.Constants
 ///     <p>The value of infinity.</p>
 ///     <p><i>It is the constant wrapped as a <c>ValueType.Number</c></i>.</p>
 /// </summary>
-let ConstantInfinity: ValueType = infinity |> ValueType.Number
+let ConstantInfinity: ValueType = infinity |> ValueType.Float
 
 /// <summary>
 ///     <p>The constant <c>Pi</c> (π).</p>
 ///     <p><i>It is the constant wrapped as a <c>ValueType.Number</c>.</i></p>
 /// </summary>
-let ConstantPi: ValueType = System.Math.PI |> ValueType.Number
+let ConstantPi: ValueType = System.Math.PI |> ValueType.Float
 
 /// <summary>
 ///     <p>The constant <c>Tau</c> (Τ).</p>
 ///     <p><i>It is the constant wrapped as a <c>ValueType.Number</c>.</i></p>
 /// </summary>
-let ConstantTau: ValueType = System.Math.Tau |> ValueType.Number
+let ConstantTau: ValueType = System.Math.Tau |> ValueType.Float
 
 /// <summary>
 ///     <p>The constant <c>Euler</c> (e).</p>
 ///     <p><i>It is the constant wrapped as a <c>ValueType.Number</c>.</i></p>
 /// </summary>
-let ConstantEuler: ValueType = System.Math.E |> ValueType.Number
+let ConstantEuler: ValueType = System.Math.E |> ValueType.Float
 
 /// <summary>
 ///     <p>The constant <c>NaN</c>.</p>
 ///     <p><i>It is the constant wrapped as a <c>ValueType.Number</c>.</i></p>
 /// </summary>
-let ConstantNaN: ValueType = nan |> ValueType.Number
+let ConstantNaN: ValueType = nan |> ValueType.Float
 
 /// <summary>
 ///     <p>The maximum number of variables supported by <b>Diorite</b>.</p>

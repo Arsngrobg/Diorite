@@ -154,7 +154,8 @@ public abstract class Value : ICoreView<Core.Syntax.ValueType>, ICoreConverter<C
     /// <returns> a new <c>Value</c>, derived from its equivalent core type </returns>
     public static Value OfCoreType(Core.Syntax.ValueType coreValueType) => coreValueType switch
     {
-        Core.Syntax.ValueType.Number  x => OfNumber (x.Item),
+        Core.Syntax.ValueType.Float   x => OfNumber (x.Item),
+        Core.Syntax.ValueType.Integer x => OfNumber (x.Item),
         Core.Syntax.ValueType.Complex z => OfComplex(z.Item1, z.Item2),
         _                               => Undefined
     };
@@ -266,7 +267,7 @@ public abstract class Value : ICoreView<Core.Syntax.ValueType>, ICoreConverter<C
             0;
 
         public override Core.Syntax.ValueType AsCoreType() =>
-            Core.Syntax.ValueType.NewNumber(Re());
+            Core.Syntax.ValueType.NewFloat(Re());
 
         public override int GetHashCode() =>
             HashCode.Combine(Re(), Im()); // silent upcast to complex (value + 0i) to maintain safe hash

@@ -50,8 +50,8 @@ module Tokenizer =
                       let lexeme: string = integer |> System.String.Concat
                       let token: Token = {
                           lexeme = lexeme
-                          id     = TokenType.Number
-                          value  = TokenValue.Number (lexeme |> System.Double.Parse)
+                          id     = TokenType.Integer
+                          value  = TokenValue.Integer (lexeme |> System.Int64.Parse)
                           line   = line
                           column = column
                       }
@@ -61,8 +61,8 @@ module Tokenizer =
                       let lexeme: string = (integer @ ['.'] @ decimal) |> System.String.Concat
                       let token: Token = {
                           lexeme = lexeme
-                          id     = TokenType.Number
-                          value  = TokenValue.Number (lexeme |> System.Double.Parse)
+                          id     = TokenType.Float
+                          value  = TokenValue.Float (lexeme |> System.Double.Parse)
                           line   = line
                           column = column
                       }
@@ -72,8 +72,8 @@ module Tokenizer =
                   let lexeme: string = integer |> System.String.Concat
                   let token: Token = {
                       lexeme = lexeme
-                      id     = TokenType.Number
-                      value  = TokenValue.Number (lexeme |> System.Double.Parse)
+                      id     = TokenType.Integer
+                      value  = TokenValue.Integer (lexeme |> System.Int64.Parse)
                       line   = line
                       column = column
                   }

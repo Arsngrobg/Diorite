@@ -29,16 +29,17 @@ module Combinators =
     module Helpers =
         /// <summary>
         ///     <p>Tries to obtain the <c>TokenValue.Number</c> stored by the supplied <c>Token</c>.</p>
-        ///     <p>If the <c>Token</c> does not contain a value, or does not hold a <c>TokenValue.Number</c>, then this
-        ///        function will throw a fatal error.
+        ///     <p>If the <c>Token</c> does not contain a value, or does not hold a <c>TokenValue.Integer</c> or
+        ///        <c>TokenValue.Float</c>, then this function will throw a fatal error.
         ///     </p>
         /// </summary>
         /// <param name="token"> the <c>Token</c> to extract a number value from </param>
         /// <returns> the number value held by this token </returns>
         let GetNumberValue (token: Token): ValueType =
             match token.value with
-             | TokenValue.Number n -> ValueType.Number n
-             | _                   -> failwith $"Lexer.GetNumberValue - getting Number value from {token.id}"
+             | TokenValue.Integer n -> ValueType.Integer n
+             | TokenValue.Float   n -> ValueType.Float   n
+             | _                    -> failwith $"Lexer.GetNumberValue - getting Number value from {token.id}"
 
         /// <summary>
         ///     <p>Tries to obtain the <c>TokenValue.Variable</c> stored by the supplied <c>Token</c>.</p>
@@ -79,9 +80,13 @@ module Combinators =
     /// </summary>
     let EulerParser: Parser<ValueType> = (Accept TokenType.Euler) |> As ConstantEuler
     /// <summary>
-    ///     <p>A <c>Parser</c> that accepts the token of type <c>Number</c>.</p>
+    ///     <p>A <c>Parser</c> that accepts any number token.</p>
     /// </summary>
-    let NumberParser: Parser<ValueType> = (Accept TokenType.Number) |> Map GetNumberValue
+    let NumberParser: Parser<ValueType> =
+        Any [
+            (Accept TokenType.Integer) |> Map GetNumberValue
+            (Accept TokenType.Float)   |> Map GetNumberValue
+        ]
 
     /// <summary>
     ///     <p>The <c>Parser</c> that accepts a <b>Diorite</b> value.</p>

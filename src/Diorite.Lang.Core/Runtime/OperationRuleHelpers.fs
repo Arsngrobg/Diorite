@@ -27,11 +27,25 @@ module OperationRuleHelpers =
     /// <param name="a"> the left-hand-side value </param>
     /// <param name="b"> the right-hand-side value </param>
     /// <returns> <c>a</c> &amp; <c>b</c>, as equal types, if possible </returns>
-    let Upcast (a: ValueType, b: ValueType): ValueType * ValueType =
+    let UpcastMin (a: ValueType, b: ValueType): ValueType * ValueType =
         match (a, b) with
-         | ValueType.Complex (a, b), ValueType.Number  c      -> (ValueType.Complex (a, b), ValueType.Complex (c, 0))
-         | ValueType.Number  a,      ValueType.Complex (b, c) -> (ValueType.Complex (a, 0), ValueType.Complex (b, c))
-         | a,                        b                        -> (a,                        b                       )
+         | ValueType.Integer  a,      ValueType.Float    b     -> (ValueType.Float (float a),       ValueType.Float b)
+         | ValueType.Float  a,      ValueType.Integer    b     -> (ValueType.Float a,               ValueType.Float (float b))
+         | a,                        b                         -> (a,                               b                       )
+
+    /// <summary>
+    ///     <p>Upcasts the pair of values into equivalent types for relevant operations on equal types.</p>
+    /// </summary>
+    /// <param name="a"> the left-hand-side value </param>
+    /// <param name="b"> the right-hand-side value </param>
+    /// <returns> <c>a</c> &amp; <c>b</c>, as equal types, if possible </returns>
+    let UpcastMax (a: ValueType, b: ValueType): ValueType * ValueType =
+        match UpcastMin (a, b) with
+         | ValueType.Complex (a, b), ValueType.Integer  c      -> (ValueType.Complex (a, b),        ValueType.Complex (double c, 0))
+         | ValueType.Integer a,      ValueType.Complex (b, c)  -> (ValueType.Complex (double a, 0), ValueType.Complex (b, c))
+         | ValueType.Complex (a, b), ValueType.Float    c      -> (ValueType.Complex (a, b),        ValueType.Complex (double c, 0))
+         | ValueType.Float    a,      ValueType.Complex (b, c) -> (ValueType.Complex (double a, 0), ValueType.Complex (b, c))
+         | a,                        b                         -> (a,                               b                       )
 
     /// <summary>
     ///     <p>If the value of <c>x</c> is <c>nan</c>, it maps to <c>Undefined</c> or <c>Number</c> otherwise.</p>
@@ -39,4 +53,4 @@ module OperationRuleHelpers =
     /// <param name="x"> the <c>decimal</c> number </param>
     /// <returns> the <c>ValueType</c> of <c>x</c>, where <c>nan</c> is <c>Undefined</c> </returns>
     let MaybeNaN (x: float): ValueType =
-        if x |> System.Double.IsNaN then ValueType.Undefined else ValueType.Number x
+        if x |> System.Double.IsNaN then ValueType.Undefined else ValueType.Float x

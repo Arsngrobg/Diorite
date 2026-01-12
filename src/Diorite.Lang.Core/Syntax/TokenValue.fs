@@ -29,9 +29,13 @@ type TokenValue =
     /// </summary>
     | None
     /// <summary>
+    ///     <p>A 64-bit, integer number is the payload for the <c>Token</c>.</p>
+    /// </summary>
+    | Integer of int64
+    /// <summary>
     ///     <p>A 64-bit, floating-point number is the payload for the <c>Token</c>.</p>
     /// </summary>
-    | Number   of float
+    | Float   of float
     /// <summary>
     ///     <p>The <c>VariableType</c> representation of the variable lexeme of the <c>Token</c>.</p>
     /// </summary>

@@ -41,9 +41,10 @@ module BinaryOperationRules =
     /// <param name="ab"> the operands </param>
     let BinaryAdditionRule: BinaryOperationRule = fun ab ->
         let unsupported: BinaryOperationRule = UnsupportedBinaryOperation BinaryOperator.Addition
-        match (Upcast ab) with
+        match (UpcastMax ab) with
          | ValueType.Complex (a, b), ValueType.Complex (c, d) -> ValueType.Complex (a + c,  b + d) |> Ok
-         | ValueType.Number   a,     ValueType.Number   b     -> MaybeNaN          (  a   +   b  ) |> Ok
+         | ValueType.Float    a,     ValueType.Float    b     -> MaybeNaN          (  a   +   b  ) |> Ok
+         | ValueType.Integer  a,     ValueType.Integer  b     -> ValueType.Integer (  a   +   b  ) |> Ok
          | a,                        b                        -> unsupported (a, b)
 
     /// <summary>
@@ -52,9 +53,10 @@ module BinaryOperationRules =
     /// <param name="ab"> the operands </param>
     let BinarySubtractionRule: BinaryOperationRule = fun ab ->
         let unsupported: BinaryOperationRule = UnsupportedBinaryOperation BinaryOperator.Subtraction
-        match (Upcast ab) with
+        match (UpcastMax ab) with
          | ValueType.Complex (a, b), ValueType.Complex (c, d) -> ValueType.Complex (a - c,  b - d) |> Ok
-         | ValueType.Number   a,     ValueType.Number   b     -> MaybeNaN          (  a   -   b  ) |> Ok
+         | ValueType.Float    a,     ValueType.Float     b    -> MaybeNaN          (  a   -   b  ) |> Ok
+         | ValueType.Integer  a,     ValueType.Integer  b     -> ValueType.Integer (  a   -   b  ) |> Ok
          | a,                        b                        -> unsupported (a, b)
 
     /// <summary>
@@ -63,9 +65,10 @@ module BinaryOperationRules =
     /// <param name="ab"> the operands </param>
     let BinaryMultiplicationRule: BinaryOperationRule = fun ab ->
         let unsupported: BinaryOperationRule = UnsupportedBinaryOperation BinaryOperator.Multiplication
-        match (Upcast ab) with
+        match (UpcastMax ab) with
          | ValueType.Complex (a, b), ValueType.Complex (c, d) -> ValueType.Complex (a*c - b*d,  a*d + b*c) |> Ok
-         | ValueType.Number   a,     ValueType.Number   b     -> MaybeNaN          (    a     *     b    ) |> Ok
+         | ValueType.Float    a,     ValueType.Float    b     -> MaybeNaN          (    a     *     b    ) |> Ok
+         | ValueType.Integer  a,     ValueType.Integer  b     -> ValueType.Integer (    a     *     b    ) |> Ok
          | a,                        b                        -> unsupported (a, b)
 
     /// <summary>
@@ -74,7 +77,7 @@ module BinaryOperationRules =
     /// <param name="ab"> the operands </param>
     let BinaryDivisionRule: BinaryOperationRule = fun ab ->
         let unsupported: BinaryOperationRule = UnsupportedBinaryOperation BinaryOperator.Division
-        match (Upcast ab) with
+        match (UpcastMax ab) with
          | ValueType.Complex (a, b), ValueType.Complex (c, d) ->
              let denominator: float = c**2 + d**2
              if denominator = 0 then
@@ -85,9 +88,12 @@ module BinaryOperationRules =
                  let a: float = (a0*c + b*d) / denominator
                  let b: float = (b*c - a0*d) / denominator
                  ValueType.Complex (a, b) |> Ok
-         | ValueType.Number   a,     ValueType.Number   b     ->
-             if   b = 0 then (Some "Division by zero", [ValueType.Number a; ValueType.Number b]) ||> MathError
+         | ValueType.Float   a,     ValueType.Float   b     ->
+             if   b = 0 then (Some "Division by zero", [ValueType.Float a; ValueType.Float b]) ||> MathError
              else MaybeNaN (a / b) |> Ok
+         | ValueType.Integer  a,     ValueType.Integer  b     ->
+             if   b = 0 then (Some "Division by zero", [ValueType.Integer a; ValueType.Integer b]) ||> MathError
+             else ValueType.Integer (a / b) |> Ok
          | a,                        b                        -> unsupported (a, b)
 
     /// <summary>
@@ -96,9 +102,10 @@ module BinaryOperationRules =
     /// <param name="ab"> the operands </param>
     let BinaryModuloRule: BinaryOperationRule = fun ab ->
         let unsupported: BinaryOperationRule = UnsupportedBinaryOperation BinaryOperator.Modulo
-        match ab with
-         | ValueType.Number a, ValueType.Number b -> MaybeNaN (a % b) |> Ok
-         | a,                  b                  -> unsupported (a, b)
+        match (UpcastMin ab) with
+         | ValueType.Float a,   ValueType.Float b   -> MaybeNaN          (a % b) |> Ok
+         | ValueType.Integer a, ValueType.Integer b -> ValueType.Integer (a % b) |> Ok
+         | a,                  b                    -> unsupported        (a, b)
 
     /// <summary>
     ///     <p>The rule for binary floor division.</p>
@@ -106,10 +113,13 @@ module BinaryOperationRules =
     /// <param name="ab"> the operands </param>
     let BinaryFloorDivisionRule: BinaryOperationRule = fun ab ->
         let unsupported: BinaryOperationRule = UnsupportedBinaryOperation BinaryOperator.FloorDivision
-        match ab with
-         | ValueType.Number a, ValueType.Number b ->
-             if b = 0 then (Some "Division by zero", [ValueType.Number a; ValueType.Number b]) ||> MathError
-             else          (a / b) |> (System.Math.Floor >> MaybeNaN >> Ok)
+        match (UpcastMin ab) with
+         | ValueType.Float a, ValueType.Float b ->
+             if b = 0 then (Some "Division by zero", [ValueType.Float a; ValueType.Float b]) ||> MathError
+             else          (a / b) |> (System.Math.Floor >> int64 >> ValueType.Integer >> Ok)
+         | ValueType.Integer a, ValueType.Integer b ->
+             if b = 0 then (Some "Division by zero", [ValueType.Integer a; ValueType.Integer b]) ||> MathError
+             else          (a / b) |> (ValueType.Integer >> Ok)
          | a,                  b                  -> unsupported (a, b)
 
     /// <summary>
@@ -118,7 +128,7 @@ module BinaryOperationRules =
     /// <param name="ab"> the operands </param>
     let BinaryExponentRule: BinaryOperationRule = fun ab ->
         let unsupported: BinaryOperationRule = UnsupportedBinaryOperation BinaryOperator.Exponent
-        match (Upcast ab) with
+        match (UpcastMax ab) with
          | ValueType.Complex (a, b), ValueType.Complex (c, d) ->
              // Diorite uses the principle value of exponents between two complex numbers
              //   z^w    = (r^c)(e^-d*theta) * (cos(c*theta + d*ln(r)) + i*sin(c*theta + d*ln(r)))
@@ -136,8 +146,9 @@ module BinaryOperationRules =
              let reZW: float = magZPwrW * (System.Math.Cos argZPwrW)
              let imZW: float = magZPwrW * (System.Math.Sin argZPwrW)
              ValueType.Complex (reZW, imZW) |> Ok
-         | ValueType.Number   a,     ValueType.Number   b     -> MaybeNaN (a ** b) |> Ok
-         | a,                        b                        -> unsupported (a, b)
+         | ValueType.Float   a,     ValueType.Float   b     -> MaybeNaN (a ** b) |> Ok
+         | ValueType.Integer a,     ValueType.Integer b     -> MaybeNaN ((double a) ** (double b)) |> Ok
+         | a,                        b                      -> unsupported (a, b)
 
     /// <summary>
     ///     <p>The rule for binary complex constructor.</p>
@@ -149,7 +160,9 @@ module BinaryOperationRules =
             let msg:  string = $"Complex constructor requires a pair of reals - offending argument is the {meta}"
             (Some msg, [offender]) ||> MathError
 
-        match ab with
-         | ValueType.Number a, ValueType.Number b -> ValueType.Complex (a, b) |> Ok
-         | ValueType.Number _, b                  -> unsupported b false
+        match (UpcastMin ab) with
+         | ValueType.Float   a, ValueType.Float   b -> ValueType.Complex (a, b) |> Ok
+         | ValueType.Integer a, ValueType.Integer b -> ValueType.Complex (double a, double b) |> Ok
+         | ValueType.Integer _, b
+         | ValueType.Float   _, b                  -> unsupported b false
          | a,                  _                  -> unsupported a true

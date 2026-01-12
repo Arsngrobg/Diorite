@@ -27,14 +27,14 @@ module UnaryOperationRules =
     /// <summary>
     ///     <p>This is the hard limit on the application of the <c>Factorial</c> operation in <b>Diorite</b>.
     ///        This is the value that, beyond this input argument, the value of <c>x!</c> is too large to be
-    ///        represented by a 64-bit floating-point decimal. Hence, it optimises the call as a value of
+    ///        represented by a 64-bit integer. Hence, it optimises the call as a value of
     ///        <c>inf</c>.
     ///     </p>
     ///     <p><i>This also prevents the <c>factorial</c> operation from easily exploding, which causes
     ///           <c>StackOverflowError</c>s.
     ///     </i></p>
     /// </summary>
-    let FactorialLimit: int = 170
+    let FactorialLimit: int = 20
 
     /// <summary>
     ///     <p>Produces a <c>MathError</c> that has the appropriate error message for the given
@@ -55,7 +55,8 @@ module UnaryOperationRules =
         let unsupported: UnaryOperationRule = UnsupportedUnaryOperation UnaryOperator.Positive
         match a with
          | ValueType.Complex (a, b) -> ValueType.Complex (a, b) |> Ok
-         | ValueType.Number   a     -> ValueType.Number  a      |> Ok
+         | ValueType.Float   a      -> ValueType.Float    a     |> Ok
+         | ValueType.Integer   a    -> ValueType.Integer  a     |> Ok
          | a                        -> unsupported a
 
     /// <summary>
@@ -66,7 +67,8 @@ module UnaryOperationRules =
         let unsupported: UnaryOperationRule = UnsupportedUnaryOperation UnaryOperator.Negative
         match a with
          | ValueType.Complex (a, b) -> ValueType.Complex (-a, -b) |> Ok
-         | ValueType.Number   a     -> ValueType.Number   -a      |> Ok
+         | ValueType.Float   a      -> ValueType.Float    -a      |> Ok
+         | ValueType.Integer   a    -> ValueType.Integer  -a      |> Ok
          | a                        -> unsupported a
 
     /// <summary>
@@ -76,13 +78,12 @@ module UnaryOperationRules =
     let rec UnaryFactorialRule: UnaryOperationRule = fun a ->
         let unsupported: UnaryOperationRule = UnsupportedUnaryOperation UnaryOperator.Factorial
         match a with
-         | ValueType.Number   a     ->
-             if   (a |> System.Math.Truncate) <> a then ValueType.Undefined |> Ok
-             elif  a > FactorialLimit              then ConstantInfinity    |> Ok // x! > Double.Max
+         | ValueType.Integer   a     ->
+             if    a > FactorialLimit              then ConstantInfinity    |> Ok // x! > Double.Max
              elif  a < 0                           then ValueType.Undefined |> Ok
-             elif  a < 2                           then ValueType.Number 1  |> Ok
-             else (ValueType.Number (a - 1.0) |> UnaryFactorialRule) |> Result.bind (fun b ->
-                      (ValueType.Number a, b) |> BinaryMultiplicationRule
+             elif  a < 2                           then ValueType.Integer 1 |> Ok
+             else (ValueType.Integer (a - 1L) |> UnaryFactorialRule) |> Result.bind (fun b ->
+                      (ValueType.Integer a, b) |> BinaryMultiplicationRule
                   )
          | a                        -> unsupported a
 
@@ -93,8 +94,9 @@ module UnaryOperationRules =
     let UnaryAbsoluteRule: UnaryOperationRule = fun a ->
         let unsupported: UnaryOperationRule = UnsupportedUnaryOperation UnaryOperator.Absolute
         match a with
-         | ValueType.Complex (a, b) -> ValueType.Number ((a**2 + b**2) |> System.Math.Sqrt) |> Ok
-         | ValueType.Number   a     -> ValueType.Number (a             |> System.Math.Abs ) |> Ok
+         | ValueType.Complex (a, b) -> ValueType.Float ((a**2 + b**2) |> System.Math.Sqrt) |> Ok
+         | ValueType.Integer a      -> ValueType.Integer (a           |> System.Math.Abs ) |> Ok
+         | ValueType.Float   a      -> ValueType.Float   (a           |> System.Math.Abs ) |> Ok
          | a                        -> unsupported a
 
     /// <summary>
@@ -104,8 +106,8 @@ module UnaryOperationRules =
     let UnaryGetImaginaryRule: UnaryOperationRule = fun a ->
         let unsupported: UnaryOperationRule = UnsupportedUnaryOperation UnaryOperator.GetImaginary
         match a with
-         | ValueType.Complex (_, b) -> ValueType.Number b |> Ok
-         | ValueType.Number   _     -> ValueType.Number 0 |> Ok
+         | ValueType.Complex (_, b) -> ValueType.Float b |> Ok
+         | ValueType.Float    _     -> ValueType.Float 0 |> Ok
          | a                        -> unsupported a
 
     /// <summary>
@@ -115,7 +117,7 @@ module UnaryOperationRules =
     let UnaryGetRealRule: UnaryOperationRule = fun a ->
         let unsupported: UnaryOperationRule = UnsupportedUnaryOperation UnaryOperator.GetReal
         match a with
-         | ValueType.Complex (a, _) -> ValueType.Number a |> Ok
-         | ValueType.Number   a     -> ValueType.Number a |> Ok
+         | ValueType.Complex (a, _) -> ValueType.Float a |> Ok
+         | ValueType.Float    a     -> ValueType.Float a |> Ok
          | a                        -> unsupported a
 

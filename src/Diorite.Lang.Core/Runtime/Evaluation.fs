@@ -67,11 +67,13 @@ module Evaluation =
     let NaturalSetEvaluator (isInput: bool): Evaluator<ValueType, ValueType> =
         (fun (value, memory) ->
             match value with
-             | ValueType.Undefined                                                   ->
+             | ValueType.Undefined                                                  ->
                  (ValueType.Undefined, memory) |> Ok
-             | ValueType.Number    x when (x = (System.Math.Truncate x)) && (x >= 0) ->
-                 (ValueType.Number x,  memory) |> Ok
-             | value                                                                 ->
+             | ValueType.Integer  x when (x >= 0)                                   ->
+                 (ValueType.Integer x,  memory) |> Ok
+             | ValueType.Float    x when (x = (System.Math.Truncate x)) && (x >= 0) ->
+                 (ValueType.Float   x,  memory) |> Ok
+             | value                                                                ->
                  ((isInput, NumberSet.Natural, value) |||> GetMembershipError)
                  |> Result.map (fun result -> (result, memory))
         )
@@ -86,9 +88,10 @@ module Evaluation =
     let IntegerSetEvaluator (isInput: bool): Evaluator<ValueType, ValueType> =
         (fun (value, memory) ->
             match value with
-             | ValueType.Undefined                                    -> (ValueType.Undefined, memory) |> Ok
-             | ValueType.Number x when (x = (System.Math.Truncate x)) -> (ValueType.Number x,  memory) |> Ok
-             | value                                                  ->
+             | ValueType.Undefined                                   -> (ValueType.Undefined, memory) |> Ok
+             | ValueType.Integer x                                   -> (ValueType.Integer x, memory) |> Ok
+             | ValueType.Float x when (x = (System.Math.Truncate x)) -> (ValueType.Float   x, memory) |> Ok
+             | value                                                 ->
                  ((isInput, NumberSet.Integer, value) |||> GetMembershipError)
                  |> Result.map (fun result -> (result, memory))
         )
@@ -104,7 +107,8 @@ module Evaluation =
         (fun (value, memory) ->
             match value with
              | ValueType.Undefined -> (ValueType.Undefined, memory) |> Ok
-             | ValueType.Number x  -> (ValueType.Number x,  memory) |> Ok
+             | ValueType.Integer  x  -> (ValueType.Integer x,  memory) |> Ok
+             | ValueType.Float    x  -> (ValueType.Float   x,  memory) |> Ok
              | value               ->
                  ((isInput, NumberSet.Real, value) |||> GetMembershipError)
                  |> Result.map (fun result -> (result, memory))
@@ -130,7 +134,7 @@ module Evaluation =
         (fun (value, memory) ->
             match value with
              | ValueType.Undefined -> (ValueType.Undefined, memory) |> Ok
-             | ValueType.Number x  ->
+             | ValueType.Float x  ->
                  let denominator: int = MaxDenominator
                  let numerator:   int = int (System.Math.Round(x * (float denominator)))
             
@@ -157,9 +161,10 @@ module Evaluation =
         (fun (value, memory) ->
             match value with
              | ValueType.Undefined -> (ValueType.Undefined, memory) |> Ok
-             | ValueType.Number x  ->
-                 match ((ValueType.Number x, memory) |> (IrrationalSetEvaluator isInput)) with
-                  | Error _ -> (ValueType.Number x, memory) |> Ok
+             | ValueType.Integer x -> (ValueType.Integer x, memory) |> Ok
+             | ValueType.Float x  ->
+                 match ((ValueType.Float x, memory) |> (IrrationalSetEvaluator isInput)) with
+                  | Error _ -> (ValueType.Float x, memory) |> Ok
                   | Ok    _ ->
                      ((isInput, NumberSet.Rational, value) |||> GetMembershipError)
                      |> Result.map (fun result -> (result, memory))
@@ -172,9 +177,29 @@ module Evaluation =
     ///     <p>Produces an <c>Evaluator</c> that evaluates whether a given <c>ValueType</c> has membership in the
     ///        <c>Complex</c> number set.
     ///     </p>
-    ///     <p><i>All values are inherintly complex.</i></p>
+    ///     <p><i>All values are inherently complex.</i></p>
     /// </summary>
-    let ComplexSetEvaluator: Evaluator<ValueType, ValueType> = Ok
+    let ComplexSetEvaluator: Evaluator<ValueType, ValueType> = (fun (value,  memory) ->
+        Ok (value, memory)
+    )
+
+    /// <summary>
+    ///     <p>The dispatcher function for selecting the correct <c>Evaluator</c> to use, given the supplied
+    ///        <c>NumberSet</c>.
+    ///     </p>
+    /// </summary>
+    /// <param name="set"> the <c>NumberSet</c> </param>
+    /// <param name="isInput"> whether the param may be in input or output </param>
+    /// <returns> an <c>Evaluator</c>, that dispatches depending on the <c>NumberSet</c> </returns>
+    let MembershipEvaluator (isInput: bool) (set: NumberSet): Evaluator<ValueType, ValueType> = (fun (value, memory) ->
+        match set with
+         | NumberSet.Natural    -> (value, memory) |> (NaturalSetEvaluator    isInput)
+         | NumberSet.Integer    -> (value, memory) |> (IntegerSetEvaluator    isInput)
+         | NumberSet.Real       -> (value, memory) |> (RealSetEvaluator       isInput)
+         | NumberSet.Rational   -> (value, memory) |> (RationalSetEvaluator   isInput)
+         | NumberSet.Irrational -> (value, memory) |> (IrrationalSetEvaluator isInput)
+         | NumberSet.Complex    -> (value, memory) |> ComplexSetEvaluator
+    )
 
     /// <summary>
     ///     <p>The evaluator for a <c>VariableType</c>.</p>
@@ -241,16 +266,19 @@ module Evaluation =
     /// <summary>
     ///     <p>The <c>Evaluator</c> for a sequence of function arguments.</p>
     /// </summary>
-    and FunctionArgumentEvaluator: Evaluator<Expression list, ValueType list> = (fun (args, memory) ->
+    and FunctionArgumentEvaluator: Evaluator<(FunctionParameter * Expression) list, ValueType list> = (fun (args, memory) ->
         match args with
          | []           -> ([], memory) |> Ok
-         | head :: tail ->
-             match ((head, memory) |> ExpressionEvaluator) with
+         | ((_, set), exp) :: tail ->
+             match ((exp, memory) |> ExpressionEvaluator) with
               | Error err           -> Error err
               | Ok    (arg, memory) ->
-                  match ((tail, memory) |> FunctionArgumentEvaluator) with
-                   | Error err            -> Error err
-                   | Ok    (args, memory) -> Ok (arg :: args, memory)
+                  match (arg, memory) |> (MembershipEvaluator true set) with
+                   | Error err           -> Error err
+                   | Ok    (arg, memory) ->
+                       match ((tail, memory) |> FunctionArgumentEvaluator) with
+                        | Error err            -> Error err
+                        | Ok    (args, memory) -> Ok (arg :: args, memory)
     )
 
     /// <summary>
@@ -275,24 +303,32 @@ module Evaluation =
                      err $"Too many arguments supplied to function: {fnRef}"
                  else
                      // some memoization can happen
-                     match ((fnArgs, memory) |> FunctionArgumentEvaluator) with
+                     match ((List.zip fnAttrs.parameters fnArgs, memory) |> FunctionArgumentEvaluator) with
                       | Error err              -> Error err
                       | Ok    (fnArgs, memory) ->
-                          let pairs: (VariableType * CellData) list =
-                              fnArgs
-                              |> List.map CellData.OfValue
-                              |> List.zip (List.map fst fnAttrs.parameters)
-                          
-                          let scopedMemory: Memory = pairs |> (SetVariables memory)
-                          match ((fnBody, scopedMemory) |> FunctionBodyEvaluator) with
-                           | Ok (result, memory) ->
-                               let memory: Memory =
-                                   if fnAttrs.metadata.memoized then
-                                        (fnRef, (fnArgs, result)) ||> (AddCachedResult memory)
-                                   else
-                                       memory
-                               (result, memory) |> Ok
-                           | Error err -> Error err
+                         match  (GetCachedResult memory fnRef fnArgs) with
+                          | Some result ->
+                              printf "USED CACHE"
+                              (result, memory) |> Ok
+                          | None        ->
+                              let pairs: (VariableType * CellData) list =
+                                  fnArgs
+                                  |> List.map CellData.OfValue
+                                  |> List.zip (List.map fst fnAttrs.parameters)
+                              
+                              let scopedMemory: Memory = pairs |> (SetVariables memory)
+                              match ((fnBody, scopedMemory) |> FunctionBodyEvaluator) with
+                               | Ok (result, memory) ->
+                                   match ((result, memory) |> (MembershipEvaluator true fnAttrs.range)) with
+                                    | Error err -> Error err
+                                    | Ok    (result, memory) ->
+                                       let memory: Memory =
+                                           if fnAttrs.metadata.memoized then
+                                               (fnRef, (fnArgs, result)) ||> (AddCachedResult memory)
+                                           else
+                                               memory
+                                       (result, memory) |> Ok
+                               | Error err -> Error err
         )
 
     /// <summary>
@@ -316,7 +352,7 @@ module Evaluation =
                   | Error err             -> Error err
                   | Ok    (value, memory) ->
                       match value with
-                       | ValueType.Number x when x |> System.Double.IsNaN ->
+                       | ValueType.Float x when x |> System.Double.IsNaN ->
                            (tail, memory) |> PiecewiseConditionsEvaluator
                        | value                                            ->
                            (value, memory) |> Ok
