@@ -9,6 +9,9 @@ f(x : R) -> R = {
     0.0 if x = 0.0; 1.0 otherwise;
 }
 
+[symbol:sum]
+f(n: N) -> N = n * (n + 1) / 2;
+
 [symbol:floor]
 f(x : R) -> R = {
     # Truncating with integer division
