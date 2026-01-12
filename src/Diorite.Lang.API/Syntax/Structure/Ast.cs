@@ -434,6 +434,13 @@ public abstract class Ast : IEnumerable<Ast>,
         GetEnumerator();
 
     /// <summary>
+    ///     <p>Checks whether this <c>AstNode</c> is part of an expression.</p>
+    /// </summary>
+    /// <returns> if this <c>AstNode</c> is part of an expression </returns>
+    public bool IsExpression() =>
+        IsValue() || IsFunctionCall() || IsBinaryOperation() || IsUnaryOperation();
+
+    /// <summary>
     ///     <p>Checks whether this <c>AstNode</c> is a leaf node.</p>
     /// </summary>
     /// <returns> if this <c>AstNode</c> is a leaf node </returns>

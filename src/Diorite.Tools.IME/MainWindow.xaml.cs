@@ -23,6 +23,7 @@ using ScottPlot;
 using System.Text.Json;
 using Diorite.Lang.API.Library;
 using Diorite.Lang.API.Syntax.Data;
+using Diorite.Lang.API.Syntax.Structure;
 using Diorite.Lang.API.Syntax.Views;
 using IME.Models;
 using Microsoft.Win32;
@@ -240,22 +241,43 @@ namespace IME {
                 return;
             }
             try {
-                var result = _evaluator.EvaluateSource(input);
-                _sessionMemory = _evaluator.GetMemory();
-                var function = Function.OfString(input);
-                function.FunctionAttributes.Range = NumberSet.Complex;
-                if (function != null) {
-                    var (xValues, yValues) = PlotFunction(function);
-                    if (IsValidPlot(xValues, yValues)) {
-                        UpdateInputPlot(textBox, xValues, yValues);
+                // var result = _evaluator.EvaluateSource(input);
+                // _sessionMemory = _evaluator.GetMemory();
+
+                var tree = Ast.OfSource(input);
+                foreach (var node in tree)
+                {
+                    Console.WriteLine(node.TreeStr());
+                    if (node.IsExpression())
+                    {
+                        var function = Function.OfString($"f(x) = {input}");
+                        if (function == null) return;
+                        var (xValues, yValues) = PlotFunction(function);
+                        if (IsValidPlot(xValues, yValues)) {
+                            UpdateInputPlot(textBox, xValues, yValues);
+                        }
+                        Console.WriteLine(true);
+                    }
+                    else if (node.IsAssignment())
+                    {
+                        
                     }
                 }
-                if (result != null && result.Length > 0) {
-                    Output.Text = result[0]?.ToString() ?? "";
-                } 
-                else {
-                    Output.Text = "";
-                }
+                
+                // var function = Function.OfString(input);
+                // function.FunctionAttributes.Range = NumberSet.Complex;
+                // if (function != null) {
+                //     var (xValues, yValues) = PlotFunction(function);
+                //     if (IsValidPlot(xValues, yValues)) {
+                //         UpdateInputPlot(textBox, xValues, yValues);
+                //     }
+                // }
+                // if (result != null && result.Length > 0) {
+                //     Output.Text = result[0]?.ToString() ?? "";
+                // } 
+                // else {
+                //     Output.Text = "";
+                // }
             }
             catch (Exception exception) {
                 Output.Text = exception.Message;
