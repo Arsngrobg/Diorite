@@ -288,14 +288,13 @@ module VirtualMemory =
     /// <param name="fnResult"> the <c>ValueType</c> to map the function arguments to </param>
     /// <returns> a new <c>Memory</c> struct, that contains the updated cache </returns>
     let AddCachedResult (memory: Memory) (fnRef: FunctionReferenceType) (fnArgs: ValueType list, fnResult: ValueType): Memory =
-        let updatedMapping: ArgumentMapping = memory.cache[fnRef].Add(fnArgs, fnResult)
-        let updatedCache:   Cache           = memory.cache.Add(fnRef, updatedMapping)
-        {
-            variables    = memory.variables
-            symbols      = memory.symbols
-            cache        = updatedCache
-            plotCallback = memory.plotCallback
-        }
+        let updatedMapping = 
+            match memory.cache.TryGetValue fnRef with
+            | (true, existing) -> existing.Add(fnArgs, fnResult)
+            | (false, _) -> Map.empty.Add(fnArgs, fnResult)
+        
+        let updatedCache = memory.cache.Add(fnRef, updatedMapping)
+        { memory with cache = updatedCache }
 
     /// <summary>
     ///     <p>Trys to obtain the cached result of the supplied function defined by the <c>FunctionReferenceType</c>.
@@ -308,9 +307,6 @@ module VirtualMemory =
     /// <param name="fnArgs"> the sequence of arguments that may map to a function result </param>
     /// <returns> an <c>option</c> result, that may contain the cached value, or not </returns>
     let GetCachedResult (memory: Memory) (fnRef: FunctionReferenceType) (fnArgs: ValueType list): ValueType option =
-        if memory.cache.ContainsKey fnRef then
-            let fnCache = memory.cache[fnRef]
-            if fnCache.ContainsKey fnArgs then
-                Some fnCache[fnArgs]
-            else None
-        else None
+        match memory.cache.TryGetValue fnRef with
+         | (true, fnCache) -> fnCache.TryFind fnArgs
+         | (false, _)      -> None

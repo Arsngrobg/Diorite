@@ -22,7 +22,6 @@ PlotCallback callback = anonFn =>
     for (var x = 0; x < Console.BufferWidth / 4; x++)
         try
         {
-            x += offset;
             Console.SetCursorPosition(x, (int)anonFn(Value.OfNumber(x)).Re());
             Console.Write('#');
         }

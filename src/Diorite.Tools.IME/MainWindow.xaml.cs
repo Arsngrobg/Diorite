@@ -243,6 +243,17 @@ namespace IME {
             try {
                 // var result = _evaluator.EvaluateSource(input);
                 // _sessionMemory = _evaluator.GetMemory();
+                var splitAssign = string.Join(",", input.Split('='));
+                if (splitAssign.Length == 2)
+                {
+                    var function = Function.OfString($"f(x) = {splitAssign[1]}");
+                    if (function == null) return;
+                    function.FunctionAttributes.Range = NumberSet.Complex;
+                    var (xValues, yValues) = PlotFunction(function);
+                    if (IsValidPlot(xValues, yValues)) {
+                        UpdateInputPlot(textBox, xValues, yValues);
+                    }
+                }
 
                 var tree = Ast.OfSource(input);
                 foreach (var node in tree)
@@ -257,7 +268,6 @@ namespace IME {
                         if (IsValidPlot(xValues, yValues)) {
                             UpdateInputPlot(textBox, xValues, yValues);
                         }
-                        Console.WriteLine(true);
                     }
                     else if (node.IsFunctionDefinition())
                     {
@@ -268,11 +278,17 @@ namespace IME {
                         if (IsValidPlot(xValues, yValues)) {
                             UpdateInputPlot(textBox, xValues, yValues);
                         }
-                        Console.WriteLine(true);
                     }
                     else if (node.IsAssignment())
                     {
-                        
+                        var expression = node.ToArray()[1];
+                        var function = Function.OfString($"f(x) = {expression}");
+                        if (function == null) return;
+                        function.FunctionAttributes.Range = NumberSet.Complex;
+                        var (xValues, yValues) = PlotFunction(function);
+                        if (IsValidPlot(xValues, yValues)) {
+                            UpdateInputPlot(textBox, xValues, yValues);
+                        }
                     }
                 }
                 

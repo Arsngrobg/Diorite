@@ -41,7 +41,7 @@ f(a : Z, b : Z) -> Z = abs(a * b) / gcd(a, b);
 # n is iteration index
 [symbol:newton_raphson]
 f(x : R, a : R, n : Z) -> R = {
-    a if n >= 50;
+    a if n >= 5;
     newton_raphson(
         x,
         0.5 * (a + x / a),
@@ -49,6 +49,7 @@ f(x : R, a : R, n : Z) -> R = {
     ) otherwise;
 }
 
+[memoized]
 [symbol:sqrt]
 f(x : R) -> C = {
     0.0 if x = 0.0;
