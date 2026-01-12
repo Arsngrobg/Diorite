@@ -252,6 +252,18 @@ namespace IME {
                     {
                         var function = Function.OfString($"f(x) = {input}");
                         if (function == null) return;
+                        function.FunctionAttributes.Range = NumberSet.Complex;
+                        var (xValues, yValues) = PlotFunction(function);
+                        if (IsValidPlot(xValues, yValues)) {
+                            UpdateInputPlot(textBox, xValues, yValues);
+                        }
+                        Console.WriteLine(true);
+                    }
+                    else if (node.IsFunctionDefinition())
+                    {
+                        var function = Function.OfString(input);
+                        if (function == null) return;
+                        function.FunctionAttributes.Range = NumberSet.Complex;
                         var (xValues, yValues) = PlotFunction(function);
                         if (IsValidPlot(xValues, yValues)) {
                             UpdateInputPlot(textBox, xValues, yValues);
