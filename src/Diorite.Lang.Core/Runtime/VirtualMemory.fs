@@ -263,6 +263,22 @@ module VirtualMemory =
               | CellData.OfFunction fn -> Some fn
               | CellData.OfValue    _  -> None
 
+    let EnableCacheFor (memory: Memory) (fn: FunctionType): Memory =
+        let (fnAttrs: FunctionAttributes), _ = fn
+        let updatedCache: Cache =
+            memory.cache.Add(
+                match fnAttrs.metadata.symbol with
+                 | None     -> FunctionReferenceType.OfVariable fnAttrs.identifier
+                 | Some sym -> FunctionReferenceType.OfSymbol   sym
+                , Map.empty<ValueType list, ValueType>
+            )
+        {
+            variables    = memory.variables
+            symbols      = memory.symbols
+            cache        = updatedCache
+            plotCallback = memory.plotCallback
+        }
+
     /// <summary>
     ///     <p>Updates this <c>Memory</c>s cache to contain the result of an arbitrary function result.</p>
     /// </summary>

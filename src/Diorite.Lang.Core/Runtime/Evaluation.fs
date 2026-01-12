@@ -307,9 +307,7 @@ module Evaluation =
                       | Error err              -> Error err
                       | Ok    (fnArgs, memory) ->
                          match  (GetCachedResult memory fnRef fnArgs) with
-                          | Some result ->
-                              printf "USED CACHE"
-                              (result, memory) |> Ok
+                          | Some result -> (result, memory) |> Ok
                           | None        ->
                               let pairs: (VariableType * CellData) list =
                                   fnArgs
@@ -318,7 +316,7 @@ module Evaluation =
                               
                               let scopedMemory: Memory = pairs |> (SetVariables memory)
                               match ((fnBody, scopedMemory) |> FunctionBodyEvaluator) with
-                               | Ok (result, memory) ->
+                               | Ok (result, _) ->
                                    match ((result, memory) |> (MembershipEvaluator true fnAttrs.range)) with
                                     | Error err -> Error err
                                     | Ok    (result, memory) ->
@@ -327,6 +325,7 @@ module Evaluation =
                                                (fnRef, (fnArgs, result)) ||> (AddCachedResult memory)
                                            else
                                                memory
+                                       printf $"{memory.cache}\n"
                                        (result, memory) |> Ok
                                | Error err -> Error err
         )
@@ -425,9 +424,15 @@ module Evaluation =
             else
                 fn |> Ok
 
+        let updatedCache: Memory =
+            if fnAttrs.metadata.memoized then
+                EnableCacheFor memory fn
+            else
+                memory
+
         flattenedFn
         |> Result.map (fun fn ->
-               let newState: Memory = (memory, fnAttrs.identifier, (CellData.OfFunction fn)) |||> SetVariable
+               let newState: Memory = (updatedCache, fnAttrs.identifier, (CellData.OfFunction fn)) |||> SetVariable
                match fnAttrs.metadata.symbol with
                 | None     -> ((), newState)
                 | Some sym ->

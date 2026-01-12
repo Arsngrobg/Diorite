@@ -147,7 +147,7 @@ module BinaryOperationRules =
              let imZW: float = magZPwrW * (System.Math.Sin argZPwrW)
              ValueType.Complex (reZW, imZW) |> Ok
          | ValueType.Float   a,     ValueType.Float   b     -> MaybeNaN (a ** b) |> Ok
-         | ValueType.Integer a,     ValueType.Integer b     -> MaybeNaN ((double a) ** (double b)) |> Ok
+         | ValueType.Integer a,     ValueType.Integer b     -> ValueType.Integer (int64 ((double a) ** (double b))) |> Ok
          | a,                        b                      -> unsupported (a, b)
 
     /// <summary>
