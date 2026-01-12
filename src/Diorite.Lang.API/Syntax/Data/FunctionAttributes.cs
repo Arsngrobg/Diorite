@@ -44,7 +44,7 @@ public class FunctionAttributes : ICoreView<Core.Syntax.FunctionAttributes>,
 
     public Variable                         Identifier { get; }
     public IReadOnlyList<FunctionParameter> Parameters { get; }
-    public NumberSet                        Range      { get; }
+    public NumberSet                        Range { get; set; }
     public FunctionMetadata                 Metadata   { get; }
 
     private FunctionAttributes(Variable identifier, IReadOnlyList<FunctionParameter> parameters, NumberSet range,

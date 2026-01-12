@@ -22,6 +22,7 @@ using Diorite.Lang.API;
 using ScottPlot;
 using System.Text.Json;
 using Diorite.Lang.API.Library;
+using Diorite.Lang.API.Syntax.Data;
 using Diorite.Lang.API.Syntax.Views;
 using IME.Models;
 using Microsoft.Win32;
@@ -94,7 +95,7 @@ namespace IME {
                 return; 
             }
             int maxPoints = 1000;
-            int sizeX = Math.Min(maxPoints, Math.Max((int) Math.Ceiling(xRange * 10), 2)); //
+            int sizeX = Math.Min(maxPoints, Math.Max((int) Math.Ceiling(xRange * 10), 2));
             var inputFunctions = new List<(TextBox TextBox, Function? Function)>();
             foreach (var textBox in _plots.Keys.ToList()) {
                 string input = textBox.Text;
@@ -242,6 +243,7 @@ namespace IME {
                 var result = _evaluator.EvaluateSource(input);
                 _sessionMemory = _evaluator.GetMemory();
                 var function = Function.OfString(input);
+                function.FunctionAttributes.Range = NumberSet.Complex;
                 if (function != null) {
                     var (xValues, yValues) = PlotFunction(function);
                     if (IsValidPlot(xValues, yValues)) {
