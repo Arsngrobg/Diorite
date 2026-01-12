@@ -17,6 +17,8 @@
 using System.Runtime.CompilerServices;
 using Diorite.Lang.API.Callbacks;
 using Diorite.Lang.API.Syntax.Views;
+using Diorite.Lang.Core.Parser;
+using Diorite.Lang.Core.Syntax;
 using Microsoft.FSharp.Collections;
 
 namespace Diorite.Lang.API;
@@ -155,6 +157,24 @@ public sealed class DioriteEvaluator
         return result[0].IsOk
                ? Value.OfCoreType(result[0].ResultValue)
                : throw DioriteError.OfCoreType(result[0].ErrorValue);
+    }
+    
+    /// <summary>
+    /// <p>Checks if <c>input</c> expression contains an <see cref="ASTNode.FunctionDefinition"/>, and returns a
+    /// new <see cref="Function"/> if it does.</p>
+    /// </summary>
+    /// <param name="input"> the <b>Diorite</b> expression to evaluate </param>
+    /// <returns> a <see cref="Function"/> </returns>
+    public static Function? ExtractFunction(string input) {
+        Microsoft.FSharp.Collections.FSharpList<ASTNode> nodes = TopLevelParser.ParseString(input).ResultValue;
+        foreach (var node in nodes) {
+            if (node.IsFunctionDefinition) {
+                ASTNode.FunctionDefinition functionDefinition = node as ASTNode.FunctionDefinition;
+                Function function = Function.OfCoreType(functionDefinition.Item);
+                return function;
+            }
+        }
+        return null;
     }
 
     public Memory GetMemory() =>

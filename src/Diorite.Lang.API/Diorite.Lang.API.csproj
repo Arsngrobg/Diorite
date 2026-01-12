@@ -12,4 +12,9 @@
         <ProjectReference Include="..\Diorite.Lang.Core\Diorite.Lang.Core.fsproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <Content Include="Library\Stdlib\*.diorite">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
 </Project>

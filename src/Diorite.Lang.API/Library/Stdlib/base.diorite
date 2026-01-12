@@ -1,5 +1,5 @@
 ﻿[symbol:abs]
-f(x : Z) -> Z = {
+f(x : R) -> R = {
     -x if x < 0; x otherwise;
 }
 
@@ -25,12 +25,6 @@ f(x : R) -> R = {
     x // 1 otherwise;
 }
 
-[symbol:deg]
-f(r : R) -> R = r * (180.0 / pi);
-
-[symbol:rad]
-f(d : R) -> R = d * (pi / 180.0);
-
 [symbol:gcd]
 f(a : Z, b : Z) -> Z = {
     abs(a) if b = 0; gcd(b, a % b) otherwise;
@@ -38,3 +32,23 @@ f(a : Z, b : Z) -> Z = {
 
 [symbol:lcm]
 f(a : Z, b : Z) -> Z = abs(a * b) / gcd(a, b);
+
+# x is the number sqrt is applied to
+# a is current sqrt value
+# n is iteration index
+[symbol:newton_raphson]
+f(x : R, a : R, n : Z) -> R = {
+    a if n >= 50;
+    newton_raphson(
+        x,
+        0.5 * (a + x / a),
+        n + 1
+    ) otherwise;
+}
+
+[symbol:sqrt]
+f(x : R) -> C = {
+    0.0 if x = 0.0;
+    newton_raphson(x, x * 0.5, 0) if x > 0.0;
+    complex(0, sqrt(-x)) otherwise;
+}

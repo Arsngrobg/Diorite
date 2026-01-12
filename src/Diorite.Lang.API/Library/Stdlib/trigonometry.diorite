@@ -1,4 +1,14 @@
-﻿[symbol:sin_loop]
+﻿[symbol:deg]
+f(r : R) -> R = r * (180.0 / pi);
+
+[symbol:rad]
+f(d : R) -> R = d * (pi / 180.0);
+
+# Wraps angle in radians between range [0, 2 * pi]
+[symbol:reduce]
+f(x : R) -> R = x - 2.0 * pi * floor(x / (2.0 * pi));
+
+[symbol:sin_loop]
 # x is the number sin is applied to
 # n is the term index
 # y is the term
