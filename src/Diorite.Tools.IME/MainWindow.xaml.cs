@@ -256,6 +256,8 @@ namespace IME {
                 double x = -10 + 20.0 * i / (size - 1);
                 xValues[i] = x;
                 var result = _evaluator.EvaluateFunction(function, Value.OfNumber(x));
+                if (result.Equals(Value.Undefined))
+                    continue;
                 yValues[i] = result.Re();
             }
             return (xValues, yValues);

@@ -24,7 +24,7 @@ f(x : R, n : Z, y : R, z : R) -> R = {
 }
 
 [symbol:sin]
-f(x : R) -> R = sin_loop(x, 1, x, x);
+f(x : R) -> R = sin_loop(x % (2 * pi), 1, x % (2 * pi), x % (2 * pi));
 
 [symbol:cos_loop]
 f(x : R, n : Z, y : R, z: R) -> R = {
@@ -38,7 +38,7 @@ f(x : R, n : Z, y : R, z: R) -> R = {
 }
 
 [symbol:cos]
-f(x: R) -> R = cos_loop(x, 1, 1.0, 1.0);
+f(x: R) -> R = cos_loop(x % (2 * pi), 1, 1.0, 1.0);
 
 [symbol:tan]
 f(x: R) -> R = sin(x) / cos(x);

@@ -51,9 +51,12 @@ module Optimizer =
     /// <param name="bounce"> the <c>Bounce</c> to evaluate </param>
     /// <returns> the return result of the optimised evaluator function </returns>
     let rec EvaluateBounce (bounce: Bounce): BounceResult =
-        match bounce with
-         | Bounce.Done result -> result
-         | Bounce.Call thunk  -> (thunk ()) |> EvaluateBounce
+        let rec loop (b: Bounce) : BounceResult =
+            match b with
+            | Bounce.Done result -> result
+            | Bounce.Call thunk  -> loop (thunk ())
+
+        loop bounce
 
     /// <summary>
     ///     <p>Flattens the <c>Expression</c> to its smallest structure possible.</p>

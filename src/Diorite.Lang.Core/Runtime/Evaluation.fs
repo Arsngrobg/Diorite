@@ -304,7 +304,7 @@ module Evaluation =
                                       |> List.zip (List.map fst fnAttrs.parameters)
                                   
                                   let scopedMemory: Memory = pairs |> (SetVariables memory)
-                                  Call (fun () -> Done ())
+                                  Call (fun () -> Done ((fnBody, scopedMemory) |> FunctionBodyEvaluator))
                          )
             )
 
