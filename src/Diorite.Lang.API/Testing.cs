@@ -13,13 +13,13 @@ PlotCallback callback = anonFn =>
 {
     var offset = 5;
     Console.WriteLine("Hello World!");
-    for (var y = 0; y < Console.BufferHeight; y++)
-    for (var x = 0; x < Console.BufferWidth / 4; x++)
+    for (var y = 0; y < 10; y++)
+    for (var x = 0; x < 40; x++)
     {
         Console.SetCursorPosition(x, y);
         Console.Write("`");
     }
-    for (var x = 0; x < Console.BufferWidth / 4; x++)
+    for (var x = 0; x < 40; x++)
         try
         {
             Console.SetCursorPosition(x, (int)anonFn(Value.OfNumber(x)).Re());
@@ -28,8 +28,10 @@ PlotCallback callback = anonFn =>
         catch (ArgumentOutOfRangeException _) {}
 };
 
-var lib = Library.OfFile("src/Diorite.Lang.API/Library/Stdlib/base.diorite");
-lib.AddFile("src/Diorite.Lang.API/Library/Stdlib/trigonometry.diorite");
+string basePath = Path.Combine(AppContext.BaseDirectory, "Library", "Stdlib", "base.diorite");
+string trigPath = Path.Combine(AppContext.BaseDirectory, "Library", "Stdlib", "trigonometry.diorite");
+var lib = Library.OfFile(basePath);
+lib.AddFile(trigPath);
 
 var evaluator = DioriteEvaluator.Configure(lib.BuildMemorySnapshot(), callback);
 while (true)
@@ -39,10 +41,10 @@ while (true)
     if (string.IsNullOrEmpty(source))
         continue;
     Console.ForegroundColor = ConsoleColor.DarkGray;
-    Console.WriteLine(string.Join(", ", Token.TokensOf(source)));
+    //Console.WriteLine(string.Join(", ", Token.TokensOf(source)));
     try
     {
-        Console.WriteLine(Ast.OfSource(source).TreeStr());
+        //Console.WriteLine(Ast.OfSource(source).TreeStr());
         var values = evaluator.EvaluateSource(source);
         Console.ForegroundColor = ConsoleColor.Green;
         Console.WriteLine($"{string.Join(", ", values)}");
