@@ -113,7 +113,16 @@ namespace IME {
                     double[] yValues = new double[sizeX];
                     Parallel.For(0, sizeX, i => {
                         var result = _evaluator.EvaluateFunction(function, Value.OfNumber(xValues[i]));
-                        yValues[i] = result.Re();
+                        double re = result.Re();
+                        double im = result.Im();
+                        if (result == Value.Undefined || result == Value.PInfinity || result == Value.NInfinity
+                            || im > 0) {
+                            yValues[i] = double.NaN;
+                        }
+                        else {
+                            double y = re;
+                            yValues[i] = double.IsFinite(y) ? y : double.NaN;
+                        }
                     });
                     Application.Current.Dispatcher.Invoke(() => {
                         plot.Refresh();
@@ -163,7 +172,10 @@ namespace IME {
         private bool IsValidPlot(double[] xValues, double[] yValues) {
             if (xValues == null || yValues == null) return false;
             if (xValues.Length == 0 || yValues.Length == 0) return false;
-            if (xValues.Any(double.IsNaN) || yValues.Any(double.IsNaN)) return false;
+            int finitePoints = yValues.Count(double.IsFinite); // Real
+            if (finitePoints < 2) { // No visible line
+                return false;
+            }
             if (xValues.All(v => v == xValues[0])) return false;
             if (yValues.All(v => v == yValues[0])) return false;
             return true;
@@ -256,9 +268,18 @@ namespace IME {
                 double x = -10 + 20.0 * i / (size - 1);
                 xValues[i] = x;
                 var result = _evaluator.EvaluateFunction(function, Value.OfNumber(x));
-                if (result.Equals(Value.Undefined))
-                    continue;
-                yValues[i] = result.Re();
+                double re = result.Re();
+                double im = result.Im();
+                if (result == Value.Undefined ||
+                    result == Value.PInfinity ||
+                    result == Value.NInfinity || im != 0)
+                {
+                    yValues[i] = double.NaN;
+                }
+                else
+                {
+                    yValues[i] = double.IsFinite(re) ? re : double.NaN;
+                }
             }
             return (xValues, yValues);
         }
