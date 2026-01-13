@@ -70,6 +70,12 @@ namespace IME {
             plot.Plot.Legend.Alignment = Alignment.UpperLeft;
             plot.Plot.Axes.AutoScale();
             plot.Refresh();
+            // plot.SizeChanged += (_, _) =>
+            // {
+            //     var limits = plot.Plot.Axes.GetLimits();
+            //     PlotAxesChanged(limits);
+            // };
+
             plot.Plot.RenderManager.RenderFinished += (o, r) => {
                 var limits = plot.Plot.Axes.GetLimits();
                 if (_previousLimits == null) {
@@ -241,74 +247,77 @@ namespace IME {
                 return;
             }
             try {
-                // var result = _evaluator.EvaluateSource(input);
-                // _sessionMemory = _evaluator.GetMemory();
-                var splitAssign = string.Join(",", input.Split('='));
-                if (splitAssign.Length == 2)
-                {
-                    var function = Function.OfString($"f(x) = {splitAssign[1]}");
-                    if (function == null) return;
+                var result = _evaluator.EvaluateSource(input);
+                _sessionMemory = _evaluator.GetMemory();
+
+                // var splitAssign = input.Split('=');
+                // if (splitAssign.Length == 2)
+                // {
+                //     var function = Function.OfString($"f(x) = {splitAssign[1]}");
+                //     if (function == null) return;
+                //     function.FunctionAttributes.Range = NumberSet.Complex;
+                //     var (xValues, yValues) = PlotFunction(function);
+                //     if (IsValidPlot(xValues, yValues)) {
+                //         UpdateInputPlot(textBox, xValues, yValues);
+                //     }
+                //
+                //     return;
+                // }
+                //
+                // var tree = Ast.OfSource(input);
+                // foreach (var node in tree)
+                // {
+                //     Console.WriteLine(node.TreeStr());
+                //     if (node.IsExpression())
+                //     {
+                //         var function = Function.OfString($"f(x) = {input}");
+                //         if (function == null) return;
+                //         function.FunctionAttributes.Range = NumberSet.Complex;
+                //         var (xValues, yValues) = PlotFunction(function);
+                //         if (IsValidPlot(xValues, yValues)) {
+                //             UpdateInputPlot(textBox, xValues, yValues);
+                //         }
+                //     }
+                //     else if (node.IsFunctionDefinition())
+                //     {
+                //         var function = Function.OfString(input);
+                //         if (function == null) return;
+                //         function.FunctionAttributes.Range = NumberSet.Complex;
+                //         var (xValues, yValues) = PlotFunction(function);
+                //         if (IsValidPlot(xValues, yValues)) {
+                //             UpdateInputPlot(textBox, xValues, yValues);
+                //         }
+                //     }
+                //     else if (node.IsAssignment())
+                //     {
+                //         var expression = node.ToArray()[1];
+                //         var function = Function.OfString($"f(x) = {expression}");
+                //         if (function == null) return;
+                //         function.FunctionAttributes.Range = NumberSet.Complex;
+                //         var (xValues, yValues) = PlotFunction(function);
+                //         if (IsValidPlot(xValues, yValues)) {
+                //             UpdateInputPlot(textBox, xValues, yValues);
+                //         }
+                //     }
+                // }
+                
+                var function = Function.OfString(input);
+                if (function != null) {
                     function.FunctionAttributes.Range = NumberSet.Complex;
                     var (xValues, yValues) = PlotFunction(function);
                     if (IsValidPlot(xValues, yValues)) {
                         UpdateInputPlot(textBox, xValues, yValues);
                     }
                 }
-
-                var tree = Ast.OfSource(input);
-                foreach (var node in tree)
-                {
-                    Console.WriteLine(node.TreeStr());
-                    if (node.IsExpression())
-                    {
-                        var function = Function.OfString($"f(x) = {input}");
-                        if (function == null) return;
-                        function.FunctionAttributes.Range = NumberSet.Complex;
-                        var (xValues, yValues) = PlotFunction(function);
-                        if (IsValidPlot(xValues, yValues)) {
-                            UpdateInputPlot(textBox, xValues, yValues);
-                        }
-                    }
-                    else if (node.IsFunctionDefinition())
-                    {
-                        var function = Function.OfString(input);
-                        if (function == null) return;
-                        function.FunctionAttributes.Range = NumberSet.Complex;
-                        var (xValues, yValues) = PlotFunction(function);
-                        if (IsValidPlot(xValues, yValues)) {
-                            UpdateInputPlot(textBox, xValues, yValues);
-                        }
-                    }
-                    else if (node.IsAssignment())
-                    {
-                        var expression = node.ToArray()[1];
-                        var function = Function.OfString($"f(x) = {expression}");
-                        if (function == null) return;
-                        function.FunctionAttributes.Range = NumberSet.Complex;
-                        var (xValues, yValues) = PlotFunction(function);
-                        if (IsValidPlot(xValues, yValues)) {
-                            UpdateInputPlot(textBox, xValues, yValues);
-                        }
-                    }
+                if (result != null && result.Length > 0) {
+                    Output.Text = result[0]?.ToString() ?? "";
+                } 
+                else {
+                    Output.Text = "";
                 }
-                
-                // var function = Function.OfString(input);
-                // function.FunctionAttributes.Range = NumberSet.Complex;
-                // if (function != null) {
-                //     var (xValues, yValues) = PlotFunction(function);
-                //     if (IsValidPlot(xValues, yValues)) {
-                //         UpdateInputPlot(textBox, xValues, yValues);
-                //     }
-                // }
-                // if (result != null && result.Length > 0) {
-                //     Output.Text = result[0]?.ToString() ?? "";
-                // } 
-                // else {
-                //     Output.Text = "";
-                // }
             }
-            catch (Exception exception) {
-                Output.Text = exception.Message;
+            catch (DioriteError err) {
+                Output.Text = err.Message;
                 RemovePlot(textBox);
             }
         }
@@ -322,9 +331,9 @@ namespace IME {
                 var result = _evaluator.EvaluateFunction(function, Value.OfNumber(x));
                 double re = result.Re();
                 double im = result.Im();
-                if (result == Value.Undefined ||
-                    result == Value.PInfinity ||
-                    result == Value.NInfinity || im != 0)
+                if (result.Equals(Value.Undefined) ||
+                    result.Equals(Value.PInfinity) ||
+                    result.Equals(Value.NInfinity) || im != 0)
                 {
                     yValues[i] = double.NaN;
                 }

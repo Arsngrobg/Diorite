@@ -42,9 +42,11 @@ public sealed class Function : ICoreView<Tuple<Core.Syntax.FunctionAttributes, C
     /// <param name="input"> the <b>Diorite</b> expression to evaluate </param>
     /// <returns> a <see cref="Function"/> </returns>
     public static Function? OfString(string input) {
-        Microsoft.FSharp.Collections.FSharpList<Core.Syntax.ASTNode> nodes =
-            Core.Parser.TopLevelParser.ParseString(input).ResultValue;
+        var result = Core.Parser.TopLevelParser.ParseString(input);
+        if (result.IsError)
+            throw DioriteError.OfCoreType(result.ErrorValue);
 
+        var nodes = result.ResultValue;
         if (nodes.Length > 1)
             throw DioriteError.OfSyntaxError(
                 $"Expected a single FunctionDefinition statement - got {nodes.Length} instead"

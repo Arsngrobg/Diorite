@@ -294,7 +294,12 @@ module VirtualMemory =
             | (false, _) -> Map.empty.Add(fnArgs, fnResult)
         
         let updatedCache = memory.cache.Add(fnRef, updatedMapping)
-        { memory with cache = updatedCache }
+        {
+            variables    = memory.variables
+            symbols      = memory.symbols
+            cache        = updatedCache
+            plotCallback = memory.plotCallback
+        }
 
     /// <summary>
     ///     <p>Trys to obtain the cached result of the supplied function defined by the <c>FunctionReferenceType</c>.
