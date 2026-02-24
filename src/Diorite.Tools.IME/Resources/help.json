@@ -1,0 +1,54 @@
+﻿{
+  "header": "Help",
+  "sections": [
+    {
+      "title": "Usage",
+      "items": [
+        "The result of the currently focused input box is output in the result box at the bottom of the window",
+        "To add another input box, press enter",
+        "To remove an input box, press backspace when the box is empty",
+        "Input boxes can be easily navigated using the up and down arrow keys",
+        "The workspace can be used for writing Diorite code which you can save or load using the buttons"
+      ]
+    },
+    {
+      "title": "Values",
+      "items": [
+        "Numbers (e.g., 100 or 0.5), and complex numbers (e.g., a + ib)",
+        "Variables defined in the format [a-Z] on their own or followed by a subscript number, e.g., x or x0",
+        "infinity or inf",
+        "undefined"
+      ]
+    },
+    {
+      "title": "Constants",
+      "items": [
+        "pi",
+        "tau",
+        "euler"
+      ]
+    },
+    {
+      "title": "Sets",
+      "items": [
+        "Natural: N",
+        "Integer: Z",
+        "Rational: Q",
+        "Irrational: I",
+        "Real: R",
+        "Complex: C"
+      ]
+    },
+    {
+      "title": "Notation",
+      "items": [
+        "All statements must be closed by a semi-colon (;)",
+        "Whitespace is ignored",
+        "Multiplication must explicitly include the multiplication symbol and not be shorthand, e.g., a * b not ab",
+        "Functions must be of the form [a-Z](x) and can include an optional set hint, e.g., f(x : N) = 2 * x",
+        "There are various general-purpose library functions that can be used, including abs, sign, sum, floor, ceil, gcd, lcm, and sqrt",
+        "There are various trigonometric library functions that can be used, including deg, rad, sin, cos, tan, asin, acos, and atan"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,128 @@
+﻿# ------------------------------------------------------------------------------------------------------------------
+#    _____  __              __ __
+#   |     \|__|.-----.----.|__|  |_.-----.
+#   |  --  |  ||  _  |   _||  |   _|  -__|
+#   |_____/|__||_____|__|  |__|____|_____|
+#
+# ------------------------------------------------------------------------------------------------------------------
+# File:    example.diorite
+# Summary: An example file, primarily for testing purposes
+# Author:  Arsngrobg
+# Version: v1.3
+# ------------------------------------------------------------------------------------------------------------------
+# Developed and Created by James Armstrong (Arsngrobg) and Aidan Barden (Borngle) (2025)
+# ------------------------------------------------------------------------------------------------------------------
+
+
+# value types
+100;         # numbers
+x;           # variables
+x0;          # variables (+ subscript)
+undefined;   # undefined (null)
+infinity;    # infinity (PositiveInfinity)
+inf;         # also infinity
+-infinity;   # represented as NegativeInfinity
+
+# assignment
+x = 5;
+y = 10;
+
+# operations
+x + y;       # addition        (15)
+x - y;       # subtracton      (-5)
+x * y;       # multiplication  (50)
+x / y;       # division        (1/2)
+x % y;       # modulo          (5)
+-x;          # unary negative  (-5)
++x;          # unary positive  (5)
+x!;          # factorial       (120)
+|-x|;        # absolute        (5)
+
+# constants
+pi;          # 3.1415926
+tau;         # 6.2831853
+euler;       # 2.7182818
+
+# functions 1
+f(x) = 2*x;  # expression function
+
+# fibonacci
+f(n) = {     # conditional function
+    undefined if n < 0;
+    n         if n < 2;
+    f(n - 2)            # you can spread expression over multiple lines (if you want to)
+        +
+    f(n - 1) otherwise;
+}
+
+# set hints
+# optional but are useful for specifying the domain and range for a function
+# all function parameters are interpreted as Real values by default
+# however, using the colon notation, you can specify the set
+
+f(x: R) -> Z = floor(x);
+
+# a function f(x) = x for example, has the exact same signature as:
+# f(x: R) -> R = x;
+
+f(x: R) -> Z = x;  # would throw a MathError since the result is a Real value and not Integer
+
+# function metadata
+# an advanced feature of the language:
+
+f(x: Z) -> N = {
+    -x if x < 0;
+     x otherwise;
+}
+
+# this function ensures that the value is positive
+# to be more efficient, this function can be inlined:
+
+[inlined]
+f(x: Z) -> N = {
+    -x if x < 0;
+     x otherwise;
+}
+
+# NOTE: this is a compile-time feature and will do nothing when running in the interpreter
+
+# a function can be memoized
+# using the fibonacci sequence as an example, it computes duplicate values repeatedly
+
+[memoized]
+f(n) = {
+    undefined           if n < 0;
+    n                   if n < 2;
+    f(n - 2) + f(n - 1) otherwise;
+}
+
+# the memoized metadata declares that all return values should be evaluated once, and returned if the same call
+# results in the same value for that sequence of parameters:
+
+f(5);  # this computes fibonacci to the 5th term
+
+# this does not matter as much for functions called once, but if you want to find multiple values
+
+f(5);  # first compute - has computed f(1), ..., f(5)
+f(4);  # returns 4th term as was already computed during the f(5) call
+
+# f(5) comptutes the first 5 fibonacci values, then the f(4) call just simply returns the 4th term as f(5) has already
+# computed it
+
+[symbol:fibonacci][memoized]
+f(n) = {
+    undefined           if n < 0;
+    n                   if n < 2;
+    f(n - 2) + f(n - 1) otherwise;
+}
+
+# This adds the symbolic name to the function 'f', the function remains even after f is redefined, either as a value or
+# a function:
+
+[symbol:foo]
+f(x) = x;   # define the function
+
+f(x) = 2*x; # redefine the function
+
+foo(1);  # 1
+f(1);    # 2

@@ -1,0 +1,79 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Library</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+    </PropertyGroup>
+
+    <!-- Syntax -->
+    <ItemGroup>
+        <Compile Include="Syntax\ValueType.fs"             />
+        <Compile Include="Syntax\VariableType.fs"          />
+        <Compile Include="Syntax\NumberSet.fs"             />
+        <Compile Include="Syntax\TokenType.fs"             />
+        <Compile Include="Syntax\TokenValue.fs"            />
+        <Compile Include="Syntax\Token.fs"                 />
+        <Compile Include="Syntax\BinaryOperator.fs"        />
+        <Compile Include="Syntax\UnaryOperator.fs"         />
+        <Compile Include="Syntax\ComparisonOperator.fs"    />
+        <Compile Include="Syntax\FunctionReferenceType.fs" />
+        <Compile Include="Syntax\Expression.fs"            />
+        <Compile Include="Syntax\FunctionResult.fs"        />
+        <Compile Include="Syntax\ComparisonOperation.fs"   />
+        <Compile Include="Syntax\PiecewiseCondition.fs"    />
+        <Compile Include="Syntax\FunctionMetadata.fs"      />
+        <Compile Include="Syntax\FunctionParameter.fs"     />
+        <Compile Include="Syntax\FunctionAttributes.fs"    />
+        <Compile Include="Syntax\FunctionBody.fs"          />
+        <Compile Include="Syntax\FunctionType.fs"          />
+        <Compile Include="Syntax\AnonymousFunction.fs"     />
+        <Compile Include="Syntax\ASTNode.fs"               />
+        <Compile Include="Syntax\AST.fs"                   />
+        <Compile Include="Syntax\Constants.fs"             />
+    </ItemGroup>
+
+    <!-- Errors -->
+    <ItemGroup>
+        <Compile Include="Errors\DioriteError.fs"   />
+        <Compile Include="Errors\Result.fs"         />
+        <Compile Include="Errors\ErrorUtilities.fs" />
+    </ItemGroup>
+
+    <!-- Lexer -->
+    <ItemGroup>
+        <Compile Include="Lexer\TokenStream.fs" />
+        <Compile Include="Lexer\LexerState.fs"  />
+        <Compile Include="Lexer\Consumer.fs"    />
+        <Compile Include="Lexer\Consumers.fs"   />
+        <Compile Include="Lexer\Tokenizer.fs"   />
+    </ItemGroup>
+
+    <!-- Parser -->
+    <ItemGroup>
+        <Compile Include="Parser\DSL.fs"            />
+        <Compile Include="Parser\Combinators.fs"    />
+        <Compile Include="Parser\TopLevelParser.fs" />
+    </ItemGroup>
+
+    <!-- Runtime -->
+    <ItemGroup>
+        <Compile Include="Runtime\BinaryOperationRule.fs"      />
+        <Compile Include="Runtime\UnaryOperationRule.fs"       />
+        <Compile Include="Runtime\ComparisonOperationRule.fs"  />
+        <Compile Include="Runtime\OperationRuleHelpers.fs"     />
+        <Compile Include="Runtime\BinaryOperationRules.fs"     />
+        <Compile Include="Runtime\UnaryOperationRules.fs"      />
+        <Compile Include="Runtime\ComparisonOperationRules.fs" />
+        <Compile Include="Runtime\RuleMappings.fs"             />
+        <Compile Include="Runtime\VirtualMemory.fs"            />
+        <Compile Include="Runtime\Optimizer.fs"                />
+        <Compile Include="Runtime\Evaluation.fs"               />
+    </ItemGroup>
+
+    <!-- Properties -->
+    <ItemGroup>
+        <Compile Include="Properties\Version.fs"   />
+        <Compile Include="Properties\Constants.fs" />
+    </ItemGroup>
+
+</Project>
