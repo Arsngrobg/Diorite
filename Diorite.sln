@@ -1,28 +1,10 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Diorite.Lang.Core", "src\Diorite.Lang.Core\Diorite.Lang.Core.fsproj", "{1570F107-022C-4AF4-AA65-C31671AD609A}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Diorite.Lang.API", "src\Diorite.Lang.API\Diorite.Lang.API.csproj", "{65554122-4F0E-4811-994D-5E9A376CC860}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Diorite.Tools.IME", "src\Diorite.Tools.IME\Diorite.Tools.IME.csproj", "{553B1C46-F5FE-43BE-9934-F398C376E60D}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{1570F107-022C-4AF4-AA65-C31671AD609A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1570F107-022C-4AF4-AA65-C31671AD609A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1570F107-022C-4AF4-AA65-C31671AD609A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1570F107-022C-4AF4-AA65-C31671AD609A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{65554122-4F0E-4811-994D-5E9A376CC860}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{65554122-4F0E-4811-994D-5E9A376CC860}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{65554122-4F0E-4811-994D-5E9A376CC860}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{65554122-4F0E-4811-994D-5E9A376CC860}.Release|Any CPU.Build.0 = Release|Any CPU
-		{553B1C46-F5FE-43BE-9934-F398C376E60D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{553B1C46-F5FE-43BE-9934-F398C376E60D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{553B1C46-F5FE-43BE-9934-F398C376E60D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{553B1C46-F5FE-43BE-9934-F398C376E60D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
