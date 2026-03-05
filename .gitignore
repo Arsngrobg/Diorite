@@ -7,11 +7,6 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/Dotnet.gitignore
 
-# IDE-Specific Folders
-/.run
-/.idea
-/.vscode
-
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/
@@ -45,6 +40,7 @@ ScaffoldingReadMe.txt
 ~$*
 *~
 CodeCoverage/
+.sln
 
 # MSBuild Binary and Structured Log
 *.binlog
