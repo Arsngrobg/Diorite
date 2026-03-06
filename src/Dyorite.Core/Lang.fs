@@ -13,24 +13,26 @@ type ValueType =
     | Complex   of a: double * b: double
     | Undefined
 
+type Register = uint16
+
 type OpCode =
-    | OpAssign  of reg:  uint16 * value: ValueType
-    | OpAccess  of reg:  uint16
-    | OpAdd     of dest: uint16 * op1: Choice<uint16, ValueType> * op2: Choice<uint16, ValueType>
-    | OpSub     of dest: uint16 * op1: Choice<uint16, ValueType> * op2: Choice<uint16, ValueType>
-    | OpMul     of dest: uint16 * op1: Choice<uint16, ValueType> * op2: Choice<uint16, ValueType>
-    | OpDiv     of dest: uint16 * op1: Choice<uint16, ValueType> * op2: Choice<uint16, ValueType>
-    | OpFDiv    of dest: uint16 * op1: Choice<uint16, ValueType> * op2: Choice<uint16, ValueType>
-    | OpMod     of dest: uint16 * op1: Choice<uint16, ValueType> * op2: Choice<uint16, ValueType>
-    | OpExp     of dest: uint16 * op1: Choice<uint16, ValueType> * op2: Choice<uint16, ValueType>
-    | OpFuncall of reg:  uint16
-    | OpCmp     of reg:  uint16
-    | OpIfeq    of op:   Choice<uint16, ValueType>
-    | OpIfneq   of op:   Choice<uint16, ValueType>
-    | OpIflt    of op:   Choice<uint16, ValueType>
-    | OpIflte   of op:   Choice<uint16, ValueType>
-    | OpIfgt    of op:   Choice<uint16, ValueType>
-    | OpIfgte   of op:   Choice<uint16, ValueType>
+    | OpAssign  of reg:  Register * value: ValueType
+    | OpAccess  of reg:  Register
+    | OpAdd     of dest: Register * op1: Choice<Register, ValueType> * op2: Choice<Register, ValueType>
+    | OpSub     of dest: Register * op1: Choice<Register, ValueType> * op2: Choice<Register, ValueType>
+    | OpMul     of dest: Register * op1: Choice<Register, ValueType> * op2: Choice<Register, ValueType>
+    | OpDiv     of dest: Register * op1: Choice<Register, ValueType> * op2: Choice<Register, ValueType>
+    | OpFDiv    of dest: Register * op1: Choice<Register, ValueType> * op2: Choice<Register, ValueType>
+    | OpMod     of dest: Register * op1: Choice<Register, ValueType> * op2: Choice<Register, ValueType>
+    | OpExp     of dest: Register * op1: Choice<Register, ValueType> * op2: Choice<Register, ValueType>
+    | OpFuncall of reg:  Register
+    | OpCmp     of reg:  Register
+    | OpIfeq    of op:   Choice<Register, ValueType>
+    | OpIfneq   of op:   Choice<Register, ValueType>
+    | OpIflt    of op:   Choice<Register, ValueType>
+    | OpIflte   of op:   Choice<Register, ValueType>
+    | OpIfgt    of op:   Choice<Register, ValueType>
+    | OpIfgte   of op:   Choice<Register, ValueType>
     | OpJmp     of inst: uint64
     | OpRet
 
