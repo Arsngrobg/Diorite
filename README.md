@@ -1,11 +1,11 @@
-# Diorite
+# Dyorite
 An industry-grade desktop maths environment that runs in the CLI or a GUI. Designed for high-level mathematics, for
 professional mathematicians.
 
 ## If Building From Source
 You are required to install the [.NET 9.0 SDK](https://dotnet.microsoft.com/download) (or higher) in order to build this
-project from source. If you are not check the [releases](https://github.com/Arsngrobg/Diorite/releases) tab for a
-ready-to-use Diorite interpreter/compiler and an *optional* IME (Integrated Mathematics Environment) to quickly and
+project from source. If you are not check the [releases](https://github.com/Arsngrobg/Dyorite/releases) tab for a
+ready-to-use Dyorite interpreter/compiler and an *optional* IME (Integrated Mathematics Environment) to quickly and
 easily get into mathematical processing.
 
 # Important
@@ -14,17 +14,17 @@ Mathematics Environment) executes on the WPF user interface platform - which is 
 you are still able to utilize the interpreter/compiler on Linux systems if you do so.
 
 # Getting Started
-Install Diorite by either compiling from source or checking out the
-[releases](https://github.com/Arsngrobg/Diorite/releases) tab. Store it in a safe directory, and add it to your `PATH`
+Install Dyorite by either compiling from source or checking out the
+[releases](https://github.com/Arsngrobg/Dyorite/releases) tab. Store it in a safe directory, and add it to your `PATH`
 variables so you can execute this command in the command line:
 ```shell
-$ diorite -i
+$ Dyorite -i
 ```
 without any issues.
 
 It brings up the interactive REPL environment in the terminal, and you can begin executing mathematical expressions
 and write pure mathematical functions.
-```fsharp
+```bash
  |
  |  f(x) = {
  |      undefined           if x < 0;
@@ -36,12 +36,12 @@ and write pure mathematical functions.
 >>> ▮
 ```
 This executes the fibonacci sequence up to the 20th position.
-If you want to save your state, just type `@save <filename>` and it will save the current state of your Diorite REPL in
-a `.diorite` file in the current working directory.
+If you want to save your state, just type `@save <filename>` and it will save the current state of your Dyorite REPL in
+a `.Dyorite` file in the current working directory.
 
-To run your `.diorite` file, in the terminal, execute the command:
-```shell
-$ diorite -i <name>.diorite
+To run your `.Dyorite` file, in the terminal, execute the command:
+```bash
+$ Dyorite -i <name>.Dyorite
 ```
 After execution, you will be presented with the REPL exactly as you left it, ready to continue where you left off. Note
 that if using an IDE, the integrated terminal does not format well with the REPL environment.
@@ -87,7 +87,7 @@ that if using an IDE, the integrated terminal does not format well with the REPL
 - Standard Library
   - Bootstrapped: written in the language itself
   - Examples:
-```fsharp
+```bash
     abs  (x: R)      : Z   functional wrapper for the absolute operation                 (abs(-2)        = |-2|)
     sign (x: R)      : Z   returns the unit multiple of x                                (sign(7612)     = 1   )
     pow  (x: R, n: R): R   functional wrapper around the power operation                 (pow(2,4) = 2^4 = 16  )
@@ -105,7 +105,7 @@ that if using an IDE, the integrated terminal does not format well with the REPL
     atan (x: R)      : R   approximates the value of arctan(x) using the Taylor Series   (atan(0)        = 0   )
 ```
   - External: external linkage to the `plot(fn)` function which is implemented in *F#*.
-    ```fsharp
+    ```bash
     plot (fn)  visualises the provided function (fn) in the respective interactive environment
     ```
 - Optimizations
@@ -126,4 +126,4 @@ that if using an IDE, the integrated terminal does not format well with the REPL
   - Documentation: core library, function attributes, errors, constants
 
 ##### Copyright
-*Diorite*, Developed & Created by Arsngrobg and Borngle, **2025**
+*Dyorite*, Developed & Created by Arsngrobg and Borngle, **2025**
