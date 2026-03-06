@@ -13,10 +13,6 @@ type ValueType =
     | Complex   of a: double * b: double
     | Undefined
 
-type OperandType =
-    | OperandTypeReg of uint16
-    | OperandTypeVal of ValueType
-
 type OpCode =
     | OpAssign  of reg:  uint16 * value: ValueType
     | OpAccess  of reg:  uint16
