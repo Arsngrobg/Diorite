@@ -1,0 +1,108 @@
+﻿// the language is so simple that it can be represented by a sequence of instructions and not a tree :P
+// we will have the same amount of variables as last time: 572
+// but, we add another, called 'reg' - an internal register value for function return values
+// reg will be at the end of the variable table
+// we will also have a 'tmp' register which is also at the end of the memory table used for intermediate
+// values
+// the 'reg' & 'tmp' cannot be access through the high level programming interface
+
+[<RequireQualifiedAccess>]
+type ValueType =
+    | Integer   of int64
+    | Float     of double
+    | Complex   of a: double * b: double
+    | Undefined
+
+type OperandType =
+    | OperandTypeReg of uint16
+    | OperandTypeVal of ValueType
+
+type OpCode =
+    | OpAssign  of reg:  uint16 * value: ValueType
+    | OpAccess  of reg:  uint16
+    | OpAdd     of dest: uint16 * op1: Choice<uint16, ValueType> * op2: Choice<uint16, ValueType>
+    | OpSub     of dest: uint16 * op1: Choice<uint16, ValueType> * op2: Choice<uint16, ValueType>
+    | OpMul     of dest: uint16 * op1: Choice<uint16, ValueType> * op2: Choice<uint16, ValueType>
+    | OpDiv     of dest: uint16 * op1: Choice<uint16, ValueType> * op2: Choice<uint16, ValueType>
+    | OpFDiv    of dest: uint16 * op1: Choice<uint16, ValueType> * op2: Choice<uint16, ValueType>
+    | OpMod     of dest: uint16 * op1: Choice<uint16, ValueType> * op2: Choice<uint16, ValueType>
+    | OpExp     of dest: uint16 * op1: Choice<uint16, ValueType> * op2: Choice<uint16, ValueType>
+    | OpFuncall of reg:  uint16
+    | OpCmp     of reg:  uint16
+    | OpIfeq    of op:   Choice<uint16, ValueType>
+    | OpIfneq   of op:   Choice<uint16, ValueType>
+    | OpIflt    of op:   Choice<uint16, ValueType>
+    | OpIflte   of op:   Choice<uint16, ValueType>
+    | OpIfgt    of op:   Choice<uint16, ValueType>
+    | OpIfgte   of op:   Choice<uint16, ValueType>
+    | OpJmp     of inst: uint64
+    | OpRet
+
+// Code Snippet Example:
+// -----------------------------------------------------------------------------
+// # This is some example source code
+// Z = 100
+//
+// line(x) = 2*x + 1
+// quad(x) = x^2 + 2*x + 1
+//
+// # the equivalent to the sum function
+// f(x) = {
+//     -x if x < 0
+//      x otherwise
+// }
+//
+// factorial(n) = {
+//     undefined    if n < 0
+//     n            if n < 2
+//     n * f(n - 1) otherwise
+// }
+//
+// x = factorial(100)
+// -----------------------------------------------------------------------------
+//     OpAssign  Z_                  VT#Int(100)
+//     OpJmp     gbl_scope1
+//
+// fn_line:
+//     OpMul     ret                 x_             VT#Int(2)
+//     OpAdd     ret                 ret            VT#Int(1)
+//     OpRet
+//
+// fn_quad:
+//     OpExp     ret                 x_             VT#Int(2)
+//     OpMul     tmp                 VT#Int(2)      x_
+//     OpAdd     ret                 ret            tmp
+//     OpAdd     ret                 ret            VT#Int(2)
+//     OpRet
+//
+// fn_f:
+//     OpCmp     x_
+//     OpIfgte   VT#Int(0)           fn_f_1
+//     OpSub     ret                 VT#Int(0)      x_
+//     OpJmp     fn_f_return
+// fn_f_1:
+//     OpAssign  ret                 x_
+// fn_f_return:
+//     OpRet
+//
+// fn_factorial:
+//     OpCmp     n_
+//     OpIfgte   VT#Int(0)           fn_factorial_1
+//     OpAssign  ret                 VT#Undef
+// fn_factorial_1:
+//     OpCmp     n_
+//     OpIfgte   VT#Int(2)           fn_factorial_2
+//     OpAssign  ret                 n_
+//     OpJmp     fn_factorial_return
+// fn_factorial_2:
+//     OpAssign  tmp                 n_
+//     OpSub     n_                  n_             VT#Int(1)
+//     OpMul     ret                 temp           ret
+// fn_factorial_return:
+//     OpRet
+//
+// gbl_scope1:
+//     OpAssign  n_                  VT#Int(100)
+//     OpFuncall factorial
+//     OpAssign  n_                  VT#Undef
+//     OpAssign  x_                  ret
