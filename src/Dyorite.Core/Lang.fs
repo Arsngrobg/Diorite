@@ -6,6 +6,8 @@
 // values
 // the 'reg' & 'tmp' cannot be access through the high level programming interface
 
+open System
+
 [<RequireQualifiedAccess>]
 type ValueType =
     | Integer   of int64
@@ -35,6 +37,24 @@ type OpCode =
     | OpIfgte   of op:   Choice<Register, ValueType>
     | OpJmp     of inst: uint64
     | OpRet
+
+[<Struct>]
+type Token = {
+    start:  int32
+    length: int32
+}
+
+type TokenizerState =
+    | EOF
+    | Token of value: Token * next: unit -> TokenizerState
+
+let tokenizer(source: string): unit -> TokenizerState
+
+type ParserState =
+    | End
+    | OpCode of value: OpCode * next: unit -> ParserState
+
+let parser(source: string): unit -> ParserState
 
 // Code Snippet Example:
 // -----------------------------------------------------------------------------
