@@ -8,7 +8,7 @@
 
 open System
 
-[<RequireQualifiedAccess>]
+[<Struct; RequireQualifiedAccess>]
 type ValueType =
     | Integer   of int64
     | Float     of double
@@ -29,12 +29,12 @@ type OpCode =
     | OpExp     of dest: Register * op1: Choice<Register, ValueType> * op2: Choice<Register, ValueType>
     | OpFuncall of reg:  Register
     | OpCmp     of reg:  Register
-    | OpIfeq    of op:   Choice<Register, ValueType>
-    | OpIfneq   of op:   Choice<Register, ValueType>
-    | OpIflt    of op:   Choice<Register, ValueType>
-    | OpIflte   of op:   Choice<Register, ValueType>
-    | OpIfgt    of op:   Choice<Register, ValueType>
-    | OpIfgte   of op:   Choice<Register, ValueType>
+    | OpIfeq    of op:   Choice<Register, ValueType> * inst: uint64
+    | OpIfneq   of op:   Choice<Register, ValueType> * inst: uint64
+    | OpIflt    of op:   Choice<Register, ValueType> * inst: uint64
+    | OpIflte   of op:   Choice<Register, ValueType> * inst: uint64
+    | OpIfgt    of op:   Choice<Register, ValueType> * inst: uint64
+    | OpIfgte   of op:   Choice<Register, ValueType> * inst: uint64
     | OpJmp     of inst: uint64
     | OpRet
 
@@ -44,17 +44,16 @@ type Token = {
     length: int32
 }
 
-type TokenizerState =
-    | EOF
-    | Token of value: Token * next: unit -> TokenizerState
-
-let tokenizer(source: string): unit -> TokenizerState
-
-type ParserState =
+[<Struct>]
+type Generator<'a> =
     | End
-    | OpCode of value: OpCode * next: unit -> ParserState
+    | Yielded of value: 'a * next: unit -> Generator<'a>
 
-let parser(source: string): unit -> ParserState
+// type ParserState =
+//     | End
+//     | OpCode of value: OpCode * next: unit -> ParserState
+
+// let parser(source: string): unit -> ParserState
 
 // Code Snippet Example:
 // -----------------------------------------------------------------------------
