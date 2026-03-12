@@ -1,4 +1,4 @@
-# Dyorite
+# Dyorite (NEEDS TO BE MODIFIED)
 An industry-grade desktop maths environment that runs in the CLI or a GUI. Designed for high-level mathematics, for
 professional mathematicians.
 
