@@ -8,7 +8,12 @@
 
 #include <stdint.h>
 
-#define DVM_INSTARGS 3
+#define DVM_INSTARGS  3
+#define DVM_STACKSIZE 4 << 20
+#define DVM_INT(x)        (DVM_Literal) { .type = DVM_INTEGER,  .as.integer = (x)          }
+#define DVM_FLOAT(x)      (DVM_Literal) { .type = DVM_DECIMAL,  .as.decimal = (x)          }
+#define DVM_COMPLEX(a, b) (DVM_Literal) { .type = DVM_COMPLEX,  .as.complex = { (a), (b) } }
+#define DVM_UNDEFINED     (DVM_Literal) { .type = DVM_UNDEFINED                            }
 
 /* an atomic value in the dyorite language */
 typedef struct {
@@ -24,11 +29,6 @@ typedef struct {
         struct { double a, b; } complex; /* DVM_COMPLEX */
     } as;
 } DVM_Literal;
-
-#define DVM_INT(x)        (DVM_Literal) { .type = DVM_INTEGER,  .as.integer = (x)          }
-#define DVM_FLOAT(x)      (DVM_Literal) { .type = DVM_DECIMAL,  .as.decimal = (x)          }
-#define DVM_COMPLEX(a, b) (DVM_Literal) { .type = DVM_COMPLEX,  .as.complex = { (a), (b) } }
-#define DVM_UNDEFINED     (DVM_Literal) { .type = DVM_UNDEFINED                            }
 
 /* key:
    r  = register
@@ -79,6 +79,19 @@ typedef struct {
     DVM_OpCode  op;
     DVM_InstArg args[DVM_INSTARGS];
 } DVM_Inst;
+
+/* a dyorite vm program */
+typedef struct {
+    struct {
+        uint64_t offset;
+        uint8_t  bytes[DVM_STACKSIZE];
+    } stack;
+    struct {
+        uint64_t ip;
+        uint64_t count;
+        DVM_Inst instructions[];
+    } state;
+} DVM_Prog;
 
 // Code Snippet Example:
 // -----------------------------------------------------------------------------
