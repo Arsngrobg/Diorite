@@ -13,22 +13,22 @@
 /* an atomic value in the dyorite language */
 typedef struct {
     enum {
-        DVM_LITERAL_INTEGER,
-        DVM_LITERAL_FLOAT,
-        DVM_LITERAL_COMPLEX,
-        DVM_LITERAL_UNDEFINED
+        DVM_INTEGER,
+        DVM_DECIMAL,
+        DVM_COMPLEX,
+        DVM_UNDEFINED
     } type;
     union {
-        int64_t                 integer; /* DVM_LITERAL_INTEGER */
-        double                  floot;   /* DVM_LITERAL_FLOAT   */
-        struct { double a, b; } complex; /* DVM_LITERAL_COMPLEX */
+        int64_t                 integer; /* DVM_INTEGER */
+        double                  decimal; /* DVM_DECIMAL */
+        struct { double a, b; } complex; /* DVM_COMPLEX */
     } as;
 } DVM_Literal;
 
-#define DVM_INT(x)        (DVM_Literal) { .type = DVM_LITERAL_INTEGER,  .as.integer = (x)          }
-#define DVM_FLOAT(x)      (DVM_Literal) { .type = DVM_LITERAL_FLOAT,    .as.floot   = (x)          }
-#define DVM_COMPLEX(a, b) (DVM_Literal) { .type = DVM_LITERAL_COMPLEX,  .as.complex = { (a), (b) } }
-#define DVM_UNDEFINED     (DVM_Literal) { .type = DVM_LITERAL_UNDEFINED                            }
+#define DVM_INT(x)        (DVM_Literal) { .type = DVM_INTEGER,  .as.integer = (x)          }
+#define DVM_FLOAT(x)      (DVM_Literal) { .type = DVM_DECIMAL,  .as.decimal = (x)          }
+#define DVM_COMPLEX(a, b) (DVM_Literal) { .type = DVM_COMPLEX,  .as.complex = { (a), (b) } }
+#define DVM_UNDEFINED     (DVM_Literal) { .type = DVM_UNDEFINED                            }
 
 /* key:
    r  = register
@@ -37,32 +37,34 @@ typedef struct {
    i  = instruction
 */
 typedef enum {
-    DVM_OPASSIGN, /* OpAssign  r , rl     */
-    DVM_OPACCESS, /* OpAccess  r          */
-    DVM_OPADD,    /* OpAdd     r , rl, rl */
-    DVM_OPSUB,    /* OpSub     r , rl, rl */
-    DVM_OPMUL,    /* OpMul     r , rl, rl */
-    DVM_OPDIV,    /* OpDiv     r , rl, rl */
-    DVM_OPFDV,    /* OpFdv     r , rl, rl */
-    DVM_OPMOD,    /* OpMod     r , rl, rl */
-    DVM_OPEXP,    /* OpExp     r , rl, rl */
-    DVM_OPFCT,    /* OpFct     r , rl, rl */
-    DVM_OPIFEQ,   /* OpIfeq    rl, rl, i  */
-    DVM_OPIFNEQ,  /* OpIfneq   rl, rl, i  */
-    DVM_OPIFLT,   /* OpIflt    rl, rl, i  */
-    DVM_OPIFLTE,  /* OpIflte   rl, rl, i  */
-    DVM_OPIFGT,   /* OpIfgt    rl, rl, i  */
-    DVM_OPIFGTE,  /* OpIfgte   rl, rl, i  */
-    DVM_OPJMP,    /* OpJmp     i          */
-    DVM_OPRET,    /* OpRet                */
+    DVM_SET, /* SET r , rl     */
+    DVM_GET, /* GET r          */
+    DVM_ADD, /* ADD r , rl, rl */
+    DVM_SUB, /* SUB r , rl, rl */
+    DVM_MUL, /* MUL r , rl, rl */
+    DVM_DIV, /* DIV r , rl, rl */
+    DVM_FDV, /* FDV r , rl, rl */
+    DVM_MOD, /* MOD r , rl, rl */
+    DVM_EXP, /* EXP r , rl, rl */
+    DVM_FCT, /* FCT r , rl, rl */
+    DVM_CMP, /* CMP rl         */
+    DVM_EQL, /* EQL rl, rl, i  */
+    DVM_NEQ, /* NEQ rl, rl, i  */
+    DVM_LTN, /* LTN rl, rl, i  */
+    DVM_LTE, /* LTE rl, rl, i  */
+    DVM_GTN, /* GTN rl, rl, i  */
+    DVM_GTE, /* GTE rl, rl, i  */
+    DVM_JMP, /* JMP i          */
+    DVM_RET, /* RET            */
+    DVM_PSH, /* PSH rl         */
 } DVM_OpCode;
 
 /* a dyorite vm instruction argument */
 typedef struct {
     enum {
-        DVM_ARGREG,
-        DVM_ARGLIT,
-        DVM_ARGINS
+        DVM_REG,
+        DVM_LIT,
+        DVM_INS
     } type;
     union {
         uint64_t    r;
@@ -78,67 +80,70 @@ typedef struct {
     DVM_InstArg args[DVM_INSTARGS];
 } DVM_Inst;
 
+#include <stdio.h>
+int main(void) {
+    DVM_Literal lit = DVM_INT(100);
+    printf("%d\n", lit.as.integer);
+    return 0;
+}
+
 // Code Snippet Example:
 // -----------------------------------------------------------------------------
-// # This is some example source code
-// Z = 100
+// ; This is some example source code
+// i = complex(0, 1)
 //
 // line(x) = 2*x + 1
 // quad(x) = x^2 + 2*x + 1
 //
-// # the equivalent to the sum function
-// f(x) = {
-//     -x if x < 0
-//      x otherwise
-// }
-//
 // factorial(n) = {
 //     undefined    if n < 0
-//     n            if n < 2
+//     1            if n < 2
 //     n * f(n - 1) otherwise
 // }
 //
 // x = factorial(100)
 // -----------------------------------------------------------------------------
-//     OpAssign  Z_ , INT(100)
-//     OpJmp     outer1
+//     SET i_ COMPLEX(0, 100)
+//     JMP [outer1]
 //
-// fn_line: # line(x) = 2*x + 1
-//     OpMul     ret, INT(2), x_
-//     OpAdd     ret, ret   , INT(1)
-//     OpRet
+// fn_line: ; line(x) = 2*x + 1
+//     MUL ret INT(2) x_
+//     ADD ret ret    INT(1)
+//     RET
 //
-// fn_quad: # quad(x) = x^2 + 2*x + 1
-//     OpExp     ret, x_    , INT(2)
-//     OpMul     tmp, INT(2), x_
-//     OpAdd     ret, ret   , tmp
-//     OpAdd     ret, ret   , INT(1)
-//     OpRet
+// fn_quad: ; quad(x) = x^2 + 2*x + 1
+//     EXP ret x_     INT(2)
+//     MUL tmp INT(2)
+//     ADD ret ret    tmp
+//     ADD ret ret    INT(1)
+//     RET
 //
-// fn_f: # f(x) = { -x if x < 0 }
-//     OpIfgte   x_ , INT(0), fn_f_if1
-//     OpSub     ret, INT(0), x_
-//     OpJmp     fn_f_ret
-// fn_f_if1: # f(x) = { ... x otherwise }
-//     OpAssign  ret, x_
-// fn_f_ret:
-//     OpRet
-//
-// fn_factorial: # factorial(n) = { undefined if n < 0 ... }
-//     OpIfgte   _n , INT(0), fn_factorial_if1
-//     OpAssign  ret, UNDEF
-//     OpJmp     fn_factorial_ret
-// fn_factorial_if1: # factorial(n) = { ... n if n < 2 ... }
-//     OpIfgte   _n , INT(2), fn_factorial_if2
-//     OpAssign  ret, _n
-//     OpJmp     fn_factorial_ret
-// fn_factorial_if2: # factorial(n) = { ... n * f(n - 1) otherwise }
-//     OpFuncall fn_factorial # some stack shit here
-//     TODO
+// fn_factorial: ; factorial(n) = { undefined if n < 0 ... }
+//     CMP n_
+//     GTE INT(0) [fn_factorial_if1]
+//     SET ret UNDEFINED
+//     JMP [fn_factorial_ret]
+// fn_factorial_if1: ; factorial(n) = { ... 1 if n < 2 ... }
+//     CMP n_
+//     GTE INT(2) [fn_factorial_if2]
+//     SET ret INT(1)
+//     JMP [fn_factorial_ret]
+// fn_factorial_if2: ; factorial(n) = { ... n * f(n - 1) otherwise }
+//     PSH n_
+//     PSH [fn_factorial_call1]
+//     SUB n_  n_  1
+//     JMP [fn_factorial]
+// fn_factorial_call1:
+//     POP n_
+//     MUL ret n_  ret
 // fn_factorial_ret:
-//     OpRet
+//     RET
 //
 // outer1:
-//     OpAssign  n_ , INT(100)
-//     OpFuncall fn_factorial
-//     OpAssign  x_ , ret
+//     PSH n_
+//     PSH [fn_factorial_call2]
+//     SET n_  INT(100)
+//     JMP [fn_factorial]
+// fn_factorial_call2:
+//     POP n_
+//     SET x_  ret
