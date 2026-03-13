@@ -80,16 +80,9 @@ typedef struct {
     DVM_InstArg args[DVM_INSTARGS];
 } DVM_Inst;
 
-#include <stdio.h>
-int main(void) {
-    DVM_Literal lit = DVM_INT(100);
-    printf("%d\n", lit.as.integer);
-    return 0;
-}
-
 // Code Snippet Example:
 // -----------------------------------------------------------------------------
-// ; This is some example source code
+// # This is some example source code
 // i = complex(0, 1)
 //
 // line(x) = 2*x + 1
