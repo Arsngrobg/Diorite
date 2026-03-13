@@ -10,23 +10,23 @@
 
 #define DVM_INSTARGS  3
 #define DVM_STACKSIZE 4 << 20
-#define DVM_INT(x)        (DVM_Literal) { .type = DVM_INTEGER,  .as.integer = (x)          }
-#define DVM_FLOAT(x)      (DVM_Literal) { .type = DVM_DECIMAL,  .as.decimal = (x)          }
-#define DVM_COMPLEX(a, b) (DVM_Literal) { .type = DVM_COMPLEX,  .as.complex = { (a), (b) } }
-#define DVM_UNDEFINED     (DVM_Literal) { .type = DVM_UNDEFINED                            }
+#define DVM_INT(x)        (DVM_Literal) { .type = DVM_LITERAL_INTEGER,  .as.integer = (x)          }
+#define DVM_DECIMAL(x)    (DVM_Literal) { .type = DVM_LITERAL_DECIMAL,  .as.decimal = (x)          }
+#define DVM_COMPLEX(a, b) (DVM_Literal) { .type = DVM_LITERAL_COMPLEX,  .as.complex = { (a), (b) } }
+#define DVM_UNDEFINED     (DVM_Literal) { .type = DVM_LITERAL_UNDEFINED                            }
 
 /* an atomic value in the dyorite language */
 typedef struct {
     enum {
-        DVM_INTEGER,
-        DVM_DECIMAL,
-        DVM_COMPLEX,
-        DVM_UNDEFINED
+        DVM_LITERAL_INTEGER,
+        DVM_LITERAL_DECIMAL,
+        DVM_LITERAL_COMPLEX,
+        DVM_LITERAL_UNDEFINED
     } type;
     union {
-        int64_t                 integer; /* DVM_INTEGER */
-        double                  decimal; /* DVM_DECIMAL */
-        struct { double a, b; } complex; /* DVM_COMPLEX */
+        int64_t                 integer; /* DVM_LITERAL_INTEGER */
+        double                  decimal; /* DVM_LITERAL_DECIMAL */
+        struct { double a, b; } complex; /* DVM_LITERAL_COMPLEX */
     } as;
 } DVM_Literal;
 
