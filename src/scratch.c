@@ -8,8 +8,10 @@
 
 #include <stdint.h>
 
-#define DVM_INSTARGS  3
-#define DVM_STACKSIZE 4 << 20
+#define DVM_INSTARGS   (3)
+#define DVM_STACKSIZE  (4 << 20)
+#define DVM_SPREGCOUNT (2)                   /* return (ret) & temporary (tmp) register        */
+#define DVM_GPREGCOUNT ((26 * 2) * (1 + 10)) /* (upper + lower) * (no subscript + subscripted) */
 #define DVM_INT(x)        (DVM_Literal) { .type = DVM_LITERAL_INTEGER,  .as.integer = (x)          }
 #define DVM_DECIMAL(x)    (DVM_Literal) { .type = DVM_LITERAL_DECIMAL,  .as.decimal = (x)          }
 #define DVM_COMPLEX(a, b) (DVM_Literal) { .type = DVM_LITERAL_COMPLEX,  .as.complex = { (a), (b) } }
@@ -57,47 +59,42 @@ typedef enum {
     DVM_JMP, /* JMP i          */
     DVM_RET, /* RET            */
     DVM_PSH, /* PSH rl         */
+    DVM_POP  /* POP r          */
 } DVM_OpCode;
-
-/* a dyorite vm instruction argument */
-typedef struct {
-    enum {
-        DVM_REG,
-        DVM_LIT,
-        DVM_INS
-    } type;
-    union {
-        uint64_t    r;
-        DVM_Literal l;
-    } payload;
-} DVM_InstArg;
 
 /* a dyorite vm instruction:
    Op<ID> [r|l|rl|ip]*
 */
 typedef struct {
-    DVM_OpCode  op;
-    DVM_InstArg args[DVM_INSTARGS];
-} DVM_Inst;
+    DVM_OpCode op;
+    struct {
+        enum {
+            DVM_REG,
+            DVM_LIT,
+            DVM_INS
+        } type;
+        union {
+            uint64_t    r;
+            DVM_Literal l;
+        } payload;
+    } args[DVM_INSTARGS];
+} DVM_Instruction;
 
 /* a dyorite vm program */
 typedef struct {
-    uint64_t count;
-    DVM_Inst instructions[];
-} DVM_Prog;
+    uint64_t        count;
+    DVM_Instruction instructions[];
+} DVM_Program;
 
-/* dyroite vm state */
+/* dyorite vm state */
 typedef struct {
-    struct {
-        DVM_Literal ret;
-        DVM_Literal tmp;
-        DVM_Literal reg[(26 * 2) * (10 + 1)];
-    } registers;
+    DVM_Literal spreg[DVM_SPREGCOUNT]; /* internal registers (ret, tmp)      */
+    DVM_Literal gpreg[DVM_GPREGCOUNT]; /* user registers (x, A0, p9, etc...) */
     struct {
         uint64_t offset;
         uint8_t  bytes[DVM_STACKSIZE];
     } stack;
-    DVM_Prog *prog;
+    DVM_Program *prog;
 } DVM;
 
 // Code Snippet Example:
