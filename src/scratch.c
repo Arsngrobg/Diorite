@@ -82,16 +82,23 @@ typedef struct {
 
 /* a dyorite vm program */
 typedef struct {
+    uint64_t count;
+    DVM_Inst instructions[];
+} DVM_Prog;
+
+/* dyroite vm state */
+typedef struct {
+    struct {
+        DVM_Literal ret;
+        DVM_Literal tmp;
+        DVM_Literal reg[(26 * 2) * (10 + 1)];
+    } registers;
     struct {
         uint64_t offset;
         uint8_t  bytes[DVM_STACKSIZE];
     } stack;
-    struct {
-        uint64_t ip;
-        uint64_t count;
-        DVM_Inst instructions[];
-    } state;
-} DVM_Prog;
+    DVM_Prog *prog;
+} DVM;
 
 // Code Snippet Example:
 // -----------------------------------------------------------------------------
