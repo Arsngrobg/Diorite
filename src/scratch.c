@@ -6,16 +6,19 @@
 // the 'reg' & 'tmp' cannot be access through the high level programming interface
 // INSPIRED A LOT BY: https://imomath.com/index.cgi?page=asmNotesFunctions
 
+#include <ctype.h>
 #include <stdint.h>
 
-#define DVM_INSTARGS   (3)
-#define DVM_STACKSIZE  (4 << 20)
-#define DVM_SPREGCOUNT (2)                   /* return (ret) & temporary (tmp) register        */
-#define DVM_GPREGCOUNT ((26 * 2) * (1 + 10)) /* (upper + lower) * (no subscript + subscripted) */
+#define DVM_INSTARGS      (3)
+#define DVM_STACKSIZE     (4 << 20)
+#define DVM_SPREGCOUNT    (2)                   /* return (ret) & temporary (tmp) register        */
+#define DVM_GPREGCOUNT    ((26 * 2) * (1 + 10)) /* (upper + lower) * (no subscript + subscripted) */
 #define DVM_INT(x)        (DVM_Literal) { .type = DVM_LITERAL_INTEGER,  .as.integer = (x)          }
 #define DVM_DECIMAL(x)    (DVM_Literal) { .type = DVM_LITERAL_DECIMAL,  .as.decimal = (x)          }
 #define DVM_COMPLEX(a, b) (DVM_Literal) { .type = DVM_LITERAL_COMPLEX,  .as.complex = { (a), (b) } }
 #define DVM_UNDEFINED     (DVM_Literal) { .type = DVM_LITERAL_UNDEFINED                            }
+#define DVM_RETREG        (0)
+#define DVM_TMPREG        (1)
 
 /* an atomic value in the dyorite language */
 typedef struct {
@@ -88,14 +91,23 @@ typedef struct {
 
 /* dyorite vm state */
 typedef struct {
-    DVM_Literal spreg[DVM_SPREGCOUNT]; /* internal registers (ret, tmp)      */
     DVM_Literal gpreg[DVM_GPREGCOUNT]; /* user registers (x, A0, p9, etc...) */
+    DVM_Literal spreg[DVM_SPREGCOUNT]; /* internal registers (ret, tmp)      */
     struct {
         uint64_t offset;
         uint8_t  bytes[DVM_STACKSIZE];
     } stack;
     DVM_Program *prog;
 } DVM;
+
+// TODO: don't actually know if this works, do test this
+/* gets the equivalent register for the literal representation of a dyorite variable */
+uint64_t DVM_Reg(char c, uint8_t subscript) {
+    assert(isalpha(c));
+    uint64_t reg = isupper(c) ? (('Z' - c) + 26) : ('z' - c);
+    reg *= 11;
+    return reg + subscript;
+}
 
 // Code Snippet Example:
 // -----------------------------------------------------------------------------
