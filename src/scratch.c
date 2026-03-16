@@ -10,6 +10,7 @@
 // aggressive optimizations will come later
 // bulking then we cut
 
+#include <assert.h>
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -89,17 +90,13 @@ typedef struct {
 
 /* a dyorite vm state */
 typedef struct {
-    struct {
-        uint64_t    ip;               /* instruction pointer */
-        DVM_Literal ret;              /* return    register  */
-        DVM_Literal tmp;              /* temporary register  */
-        DVM_Literal usr[DVM_USRREGC]; /* user      registers */
-    } registers;
-    struct {
-        uint64_t top;
-        uint8_t  bytes[DVM_STCKSIZE];
-    } stack;
-    DVM_Program *prog;
+    DVM_Program *prog;               /* the currently program */
+    uint64_t    ip;                  /* instruction pointer   */
+    uint64_t    head;                /* stack top             */
+    DVM_Literal ret;                 /* return    register    */
+    DVM_Literal tmp;                 /* temporary register    */
+    DVM_Literal usr[DVM_USRREGC];    /* user      registers   */
+    uint8_t     stack[DVM_STCKSIZE]; /* program stack         */
 } DVM;
 
 /* creates a new dyorite vm instance */
@@ -110,15 +107,14 @@ DVM *dvm_new() {
         return NULL;
     }
 
-    vm->registers.ip  = 0;
-    vm->registers.ret = DVM_UNDEFINED;
-    vm->registers.tmp = DVM_UNDEFINED;
-    for (int32_t idx = 0; idx < DVM_USRREGC; idx++) {
-        vm->registers.usr[idx] = DVM_UNDEFINED;
+    vm->prog = NULL;
+    vm->ip   = 0;
+    vm->head = 0;
+    vm->ret  = DVM_UNDEFINED;
+    vm->tmp  = DVM_UNDEFINED;
+    for (uint64_t reg = 0; reg < DVM_USRREGC; reg++) {
+        vm->usr[reg] = DVM_UNDEFINED;
     }
-
-    vm->stack.top = 0;
-    vm->prog      = NULL;
 
     return vm;
 }
