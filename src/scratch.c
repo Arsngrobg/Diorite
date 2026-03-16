@@ -8,13 +8,15 @@
 
 // this is an incredibly verbose implementation of a virtual machine for a language
 // aggressive optimizations will come later
-// implementation over strategy
+// bulking then we cut
 
 #include <stdint.h>
+#include <stdlib.h>
 
-#define DVM_INSTARGC (3)                   /* the max number of args a dyorite vm has */
-#define DVM_USRREGC  ((26 * 2) * (1 + 10)) /* the number of user registers available  */
-#define DVM_STCKSIZE (4 << 20)             /* the max stack size of the dyorite vm    */
+#define DVM_INSTARGC  (3)                   /* the max number of args a dyorite vm has */
+#define DVM_USRREGC   ((26 * 2) * (1 + 10)) /* the number of user registers available  */
+#define DVM_STCKSIZE  (4 << 20)             /* the max stack size of the dyorite vm    */
+#define DVM_UNDEFINED ((DVM_Literal){.tag=DVM_LITERAL_UNDEFINED})
 
 /* a dyorite literal value */
 typedef struct {
@@ -99,6 +101,27 @@ typedef struct {
     } stack;
     DVM_Program *prog;
 } DVM;
+
+/* creates a new dyorite vm instance */
+DVM *dvm_new() {
+    DVM *vm = malloc(sizeof(DVM));
+    if (vm == NULL) {
+        fprintf(stderr, "[Dyorite] unable to allocate a new Dyorite virtual machine\n");
+        return NULL;
+    }
+
+    vm->registers.ip  = 0;
+    vm->registers.ret = DVM_UNDEFINED;
+    vm->registers.tmp = DVM_UNDEFINED;
+    for (int32_t idx = 0; idx < DVM_USRREGC; idx++) {
+        vm->registers.usr[idx] = DVM_UNDEFINED;
+    }
+
+    vm->stack.top = 0;
+    vm->prog      = NULL;
+
+    return vm;
+}
 
 // Code Snippet Example:
 // -----------------------------------------------------------------------------
