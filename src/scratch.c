@@ -55,7 +55,7 @@ typedef struct {
 */
 typedef enum {
     DVM_GET, /* GET r ,        */
-    DVM_SET, /* SET rl, rl,    */
+    DVM_SET, /* SET r , rl,    */
     DVM_ADD, /* ADD r , rl, rl */
     DVM_SUB, /* SUB r , rl, rl */
     DVM_MUL, /* MUL r , rl, rl */
