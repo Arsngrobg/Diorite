@@ -14,10 +14,22 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#define DVM_INSTARGC  (3)                   /* the max number of args a dyorite vm has */
-#define DVM_USRREGC   ((26 * 2) * (1 + 10)) /* the number of user registers available  */
-#define DVM_STCKSIZE  (4 << 20)             /* the max stack size of the dyorite vm    */
-#define DVM_UNDEFINED ((DVM_Literal){.tag=DVM_LITERAL_UNDEFINED})
+#define DVM_INSTARGC           (3)                   /* the max number of args a dyorite vm has */
+#define DVM_USRREGC            ((26*2)*(1+10))       /* the number of user registers available  */
+#define DVM_STCKSIZE           ((uint64_t)(4 << 20)) /* the max stack size of the dyorite vm    */
+#define DVM_INT(x)             ((DVM_Literal){.tag=DVM_LITERAL_INTEGER,.as.integer=(x)})
+#define DVM_DEC(x)             ((DVM_Literal){.tag=DVM_LITERAL_DECIMAL,.as.decimal=(x)})
+#define DVM_COM(a,b)           ((DVM_Literal){.tag=DVM_LITERAL_COMPLEX,.as.complex={(a),(b)}})
+#define DVM_UDF                ((DVM_Literal){.tag=DVM_LITERAL_UNDEFINED})
+#define DVM_ARGLIT(l)          ((DVM_InstructionArg){.tag=DVM_ARG_LITERAL,.as.lit=(l)})
+#define DVM_ARGREG(r)          ((DVM_InstructionArg){.tag=DVM_ARG_REGISTER,.as.reg=(r)})
+#define DVM_ARGINS(i)          ((DVM_InstructionArg){.tag=DVM_ARG_INSTRUCTION,.as.ins=(i)})
+#define DVM_INST0(op)          ((DVM_Instruction){.code=(op)})
+#define DVM_INST1(op,a1)       ((DVM_Instruction){.code=(op),.args={(a1)}})
+#define DVM_INST2(op,a1,a2)    ((DVM_Instruction){.code=(op),.args={(a1),(a2)}})
+#define DVM_INST3(op,a1,a2,a3) ((DVM_Instruction){.code=(op),.args={(a1),(a2),(a3)}})
+#define DVM_RETREG             DVM_ARGREG(DVM_USRREGC+1)
+#define DVM_TMPREG             DVM_ARGREG(DVM_USRREGC+2)
 
 /* a dyorite literal value */
 typedef struct {
@@ -65,21 +77,24 @@ typedef enum {
     DVM_POP  /* POP r          */
 } DVM_OpCode;
 
+/* a dyorite vm instruction argument */
+typedef struct {
+    enum {
+        DVM_ARG_LITERAL,
+        DVM_ARG_REGISTER,
+        DVM_ARG_INSTRUCTION
+    } tag;
+    union {
+        DVM_Literal lit; /* DVM_ARG_LITERAL     */
+        uint16_t    reg; /* DVM_ARG_REGISTER    */
+        uint64_t    ins; /* DVM_ARG_INSTRUCTION */
+    } as;
+} DVM_InstructionArg;
+
 /* a dyorite vm instruction */
 typedef struct {
-    DVM_OpCode code;
-    struct {
-        enum {
-            DVM_ARG_LITERAL,
-            DVM_ARG_REGISTER,
-            DVM_ARG_INSTRUCTION
-        } tag;
-        union {
-            DVM_Literal lit; /* DVM_ARG_LITERAL     */
-            uint16_t    reg; /* DVM_ARG_REGISTER    */
-            uint64_t    ins; /* DVM_ARG_INSTRUCTION */
-        } as;
-    } args[DVM_INSTARGC];
+    DVM_OpCode         code;
+    DVM_InstructionArg args[DVM_INSTARGC];
 } DVM_Instruction;
 
 /* a dyorite vm program */
@@ -110,14 +125,59 @@ DVM *dvm_new() {
     vm->prog = NULL;
     vm->ip   = 0;
     vm->head = 0;
-    vm->ret  = DVM_UNDEFINED;
-    vm->tmp  = DVM_UNDEFINED;
+    vm->ret  = DVM_UDF;
+    vm->tmp  = DVM_UDF;
     for (uint64_t reg = 0; reg < DVM_USRREGC; reg++) {
-        vm->usr[reg] = DVM_UNDEFINED;
+        vm->usr[reg] = DVM_UDF;
     }
 
     return vm;
 }
+
+// TODO: test this program
+static DVM_Program prog = {
+    .count = 27,
+    .instructions = {
+        DVM_INST2(DVM_SET, DVM_ARGREG(88), DVM_ARGLIT(DVM_COM(0, 100))),
+        DVM_INST1(DVM_JMP, DVM_ARGINS(22)),
+
+    // fn_line: ; line(x) = 2*x + 1
+        DVM_INST3(DVM_MUL, DVM_RETREG, DVM_ARGLIT(DVM_INT(2)), DVM_ARGREG(253)),
+        DVM_INST3(DVM_ADD, DVM_RETREG, DVM_RETREG,             DVM_ARGLIT(DVM_INT(1))),
+        DVM_INST0(DVM_RET),
+
+    // fn_quad: ; quad(x) = x^2 + 2*x + 1
+        DVM_INST3(DVM_POW, DVM_RETREG, DVM_ARGREG(253), DVM_ARGLIT(DVM_INT(2))),
+        DVM_INST3(DVM_MUL, DVM_TMPREG, DVM_ARGLIT(2),   DVM_ARGREG(253)),
+        DVM_INST3(DVM_ADD, DVM_RETREG, DVM_RETREG,      DVM_TMPREG),
+        DVM_INST3(DVM_ADD, DVM_RETREG, DVM_RETREG,      DVM_ARGLIT(DVM_INT(1))),
+        DVM_INST0(DVM_RET),
+
+    // fn_factorial: ; factorial(n) = { undefined if n < 0 ... }
+        DVM_INST3(DVM_BGT, DVM_ARGREG(143), DVM_ARGLIT(DVM_INT(0)), DVM_ARGINS(13)),
+        DVM_INST2(DVM_SET, DVM_RETREG,      DVM_ARGLIT(DVM_UDF)),
+        DVM_INST1(DVM_JMP, DVM_ARGINS(21)),
+    // fn_factorial_if1: ; factorial(n) = { ... 1 if n < 2 ... }
+        DVM_INST3(DVM_BGT, DVM_ARGREG(143), DVM_ARGLIT(DVM_INT(2)), DVM_ARGINS(16)),
+        DVM_INST2(DVM_SET, DVM_RETREG,      DVM_ARGLIT(DVM_INT(1))),
+        DVM_INST1(DVM_JMP, DVM_ARGINS(21)),
+    // fn_factorial_if2: ; factorial(n) = { ... n * f(n - 1) otherwise }
+        DVM_INST1(DVM_PSH, DVM_ARGREG(143)),
+        DVM_INST3(DVM_SUB, DVM_ARGREG(143), DVM_ARGREG(143),        DVM_ARGLIT(DVM_INT(1))),
+        DVM_INST1(DVM_CAL, DVM_ARGINS(10)),
+        DVM_INST1(DVM_POP, DVM_ARGREG(143)),
+        DVM_INST3(DVM_MUL, DVM_RETREG,      DVM_ARGREG(143),        DVM_RETREG),
+    // fn_factorial_ret:
+        DVM_INST0(DVM_RET),
+
+    // outer1:
+        DVM_INST1(DVM_PSH, DVM_ARGREG(143)),
+        DVM_INST2(DVM_SET, DVM_ARGREG(143), DVM_ARGLIT(DVM_INT(100))),
+        DVM_INST1(DVM_CAL, DVM_ARGINS(10)),                              
+        DVM_INST1(DVM_POP, DVM_ARGREG(143)),
+        DVM_INST2(DVM_SET, DVM_ARGREG(253), DVM_RETREG)
+    }
+};
 
 // Code Snippet Example:
 // -----------------------------------------------------------------------------
@@ -135,7 +195,7 @@ DVM *dvm_new() {
 //
 // x = factorial(100)
 // -----------------------------------------------------------------------------
-//     SET i_ COMPLEX(0, 100)
+//     SET i_ COM(0,100)
 //     JMP [outer1]
 //
 // fn_line: ; line(x) = 2*x + 1
@@ -144,18 +204,18 @@ DVM *dvm_new() {
 //     RET
 //
 // fn_quad: ; quad(x) = x^2 + 2*x + 1
-//     EXP ret x_     INT(2)
+//     POW ret x_     INT(2)
 //     MUL tmp INT(2) x_
 //     ADD ret ret    tmp
 //     ADD ret ret    INT(1)
 //     RET
 //
 // fn_factorial: ; factorial(n) = { undefined if n < 0 ... }
-//     BGT n_ INT(0) [fn_factorial_if1]
-//     SET ret UNDEFINED
+//     BGT n_  INT(0) [fn_factorial_if1]
+//     SET ret UDF
 //     JMP [fn_factorial_ret]
 // fn_factorial_if1: ; factorial(n) = { ... 1 if n < 2 ... }
-//     BGT n_ INT(2) [fn_factorial_if2]
+//     BGT n_  INT(2) [fn_factorial_if2]
 //     SET ret INT(1)
 //     JMP [fn_factorial_ret]
 // fn_factorial_if2: ; factorial(n) = { ... n * f(n - 1) otherwise }
