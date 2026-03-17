@@ -105,7 +105,6 @@ typedef struct {
 
 /* a dyorite vm state */
 typedef struct {
-    DVM_Program *prog;               /* the currently program */
     uint64_t    ip;                  /* instruction pointer   */
     uint64_t    head;                /* stack top             */
     DVM_Literal ret;                 /* return    register    */
@@ -122,7 +121,6 @@ DVM *dvm_new() {
         return NULL;
     }
 
-    vm->prog = NULL;
     vm->ip   = 0;
     vm->head = 0;
     vm->ret  = DVM_UDF;
@@ -173,7 +171,7 @@ static DVM_Program prog = {
     // outer1:
         DVM_INST1(DVM_PSH, DVM_ARGREG(143)),
         DVM_INST2(DVM_SET, DVM_ARGREG(143), DVM_ARGLIT(DVM_INT(100))),
-        DVM_INST1(DVM_CAL, DVM_ARGINS(10)),                              
+        DVM_INST1(DVM_CAL, DVM_ARGINS(10)),
         DVM_INST1(DVM_POP, DVM_ARGREG(143)),
         DVM_INST2(DVM_SET, DVM_ARGREG(253), DVM_RETREG)
     }
