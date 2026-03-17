@@ -13,11 +13,11 @@
 #include <assert.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #define DVM_INSTARGC           (3)                   /* the max number of args a dyorite vm has */
 #define DVM_USRREGC            ((26*2)*(1+10))       /* the number of user registers available  */
 #define DVM_STCKSIZE           ((uint64_t)(4 << 20)) /* the max stack size of the dyorite vm    */
-#define DVM_INT(x)             ((DVM_Literal){.tag=DVM_LITERAL_INTEGER,.as.integer=(x)})
 #define DVM_DEC(x)             ((DVM_Literal){.tag=DVM_LITERAL_DECIMAL,.as.decimal=(x)})
 #define DVM_COM(a,b)           ((DVM_Literal){.tag=DVM_LITERAL_COMPLEX,.as.complex={(a),(b)}})
 #define DVM_UDF                ((DVM_Literal){.tag=DVM_LITERAL_UNDEFINED})
@@ -197,24 +197,24 @@ static DVM_Program prog = {
 //     JMP [outer1]
 //
 // fn_line: ; line(x) = 2*x + 1
-//     MUL ret INT(2) x_
-//     ADD ret ret    INT(1)
+//     MUL ret DEC(2) x_
+//     ADD ret ret    DEC(1)
 //     RET
 //
 // fn_quad: ; quad(x) = x^2 + 2*x + 1
-//     POW ret x_     INT(2)
-//     MUL tmp INT(2) x_
+//     POW ret x_     DEC(2)
+//     MUL tmp DEC(2) x_
 //     ADD ret ret    tmp
-//     ADD ret ret    INT(1)
+//     ADD ret ret    DEC(1)
 //     RET
 //
 // fn_factorial: ; factorial(n) = { undefined if n < 0 ... }
-//     BGT n_  INT(0) [fn_factorial_if1]
+//     BGT n_  DEC(0) [fn_factorial_if1]
 //     SET ret UDF
 //     JMP [fn_factorial_ret]
 // fn_factorial_if1: ; factorial(n) = { ... 1 if n < 2 ... }
-//     BGT n_  INT(2) [fn_factorial_if2]
-//     SET ret INT(1)
+//     BGT n_  DEC(2) [fn_factorial_if2]
+//     SET ret DEC(1)
 //     JMP [fn_factorial_ret]
 // fn_factorial_if2: ; factorial(n) = { ... n * f(n - 1) otherwise }
 //     PSH n_
