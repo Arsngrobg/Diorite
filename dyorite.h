@@ -88,14 +88,26 @@ Dyorite_Value *dyorite_vector(size_t n, ...);
 
 /// Creates a matrix of M rows and N columns filled with zeros
 DYORITE_API
-Dyorite_Value *dyorite_matrix_zeros(size_t m, size_t n);
+Dyorite_Value *dyorite_matrix_scalar_zeros(size_t m, size_t n);
 
-/// Creates an identity matrix of size_t
+/// Creates an identity matrix of the given size
 DYORITE_API
-Dyorite_Value *dyorite_matrix_identity(size_t size);
+Dyorite_Value *dyorite_matrix_scalar_identity(size_t size);
 
-/// Creates a matrix of size M x N
+/// Creates a matrix of size M x N containing the scalar values
 DYORITE_API
-Dyorite_Value *dyorite_matrix(size_t m, size_t n, ...);
+Dyorite_Value *dyorite_matrix_scalar(size_t m, size_t n, const Dyorite_Scalar *data);
+
+/// Creates a matrix of M rows and N columns filled with false values
+DYORITE_API
+Dyorite_Value *dyorite_matrix_boolean_zeros(size_t m, size_t n);
+
+/// Creates an identity matrix of the given size
+DYORITE_API
+Dyorite_Value *dyorite_matrix_boolean_identity(size_t size);
+
+/// Creates a matrix of size M x N containing the boolean values
+DYORITE_API
+Dyorite_Value *dyorite_matrix_boolean(size_t m, size_t n, const Dyorite_Boolean *data);
 
 #endif // DYORITE_H
