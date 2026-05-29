@@ -75,27 +75,27 @@ Dyorite_Value *dyorite_complex(Dyorite_Scalar a, Dyorite_Scalar b);
 
 /// Creates a 0D vector (empty) (singleton)
 DYORITE_API
-Dyorite_Value *dyorite_vector0(void);
+Dyorite_Value *dyorite_vec0(void);
 
 /// Creates a 1D vector
 DYORITE_API
-Dyorite_Value *dyorite_vector1(Dyorite_Scalar x);
+Dyorite_Value *dyorite_vec1(Dyorite_Scalar x);
 
 /// Creates a 2D vector
 DYORITE_API
-Dyorite_Value *dyorite_vector2(Dyorite_Scalar x, Dyorite_Scalar y);
+Dyorite_Value *dyorite_vec2(Dyorite_Scalar x, Dyorite_Scalar y);
 
 /// Creates a 3D vector
 DYORITE_API
-Dyorite_Value *dyorite_vector3(Dyorite_Scalar x, Dyorite_Scalar y, Dyorite_Scalar z);
+Dyorite_Value *dyorite_vec3(Dyorite_Scalar x, Dyorite_Scalar y, Dyorite_Scalar z);
 
 /// Creates a 4D vector
 DYORITE_API
-Dyorite_Value *dyorite_vector4(Dyorite_Scalar x, Dyorite_Scalar y, Dyorite_Scalar z, Dyorite_Scalar w);
+Dyorite_Value *dyorite_vec4(Dyorite_Scalar x, Dyorite_Scalar y, Dyorite_Scalar z, Dyorite_Scalar w);
 
 /// Creates an ND vector
 DYORITE_API
-Dyorite_Value *dyorite_vector(size_t n, ...);
+Dyorite_Value *dyorite_vec(size_t n, ...);
 
 // ============================================================================
 //                             Matrix Constructors
@@ -103,26 +103,26 @@ Dyorite_Value *dyorite_vector(size_t n, ...);
 
 /// Creates a matrix of M rows and N columns filled with zeros
 DYORITE_API
-Dyorite_Value *dyorite_matrix_scalar_zeros(size_t m, size_t n);
+Dyorite_Value *dyorite_mat_scalar_zeros(size_t m, size_t n);
 
 /// Creates an identity matrix of the given size
 DYORITE_API
-Dyorite_Value *dyorite_matrix_scalar_identity(size_t size);
+Dyorite_Value *dyorite_mat_scalar_identity(size_t size);
 
 /// Creates a matrix of size M x N containing the scalar values
 DYORITE_API
-Dyorite_Value *dyorite_matrix_scalar(size_t m, size_t n, const Dyorite_Scalar *data);
+Dyorite_Value *dyorite_mat_scalar(size_t m, size_t n, const Dyorite_Scalar *data);
 
 /// Creates a matrix of M rows and N columns filled with false values
 DYORITE_API
-Dyorite_Value *dyorite_matrix_boolean_zeros(size_t m, size_t n);
+Dyorite_Value *dyorite_mat_boolean_zeros(size_t m, size_t n);
 
 /// Creates an identity matrix of the given size
 DYORITE_API
-Dyorite_Value *dyorite_matrix_boolean_identity(size_t size);
+Dyorite_Value *dyorite_mat_boolean_identity(size_t size);
 
 /// Creates a matrix of size M x N containing the boolean values
 DYORITE_API
-Dyorite_Value *dyorite_matrix_boolean(size_t m, size_t n, const Dyorite_Boolean *data);
+Dyorite_Value *dyorite_mat_boolean(size_t m, size_t n, const Dyorite_Boolean *data);
 
 #endif // DYORITE_H
