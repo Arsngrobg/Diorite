@@ -28,6 +28,14 @@ DYORITE_API
 Dyorite_Context *dyorite_context_delete(void);
 
 // ============================================================================
+//                                 Evaluation
+// ============================================================================
+
+/// Evaluate the given Dyorite expression with the supplied context
+DYORITE_API
+Dyorite_Value *dyorite_eval(Dyorite_Context *ctx, const char *expression);
+
+// ============================================================================
 //                             Types
 // ============================================================================
 
