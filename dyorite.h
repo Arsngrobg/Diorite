@@ -110,15 +110,4 @@ Dyorite_Value *dyorite_matrix_boolean_identity(size_t size);
 DYORITE_API
 Dyorite_Value *dyorite_matrix_boolean(size_t m, size_t n, const Dyorite_Boolean *data);
 
-// ============================================================================
-//                           Tokenization & Parsing
-// ============================================================================
-
-/// Structured representation of Dyorite source code
-typedef struct Dyorite_Tree Dyorite_Tree;
-
-/// Parses the given raw string - assuming it is valid Dyorite source code
-DYORITE_API
-Dyorite_Tree *dyorite_parse(const char *src);
-
 #endif // DYORITE_H
