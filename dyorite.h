@@ -25,7 +25,7 @@ Dyorite_Context *dyorite_context_create(void);
 
 /// Deletes a Dyorite context
 DYORITE_API
-Dyorite_Context *dyorite_context_delete(void);
+Dyorite_Context *dyorite_context_delete(Dyorite_Context *ctx);
 
 // ============================================================================
 //                                 Evaluation
