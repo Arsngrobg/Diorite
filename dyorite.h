@@ -110,4 +110,16 @@ Dyorite_Value *dyorite_matrix_boolean_identity(size_t size);
 DYORITE_API
 Dyorite_Value *dyorite_matrix_boolean(size_t m, size_t n, const Dyorite_Boolean *data);
 
+// ============================================================================
+//                               State Management
+// ============================================================================
+
+typedef struct Dyorite_Context Dyorite_Context;
+
+DYORITE_API
+Dyorite_Context *dyorite_context_create(void);
+
+DYORITE_API
+Dyorite_Context *dyorite_context_delete(void);
+
 #endif // DYORITE_H
