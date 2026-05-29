@@ -13,6 +13,21 @@
 #include <stddef.h>
 
 // ============================================================================
+//                               State Management
+// ============================================================================
+
+/// A stateful Dyorite execution context
+typedef struct Dyorite_Context Dyorite_Context;
+
+/// Creates a Dyorite context
+DYORITE_API
+Dyorite_Context *dyorite_context_create(void);
+
+/// Deletes a Dyorite context
+DYORITE_API
+Dyorite_Context *dyorite_context_delete(void);
+
+// ============================================================================
 //                             Types
 // ============================================================================
 
@@ -109,20 +124,5 @@ Dyorite_Value *dyorite_matrix_boolean_identity(size_t size);
 /// Creates a matrix of size M x N containing the boolean values
 DYORITE_API
 Dyorite_Value *dyorite_matrix_boolean(size_t m, size_t n, const Dyorite_Boolean *data);
-
-// ============================================================================
-//                               State Management
-// ============================================================================
-
-/// A stateful Dyorite execution context
-typedef struct Dyorite_Context Dyorite_Context;
-
-/// Creates a Dyorite context
-DYORITE_API
-Dyorite_Context *dyorite_context_create(void);
-
-/// Deletes a Dyorite context
-DYORITE_API
-Dyorite_Context *dyorite_context_delete(void);
 
 #endif // DYORITE_H
