@@ -1,0 +1,81 @@
+﻿[symbol:deg]
+f(r : R) -> R = r * (180.0 / pi);
+
+[symbol:rad]
+f(d : R) -> R = d * (pi / 180.0);
+
+# Wraps angle in radians between range [0, 2 * pi]
+[symbol:reduce]
+f(x : R) -> R = x - 2.0 * pi * floor(x / (2.0 * pi));
+
+[symbol:sin_loop]
+# x is the number sin is applied to
+# n is the term index
+# y is the term
+# z is the sum of terms
+f(x : R, n : Z, y : R, z : R) -> R = {
+    z if n >= 10; # Limiting to 10 terms
+    sin_loop(
+        x,
+        n + 1,
+        y * -1.0 * x * x / ((2 * n) * (2 * n + 1)),
+        z + y * -1.0 * x * x / ((2 * n) * (2 * n + 1))
+    ) otherwise;
+}
+
+[symbol:sin]
+f(x : R) -> R = sin_loop(x % (2 * pi), 1, x % (2 * pi), x % (2 * pi));
+
+[symbol:cos_loop]
+f(x : R, n : Z, y : R, z: R) -> R = {
+    z if n >= 10;
+    cos_loop(
+        x,
+        n + 1,
+        y * -1.0 * x * x / (2 * n * (2 * n - 1)),
+        z + y * -1.0 * x * x / (2 * n * (2 * n - 1))
+    ) otherwise;
+}
+
+[symbol:cos]
+f(x: R) -> R = cos_loop(x % (2 * pi), 1, 1.0, 1.0);
+
+[symbol:tan]
+f(x: R) -> R = sin(x) / cos(x);
+
+# x is the number asin is applied to
+# n is the term index
+# y is the coefficient
+# p is the power
+# z is the sum
+[symbol:asin_loop]
+f(x : R, n : Z, y : R, p : R, z : R) -> R = {
+    z if n >= 10;
+    asin_loop(
+        x,
+        n + 1,
+        y * (2 * n - 1) / (2 * n),
+        p * x * x,
+        z + (y * (2 * n - 1) / (2 * n)) * (p * x * x) * (x / (2 * n + 1))
+    ) otherwise;
+}
+
+[symbol:asin]
+f(x: R) -> R = asin_loop(x, 1, 1.0, x, x);
+
+[symbol:acos]
+f(x: R) -> R = pi / 2.0 - asin(x);
+
+[symbol:atan_loop]
+f(x : R, n : Z, y : R, z : R) -> R = {
+    z if n >= 10;
+    atan_loop(
+        x,
+        n + 1,
+        y * -1.0 * x * x / (2 * n + 1),
+        z + (y * -1.0 * x * x / (2 * n + 1))
+    ) otherwise;
+}
+
+[symbol:atan]
+f(x: R) -> R = atan_loop(x, 0, x, x);

@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0-windows</TargetFramework>
+        <UseWPF>true</UseWPF>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\Diorite.Lang.API\Diorite.Lang.API.csproj" />
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="AvalonEdit" Version="6.3.1.120" />
+        <PackageReference Include="OpenCL.Net" Version="2.2.9" />
+        <PackageReference Include="ScottPlot.WPF" Version="5.1.57" />
+    </ItemGroup>
+    <ItemGroup>
+        <None Remove="Resources\help.json" />
+        <Content Include="Resources\help.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+</Project>
