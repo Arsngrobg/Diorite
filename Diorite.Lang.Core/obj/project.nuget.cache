@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "yTSR26NRQyw=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\James Armstrong\\Documents\\Projects\\Dyorite\\Diorite.Lang.Core\\Diorite.Lang.Core.fsproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\James Armstrong\\.nuget\\packages\\fsharp.core\\10.0.100\\fsharp.core.10.0.100.nupkg.sha512"
+  ],
+  "logs": []
+}

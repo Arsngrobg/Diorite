@@ -1,0 +1,12 @@
+C:\Users\James Armstrong\Documents\Projects\Dyorite\Diorite.Lang.Core\bin\Debug\net10.0\Diorite.Lang.Core.deps.json
+C:\Users\James Armstrong\Documents\Projects\Dyorite\Diorite.Lang.Core\bin\Debug\net10.0\Diorite.Lang.Core.dll
+C:\Users\James Armstrong\Documents\Projects\Dyorite\Diorite.Lang.Core\bin\Debug\net10.0\Diorite.Lang.Core.pdb
+C:\Users\James Armstrong\Documents\Projects\Dyorite\Diorite.Lang.Core\obj\Debug\net10.0\Diorite.Lang.Core.fsproj.AssemblyReference.cache
+C:\Users\James Armstrong\Documents\Projects\Dyorite\Diorite.Lang.Core\obj\Debug\net10.0\Diorite.Lang.Core.AssemblyInfoInputs.cache
+C:\Users\James Armstrong\Documents\Projects\Dyorite\Diorite.Lang.Core\obj\Debug\net10.0\Diorite.Lang.Core.AssemblyInfo.fs
+C:\Users\James Armstrong\Documents\Projects\Dyorite\Diorite.Lang.Core\obj\Debug\net10.0\Diorite.Lang.Core.fsproj.CoreCompileInputs.cache
+C:\Users\James Armstrong\Documents\Projects\Dyorite\Diorite.Lang.Core\obj\Debug\net10.0\Diorite.Lang.Core.sourcelink.json
+C:\Users\James Armstrong\Documents\Projects\Dyorite\Diorite.Lang.Core\obj\Debug\net10.0\Diorite.Lang.Core.dll
+C:\Users\James Armstrong\Documents\Projects\Dyorite\Diorite.Lang.Core\obj\Debug\net10.0\refint\Diorite.Lang.Core.dll
+C:\Users\James Armstrong\Documents\Projects\Dyorite\Diorite.Lang.Core\obj\Debug\net10.0\Diorite.Lang.Core.pdb
+C:\Users\James Armstrong\Documents\Projects\Dyorite\Diorite.Lang.Core\obj\Debug\net10.0\ref\Diorite.Lang.Core.dll
